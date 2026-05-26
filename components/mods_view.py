@@ -17,7 +17,6 @@ class ModsView:
         
         # State Engine
         self.raw_mods: list[dict] = []
-        # FIXED: Changed typing constraint from ContextMenu to ModItem
         self.cached_items: list[ModItem] = [] 
         self.search_query = ""
         self.show_mapped = False
@@ -26,6 +25,7 @@ class ModsView:
 
         # UI Lists
         self.mods_list = ft.ListView(expand=True, spacing=10)
+        # CHANGED: Keep auto_scroll=True active since truncated items won't bloat the layout viewport
         self.log_view = ft.ListView(expand=True, spacing=2, auto_scroll=True)
 
         self.search_bar = ft.TextField(
@@ -118,37 +118,10 @@ class ModsView:
 
         self.apply_filters()
 
-    def _update_if_tabs(self, control) -> bool:
-        """Helper to recursively find and update the ft.Tabs control."""
-        if isinstance(control, ft.Tabs):
-            try:
-                control.update()
-                return True
-            except Exception:
-                pass
-        elif hasattr(control, "controls") and control.controls:
-            for sub_control in control.controls:
-                if self._update_if_tabs(sub_control):
-                    return True
-        return False
-
     def force_update(self):
-        """Forces the update of the main view and any parent Tabs to ensure rendering."""
+        """Forces the update of the main view component."""
         try:
             self.view.update()
-        except Exception:
-            pass
-
-        # Search both page controls and active view controls for ft.Tabs
-        try:
-            if self.main_page.views:
-                for control in self.main_page.views[-1].controls:
-                    if self._update_if_tabs(control):
-                        return
-            
-            for control in self.main_page.controls:
-                if self._update_if_tabs(control):
-                    return
         except Exception:
             pass
 
@@ -227,7 +200,14 @@ class ModsView:
                 self.write_log(f"Error terminating process: {e}", ft.Colors.RED_400)
 
     def write_log(self, text, color=ft.Colors.WHITE70, flush: bool = True):
+        # 1. Append the log entry
         self.log_view.controls.append(ft.Text(text, color=color, size=12, font_family="Consolas"))
+        
+        # 2. Slice the controls list to retain only the last 100 entries (prevents UI lag)
+        MAX_LINES = 100
+        if len(self.log_view.controls) > MAX_LINES:
+            self.log_view.controls = self.log_view.controls[-MAX_LINES:]
+            
         if flush:
             self.force_update()
 
@@ -261,7 +241,7 @@ class ModsView:
                     
                     line = line_bytes.decode('utf-8', errors='replace')
                     
-                    # Append log line silently
+                    # Append log line silently (truncation triggers automatically inside write_log)
                     self.write_log(line.strip(), flush=False)
                     
                     # Update progress bar properties silently

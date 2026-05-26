@@ -191,15 +191,19 @@ def main():
         response = remote_exec.run_command(cmd)
         remote_exec.stop()
 
-        if response.get('output'):
-            for log_entry in response['output']:
-                log_text = log_entry.get('output', '') if isinstance(log_entry, dict) else str(log_entry)
-                if log_text.strip():
-                    print(log_text.rstrip(), flush=True)
+        if response is not None:
+            if response.get('output'):
+                for log_entry in response['output']:
+                    log_text = log_entry.get('output', '') if isinstance(log_entry, dict) else str(log_entry)
+                    if log_text.strip():
+                        print(log_text.rstrip(), flush=True)
 
-        if not response.get('success'):
-            print("!!! ERROR INSIDE UNREAL ENGINE !!!", flush=True)
-            print(response.get('result'), flush=True)
+            if not response.get('success'):
+                print("!!! ERROR INSIDE UNREAL ENGINE !!!", flush=True)
+                print(response.get('result'), flush=True)
+                sys.exit(1)
+        else:
+            print("ERROR: No response received from Unreal Engine remote execution. Check if the editor is frozen.", flush=True)
             sys.exit(1)
 
         ue_abs_path = os.path.join(project_dir, "Content", "Pal", "Model", "Character", CATEGORY, MONSTER_NAME)

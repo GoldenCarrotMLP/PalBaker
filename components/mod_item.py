@@ -77,12 +77,25 @@ class ModItem: # Decoupled plain Python class to bypass Flet subclassing bugs
             disabled=self.is_building or self.primary_action == "none"
         )
 
+        # FIXED: Grayed out (disabled) menu options if there is no active .blend source file
         overflow_menu = ft.PopupMenuButton(
             icon=ft.Icons.MORE_VERT,
             items=[
-                ft.PopupMenuItem(content=ft.Text("Push to Unreal"), on_click=lambda e: on_action_click(self.mod_data, "push"), disabled=not self.mod_data["has_fmodel"]),
-                ft.PopupMenuItem(content=ft.Text("Cook & Pack (Skip Import)"), on_click=lambda e: on_action_click(self.mod_data, "cook"), disabled=not self.mod_data["has_ue"]),
-                ft.PopupMenuItem(content=ft.Text("Push & Cook & Pack"), on_click=lambda e: on_action_click(self.mod_data, "full"), disabled=not mod_data["has_fmodel"])
+                ft.PopupMenuItem(
+                    content=ft.Text("Push to Unreal"), 
+                    on_click=lambda e: on_action_click(self.mod_data, "push"), 
+                    disabled=not self.mod_data["has_fmodel"] or not self.mod_data.get("has_blend", False)
+                ),
+                ft.PopupMenuItem(
+                    content=ft.Text("Cook & Pack (Skip Import)"), 
+                    on_click=lambda e: on_action_click(self.mod_data, "cook"), 
+                    disabled=not self.mod_data["has_ue"]
+                ),
+                ft.PopupMenuItem(
+                    content=ft.Text("Push & Cook & Pack"), 
+                    on_click=lambda e: on_action_click(self.mod_data, "full"), 
+                    disabled=not self.mod_data["has_fmodel"] or not self.mod_data.get("has_blend", False)
+                )
             ]
         )
 
@@ -132,6 +145,9 @@ class ModItem: # Decoupled plain Python class to bypass Flet subclassing bugs
         if self.is_building:
             if self.on_cancel_click:
                 self.on_cancel_click()
+        # FIXED: Intercept open_folder action to direct users straight to the directory source
+        elif self.primary_action == "open_folder":
+            open_folder(self.mod_data["fmodel_path"])
         else:
             self.on_action_click(self.mod_data, self.primary_action)
 
@@ -147,9 +163,15 @@ class ModItem: # Decoupled plain Python class to bypass Flet subclassing bugs
                 self.primary_action = "cook"
                 self.primary_icon = ft.Icons.FAST_FORWARD
         elif self.mod_data["has_fmodel"]:
-            self.primary_text = "Push to Unreal"
-            self.primary_action = "push"
-            self.primary_icon = ft.Icons.CLOUD_UPLOAD
+            # FIXED: Change configuration to direct folder open if there is no .blend file
+            if not self.mod_data.get("has_blend", False):
+                self.primary_text = "Create .blend file"
+                self.primary_action = "open_folder"
+                self.primary_icon = ft.Icons.CREATE_NEW_FOLDER
+            else:
+                self.primary_text = "Push to Unreal"
+                self.primary_action = "push"
+                self.primary_icon = ft.Icons.CLOUD_UPLOAD
         else:
             self.primary_text = "Unavailable"
             self.primary_action = "none"
@@ -185,14 +207,12 @@ class ModItem: # Decoupled plain Python class to bypass Flet subclassing bugs
             self.container.border = ft.Border.all(1, ft.Colors.CYAN_700)
             
             # Switch primary button to Cancel
-            # FIXED: Used setattr() to bypass Pylance property typing analysis
             setattr(self.primary_button, "text", "Cancel")
             self.primary_button.icon = ft.Icons.CANCEL
             self.primary_button.style = ft.ButtonStyle(color=ft.Colors.RED_400)
             self.primary_button.disabled = False
         else:
             self.progress_container.visible = False
-            # FIXED: Used setattr() to bypass Pylance property typing analysis
             setattr(self.primary_button, "text", self.primary_text)
             self.primary_button.icon = self.primary_icon
             self.primary_button.style = None

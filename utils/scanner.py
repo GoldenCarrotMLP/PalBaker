@@ -97,6 +97,8 @@ def get_mod_info(settings: dict):
         data["ue_modified"] = ue_modified
         data["source_modified"] = source_modified
         data["has_fmodel"] = has_fmodel
+        # FIXED: Explicitly propagate has_blend to data dictionary
+        data["has_blend"] = has_blend
         data["has_ue"] = has_ue
         data["localized_name"] = get_localized_name(name)
         results.append(data)
