@@ -17,7 +17,7 @@ def open_folder(path: str):
         else:
             subprocess.Popen(['xdg-open', path])
 
-class ModItem(ft.ContextMenu):
+class ModItem: # Decoupled plain Python class to bypass Flet subclassing bugs
     def __init__(self, mod_data: dict, on_action_click, on_cancel_click, is_building: bool, show_mapped: bool):
         self.mod_data = mod_data
         self.on_action_click = on_action_click
@@ -66,7 +66,6 @@ class ModItem(ft.ContextMenu):
         self.primary_button = ft.ElevatedButton(
             self.primary_text, 
             icon=self.primary_icon, 
-            # Statically bound event handler bypasses Flet dynamic sync bugs!
             on_click=self.handle_button_click, 
             disabled=self.is_building or self.primary_action == "none"
         )
@@ -76,7 +75,7 @@ class ModItem(ft.ContextMenu):
             items=[
                 ft.PopupMenuItem(content=ft.Text("Push to Unreal"), on_click=lambda e: on_action_click(self.mod_data, "push"), disabled=not self.mod_data["has_fmodel"]),
                 ft.PopupMenuItem(content=ft.Text("Cook & Pack (Skip Import)"), on_click=lambda e: on_action_click(self.mod_data, "cook"), disabled=not self.mod_data["has_ue"]),
-                ft.PopupMenuItem(content=ft.Text("Push & Cook & Pack"), on_click=lambda e: on_action_click(self.mod_data, "full"), disabled=not self.mod_data["has_fmodel"])
+                ft.PopupMenuItem(content=ft.Text("Push & Cook & Pack"), on_click=lambda e: on_action_click(self.mod_data, "full"), disabled=not mod_data["has_fmodel"])
             ]
         )
 
@@ -112,23 +111,21 @@ class ModItem(ft.ContextMenu):
             animate=ft.Animation(500, "easeOut") 
         )
 
-        super().__init__(
+        # The actual Flet control tree is stored under this .view property
+        self.view = ft.ContextMenu(
             content=self.container,
             items=[
                 ft.PopupMenuItem(content=ft.Text("Open source in file explorer"), on_click=lambda e: open_folder(self.mod_data["fmodel_path"]), disabled=not self.mod_data["has_fmodel"]),
                 ft.PopupMenuItem(content=ft.Text("Open unreal assets in file explorer"), on_click=lambda e: open_folder(self.mod_data["ue_path"]), disabled=not self.mod_data["has_ue"])
             ]
         ) # type: ignore
-        setattr(self, "mod_data", mod_data)
 
     def handle_button_click(self, e):
         """Intelligently routes the button click based on current state."""
         if self.is_building:
-            # If we are building, this button is acting as the Cancel button
             if self.on_cancel_click:
                 self.on_cancel_click()
         else:
-            # Otherwise, perform the primary action
             self.on_action_click(self.mod_data, self.primary_action)
 
     def update_primary_button_config(self):
@@ -198,7 +195,7 @@ class ModItem(ft.ContextMenu):
                     time.sleep(2.5)
                     self.container.border = ft.Border.all(1, ft.Colors.WHITE24)
                     try: 
-                        if self.container.page: self.container.update() 
+                        if self.view.page: self.view.update() 
                     except: pass
                 threading.Thread(target=reset_border, daemon=True).start()
             elif success is False:
@@ -207,12 +204,12 @@ class ModItem(ft.ContextMenu):
                     time.sleep(2.5)
                     self.container.border = ft.Border.all(1, ft.Colors.WHITE24)
                     try: 
-                        if self.container.page: self.container.update() 
+                        if self.view.page: self.view.update() 
                     except: pass
                 threading.Thread(target=reset_border, daemon=True).start()
                 
-        if self.container.page:
-            try: self.container.update()
+        if self.view.page:
+            try: self.view.update()
             except: pass
 
     def update_progress(self, line: str):
@@ -255,6 +252,6 @@ class ModItem(ft.ContextMenu):
             self.progress_bar.value = 0.95
             self.status_text.value = "[4/4] Generating .pak file..."
             
-        if self.progress_bar.page:
-            try: self.progress_bar.update()
+        if self.view.page:
+            try: self.view.update()
             except: pass
