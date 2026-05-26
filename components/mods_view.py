@@ -1,8 +1,8 @@
 import flet as ft
 import os
 import sys
+import asyncio
 import subprocess
-import threading
 import time
 from utils import get_mod_info
 from components.mod_item import ModItem
@@ -54,6 +54,15 @@ class ModsView:
             ft.IconButton(ft.Icons.REFRESH, on_click=lambda e: self.refresh_mods(scan_disk=True))
         ]
 
+        self.console_container = ft.Container(
+            content=self.log_view, 
+            expand=True, 
+            bgcolor=ft.Colors.BLACK, 
+            border_radius=10, 
+            padding=15, 
+            border=ft.Border.all(1, ft.Colors.WHITE10)
+        )
+
         self.view = ft.Column(
             expand=True,
             controls=[
@@ -62,7 +71,7 @@ class ModsView:
                 self.status_chips,
                 ft.Container(self.mods_list, height=300, border=ft.Border.all(1, ft.Colors.WHITE10), border_radius=10, padding=10),
                 ft.Text("Build Console", size=16, weight=ft.FontWeight.BOLD),
-                ft.Container(self.log_view, expand=True, bgcolor=ft.Colors.BLACK, border_radius=10, padding=15, border=ft.Border.all(1, ft.Colors.WHITE10))
+                self.console_container
             ]
         )
 
@@ -108,13 +117,47 @@ class ModsView:
 
         self.apply_filters()
 
+    def _update_if_tabs(self, control) -> bool:
+        """Helper to recursively find and update the ft.Tabs control."""
+        if isinstance(control, ft.Tabs):
+            try:
+                control.update()
+                return True
+            except Exception:
+                pass
+        elif hasattr(control, "controls") and control.controls:
+            for sub_control in control.controls:
+                if self._update_if_tabs(sub_control):
+                    return True
+        return False
+
+    def force_update(self):
+        """Forces the update of the main view and any parent Tabs to ensure rendering."""
+        try:
+            self.view.update()
+        except Exception:
+            pass
+
+        # Search both page controls and active view controls for ft.Tabs
+        try:
+            if self.main_page.views:
+                for control in self.main_page.views[-1].controls:
+                    if self._update_if_tabs(control):
+                        return
+            
+            for control in self.main_page.controls:
+                if self._update_if_tabs(control):
+                    return
+        except Exception:
+            pass
+
     def apply_filters(self):
         self.mods_list.controls.clear()
         
         fmodel_dir = str(self.settings.get("fmodel_output", ""))
         if not fmodel_dir or not os.path.exists(fmodel_dir):
             self.mods_list.controls.append(ft.Text("Set a valid FModel Output Folder in Settings.", color=ft.Colors.RED_400))
-            self.view.update()
+            self.force_update()
             return
 
         filtered_items = []
@@ -145,7 +188,7 @@ class ModsView:
         else:
             self.mods_list.controls.extend([item.view for item in filtered_items])
             
-        self.view.update()
+        self.force_update()
 
     def handle_action(self, mod_data, action):
         if self.is_building: return
@@ -185,7 +228,7 @@ class ModsView:
     def write_log(self, text, color=ft.Colors.WHITE70, flush: bool = True):
         self.log_view.controls.append(ft.Text(text, color=color, size=12, font_family="Consolas"))
         if flush:
-            self.view.update()
+            self.force_update()
 
     def execute_pipeline(self, mod_data, action):
         self.is_building = True
@@ -193,19 +236,14 @@ class ModsView:
         self.refresh_mods(scan_disk=False)
         self.write_log(f"\n>>> EXECUTING [{action.upper()}]: {mod_data['name']}", ft.Colors.CYAN_400)
         
-        def run_thread():
+        async def run_task():
             script_path = os.path.join(os.path.dirname(os.path.dirname(__file__)), "build_mod.py")
             
-            # CRITICAL: sys.executable guarantees we use the exact current Python interpreter.
-            # The '-u' flag forces Python to output standard I/O unbuffered, ensuring realtime logs!
-            process = subprocess.Popen(
-                [sys.executable, "-u", script_path, mod_data["name"], mod_data["category"], action],
-                stdout=subprocess.PIPE,
-                stderr=subprocess.STDOUT,
-                text=True,
-                encoding='utf-8',
-                errors='replace',
-                bufsize=1,
+            # Start process asynchronously using asyncio's subprocess implementation
+            process = await asyncio.create_subprocess_exec(
+                sys.executable, "-u", script_path, mod_data["name"], mod_data["category"], action,
+                stdout=asyncio.subprocess.PIPE,
+                stderr=asyncio.subprocess.STDOUT,
                 creationflags=subprocess.CREATE_NO_WINDOW if os.name == 'nt' else 0
             )
             
@@ -215,9 +253,14 @@ class ModsView:
             update_pending = False
 
             if process.stdout:
-                for line in iter(process.stdout.readline, ''):
-                    if not line: break
-                    # Append log line to UI list model silently without immediate websocket update
+                while True:
+                    line_bytes = await process.stdout.readline()
+                    if not line_bytes:
+                        break
+                    
+                    line = line_bytes.decode('utf-8', errors='replace')
+                    
+                    # Append log line silently
                     self.write_log(line.strip(), flush=False)
                     
                     # Update progress bar variables silently
@@ -228,20 +271,24 @@ class ModsView:
                     
                     update_pending = True
                     
-                    # Throttle websocket updates to a maximum of 10 times per second (100ms interval)
+                    # Yield execution briefly back to Flet's asyncio loop to flush socket queues
+                    await asyncio.sleep(0.001)
+                    
+                    # Throttle visual rendering updates to at most once every 100ms
                     current_time = time.time()
                     if current_time - last_update_time >= 0.10:
-                        self.view.update()
+                        self.force_update()
                         last_update_time = current_time
                         update_pending = False
 
-            process.wait()
-            success = (process.returncode == 0)
+            # Wait for the async process exit
+            returncode = await process.wait()
+            success = (returncode == 0)
             
             if success:
                 self.write_log("SUCCESS: Operation completed.", ft.Colors.GREEN_400, flush=False)
             else:
-                self.write_log(f"Process terminated with exit code {process.returncode}", ft.Colors.RED_400, flush=False)
+                self.write_log(f"Process terminated with exit code {returncode}", ft.Colors.RED_400, flush=False)
             
             self.is_building = False
             self.active_process = None
@@ -252,8 +299,7 @@ class ModsView:
                     break
                     
             self.active_mod_name = ""
-            
-            # Final refresh triggers full view update
             self.refresh_mods(scan_disk=True)
 
-        threading.Thread(target=run_thread, daemon=True).start()
+        # Execute as a native asyncio task managed by Flet's underlying event loop
+        self.main_page.run_task(run_task)
