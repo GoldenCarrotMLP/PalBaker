@@ -2,6 +2,7 @@
 
 #include "CoreMinimal.h"
 #include "Kismet/BlueprintFunctionLibrary.h"
+#include "Kismet2/KismetEditorUtilities.h"
 #include "AnimScriptingLibrary.generated.h"
 
 class UAnimBlueprint;

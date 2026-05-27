@@ -29,12 +29,10 @@ def run_import():
         if unreal.EditorAssetLibrary.does_asset_exist(skel_path):
             unreal.EditorAssetLibrary.delete_asset(skel_path)
             
-        # FIXED: Delete the stale Animation Blueprint so that it is forced 
-        # to regenerate and link directly to the newly imported skeleton's GUID.
         anim_bp_path = f"/Game/Pal/Model/Character/Skeleton/{folder_name}/{folder_name}_BP"
         if unreal.EditorAssetLibrary.does_asset_exist(anim_bp_path):
             unreal.EditorAssetLibrary.delete_asset(anim_bp_path)
-            
+
     for json_file in config["mi_jsons"]:
         mi_name = os.path.basename(json_file).replace('.json', '')
         mi_path = f"{ue_path}/{mi_name}"
@@ -258,6 +256,26 @@ def run_import():
                 success = unreal.AnimScriptingLibrary.apply_pal_baker_rigging(anim_bp, json_path)
                 if success:
                     print("Rigging applied and compiled successfully.")
+                    
+                    if target_asset_path:
+                        mesh_to_update = unreal.EditorAssetLibrary.load_asset(target_asset_path)
+                        if mesh_to_update:
+                            try:
+                                # FIXED: Extract compiled _C class directly via string parsing
+                                bp_name = anim_bp.get_name()
+                                bp_path_name = anim_bp.get_path_name().split(".")[0]
+                                class_path = f"{bp_path_name}.{bp_name}_C"
+                                
+                                gen_class = unreal.load_class(None, class_path)
+
+                                if gen_class:
+                                    mesh_to_update.set_editor_property('post_process_anim_blueprint', gen_class)
+                                    unreal.EditorAssetLibrary.save_loaded_asset(mesh_to_update)
+                                    print(f"Successfully bound {gen_class.get_name()} as the Post Process Anim Blueprint on the Mesh!")
+                                else:
+                                    print(f"WARNING: Could not load compiled _C class at {class_path}")
+                            except Exception as e:
+                                print(f"Warning: Could not link PostProcessAnimBlueprint: {e}")
                 else:
                     print("C++ Rigging module returned false.")
             except Exception as e:

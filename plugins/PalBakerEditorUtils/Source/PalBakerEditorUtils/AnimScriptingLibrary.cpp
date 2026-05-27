@@ -171,6 +171,6 @@ bool UAnimScriptingLibrary::ApplyPalBakerRigging(UAnimBlueprint* AnimBP, const F
     C2L->FindPin(TEXT("Pose"))->MakeLinkTo(RootInputPin);
 
     FBlueprintEditorUtils::MarkBlueprintAsStructurallyModified(AnimBP);
-
+    FKismetEditorUtilities::CompileBlueprint(AnimBP);
     return true;
 }

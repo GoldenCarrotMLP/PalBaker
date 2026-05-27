@@ -25,7 +25,6 @@ class ModsView:
 
         # UI Lists
         self.mods_list = ft.ListView(expand=True, spacing=10)
-        # CHANGED: Keep auto_scroll=True active since truncated items won't bloat the layout viewport
         self.log_view = ft.ListView(expand=True, spacing=2, auto_scroll=True)
 
         self.search_bar = ft.TextField(
@@ -167,23 +166,32 @@ class ModsView:
     def handle_action(self, mod_data, action):
         if self.is_building: return
 
-        if action in ["push", "full"] and mod_data["ue_modified"]:
+        if action in ["push", "full"] and mod_data.get("ue_modified"):
             def confirm(e):
-                self.main_page.close(dlg) # type: ignore
+                self.main_page.pop_dialog()
                 self.execute_pipeline(mod_data, action)
             
             def cancel(e):
-                self.main_page.close(dlg) # type: ignore
+                self.main_page.pop_dialog()
+
+            mod_files = mod_data.get("ue_modified_files", [])
+            files_str = "\n".join([f" • {f}" for f in mod_files])
 
             dlg = ft.AlertDialog(
+                open=True,
+                modal=True,
                 title=ft.Text("Warning: Overwrite Unreal Assets?"),
-                content=ft.Text(f"You have manually modified files inside Unreal Engine since your last Push for {mod_data['name']}.\nContinuing will OVERWRITE and delete those changes.\n\nAre you sure you want to proceed?"),
+                content=ft.Column([
+                    ft.Text(f"You have manually modified files inside Unreal Engine since your last Push for {mod_data['name']}.\nContinuing will OVERWRITE and delete those changes.\n\nModified files:"),
+                    ft.Text(files_str, color=ft.Colors.RED_400, size=12, selectable=True),
+                    ft.Text("Are you sure you want to proceed?", weight=ft.FontWeight.BOLD)
+                ], tight=True),
                 actions=[
                     ft.TextButton("Cancel", on_click=cancel),
                     ft.TextButton("Overwrite & Proceed", on_click=confirm, style=ft.ButtonStyle(color=ft.Colors.RED)),
                 ]
             )
-            self.main_page.open(dlg) # type: ignore
+            self.main_page.show_dialog(dlg)
         else:
             self.execute_pipeline(mod_data, action)
 

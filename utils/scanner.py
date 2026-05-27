@@ -57,7 +57,9 @@ def get_mod_info(settings: dict):
             badges.append(("SRC CHANGED", ft.Colors.BLUE_900))
 
         # Check UE Modifications
-        ue_modified = is_ue_modified(fmodel_path, ue_path) if (has_fmodel and has_ue) else False
+        ue_modified_files = is_ue_modified(fmodel_path, ue_path) if (has_fmodel and has_ue) else []
+        ue_modified = len(ue_modified_files) > 0
+        
         if ue_modified:
             badges.append(("MODIFIED", ft.Colors.RED_700))
 
@@ -95,9 +97,9 @@ def get_mod_info(settings: dict):
         data["pak_status"] = pak_status
         data["pak_color"] = pak_color
         data["ue_modified"] = ue_modified
+        data["ue_modified_files"] = ue_modified_files
         data["source_modified"] = source_modified
         data["has_fmodel"] = has_fmodel
-        # FIXED: Explicitly propagate has_blend to data dictionary
         data["has_blend"] = has_blend
         data["has_ue"] = has_ue
         data["localized_name"] = get_localized_name(name)

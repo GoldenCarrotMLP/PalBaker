@@ -47,9 +47,9 @@ def save_push_state(fmodel_dir, ue_dir):
         }, f)
 
 def is_ue_modified(fmodel_dir, ue_dir):
-    """Returns True if UE assets were modified since the last Push."""
+    """Returns a list of specific UE assets modified since the last Push."""
     if not os.path.exists(fmodel_dir):
-        return False
+        return []
         
     state_file = os.path.join(fmodel_dir, ".palbaker_state.json")
     current_ue_mtime = get_max_mtime(ue_dir, ".uasset")
@@ -59,16 +59,22 @@ def is_ue_modified(fmodel_dir, ue_dir):
     if not os.path.exists(state_file):
         if current_ue_mtime > 0.0 or current_source_mtime > 0.0:
             save_push_state(fmodel_dir, ue_dir)
-        return False
+        return []
         
     try:
         with open(state_file, "r") as f:
             data = json.load(f)
             saved_mtime = data.get("last_ue_mtime", 0.0)
             
-        return current_ue_mtime > saved_mtime
+        modified_files = []
+        files = glob.glob(os.path.join(ue_dir, "*.uasset"))
+        for file in files:
+            if os.path.getmtime(file) > saved_mtime:
+                modified_files.append(os.path.basename(file))
+                
+        return modified_files
     except:
-        return True
+        return ["<State file corrupted or missing>"]
 
 def is_source_modified(fmodel_dir):
     """Returns True if FModel source files have changed since the last Push."""
