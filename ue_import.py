@@ -16,6 +16,7 @@ def run_import():
     # PRE-WIPE CACHE
     if config.get("fbx_file") and os.path.exists(config["fbx_file"]):
         fbx_base_name = os.path.splitext(os.path.basename(config['fbx_file']))[0]
+        
         sk_path = f"{ue_path}/SK_{fbx_base_name}"
         if unreal.EditorAssetLibrary.does_asset_exist(sk_path):
             unreal.EditorAssetLibrary.delete_asset(sk_path)
@@ -28,6 +29,12 @@ def run_import():
         if unreal.EditorAssetLibrary.does_asset_exist(skel_path):
             unreal.EditorAssetLibrary.delete_asset(skel_path)
             
+        # FIXED: Delete the stale Animation Blueprint so that it is forced 
+        # to regenerate and link directly to the newly imported skeleton's GUID.
+        anim_bp_path = f"/Game/Pal/Model/Character/Skeleton/{folder_name}/{folder_name}_BP"
+        if unreal.EditorAssetLibrary.does_asset_exist(anim_bp_path):
+            unreal.EditorAssetLibrary.delete_asset(anim_bp_path)
+            
     for json_file in config["mi_jsons"]:
         mi_name = os.path.basename(json_file).replace('.json', '')
         mi_path = f"{ue_path}/{mi_name}"
@@ -38,12 +45,15 @@ def run_import():
     for png in config["textures"]:
         print(f"Importing texture: {os.path.basename(png)}")
         task = unreal.AssetImportTask()
-        task.filename = png
-        task.destination_path = ue_path
-        task.automated = True
-        task.save = True
-        task.replace_existing = True
-        asset_tools.import_asset_tasks([task])
+        task.set_editor_property('filename', png)
+        task.set_editor_property('destination_path', ue_path)
+        task.set_editor_property('automated', True)
+        task.set_editor_property('save', True)
+        task.set_editor_property('replace_existing', True)
+        
+        tasks = unreal.Array(unreal.AssetImportTask)
+        tasks.append(task)
+        asset_tools.import_asset_tasks(tasks)
 
     # 2. IMPORT FBX & GENERATE ASSETS natively at 1.0 Scale
     target_asset_path = ""
@@ -57,17 +67,17 @@ def run_import():
         
         print(f"Importing skeletal mesh: {fbx_filename} as {fbx_import_name}")
         fbx_task = unreal.AssetImportTask()
-        fbx_task.filename = config["fbx_file"]
-        fbx_task.destination_path = ue_path
-        fbx_task.destination_name = fbx_import_name
-        fbx_task.automated = True
-        fbx_task.save = True
-        fbx_task.replace_existing = True
+        fbx_task.set_editor_property('filename', config["fbx_file"])
+        fbx_task.set_editor_property('destination_path', ue_path)
+        fbx_task.set_editor_property('destination_name', fbx_import_name)
+        fbx_task.set_editor_property('automated', True)
+        fbx_task.set_editor_property('save', True)
+        fbx_task.set_editor_property('replace_existing', True)
         
         options = unreal.FbxImportUI()
-        options.import_mesh = True
-        options.import_as_skeletal = True
-        options.mesh_type_to_import = unreal.FBXImportType.FBXIT_SKELETAL_MESH
+        options.set_editor_property('import_mesh', True)
+        options.set_editor_property('import_as_skeletal', True)
+        options.set_editor_property('mesh_type_to_import', unreal.FBXImportType.FBXIT_SKELETAL_MESH)
         options.set_editor_property('import_materials', False)
         options.set_editor_property('import_textures', False)
         options.set_editor_property('create_physics_asset', True)
@@ -77,12 +87,13 @@ def run_import():
         skel_data.set_editor_property('normal_import_method', unreal.FBXNormalImportMethod.FBXNIM_IMPORT_NORMALS)
         skel_data.set_editor_property('update_skeleton_reference_pose', False)
         skel_data.set_editor_property('use_t0_as_ref_pose', True)
-        # REMOVED import_uniform_scale. Blender passes it fully baked.
         
-        options.skeletal_mesh_import_data = skel_data
-        fbx_task.options = options
+        options.set_editor_property('skeletal_mesh_import_data', skel_data)
+        fbx_task.set_editor_property('options', options)
         
-        asset_tools.import_asset_tasks([fbx_task])
+        fbx_tasks = unreal.Array(unreal.AssetImportTask)
+        fbx_tasks.append(fbx_task)
+        asset_tools.import_asset_tasks(fbx_tasks)
 
         # RELOCATE SKELETON
         auto_skeleton_path = f"{ue_path}/{fbx_import_name}_Skeleton"
@@ -112,7 +123,7 @@ def run_import():
             
         asset_name = os.path.basename(json_file).replace('.json', '')
         factory = unreal.MaterialInstanceConstantFactoryNew()
-        mi_asset = asset_tools.create_asset(asset_name, ue_path, unreal.MaterialInstanceConstant, factory)
+        mi_asset = asset_tools.create_asset(asset_name, ue_path, unreal.MaterialInstanceConstant.static_class(), factory)
         
         is_raw_fmodel = isinstance(mi_data, list) and len(mi_data) > 0 and "Properties" in mi_data[0]
         parent_path = ""
@@ -183,29 +194,74 @@ def run_import():
             if saved_phys:
                 try:
                     mesh.set_editor_property('physics_asset', saved_phys)
-                except Exception as e:
+                except Exception:
                     pass
             
             new_materials = []
-            skel_materials = mesh.materials
+            skel_materials = mesh.get_editor_property('materials')
             
             for skel_mat in skel_materials:
-                slot_name = str(skel_mat.material_slot_name).lower()
-                assigned = False
+                slot_name = str(skel_mat.get_editor_property('material_slot_name')).lower()
                 
                 for mi_name, mi_asset in mi_assets:
                     if ("body" in mi_name and "body" in slot_name) or \
                        ("eye" in mi_name and "eye" in slot_name) or \
                        ("mouth" in mi_name and "mouth" in slot_name) or \
                        ("hair" in mi_name and "hair" in slot_name):
-                        skel_mat.material_interface = mi_asset
-                        assigned = True
+                        skel_mat.set_editor_property('material_interface', mi_asset)
                         break
                         
                 new_materials.append(skel_mat)
             
             mesh.set_editor_property('materials', new_materials)
             unreal.EditorAssetLibrary.save_loaded_asset(mesh)
+
+    # 5. AUTOMATED RIGGING (SPRING BONES AND OFFSETS)
+    json_path = os.path.join(working_dir, "bone_data.json")
+    if os.path.exists(json_path):
+        print("Checking for Animation Blueprint to apply advanced rigging...")
+        anim_bp = None
+        ar = unreal.AssetRegistryHelpers.get_asset_registry()
+        
+        skeleton_dir = f"/Game/Pal/Model/Character/Skeleton/{folder_name}"
+        skeleton_assets = ar.get_assets_by_path(skeleton_dir, recursive=True)
+        anim_bps = [a for a in skeleton_assets if str(a.asset_class_path.asset_name) == "AnimBlueprint"]
+        
+        if anim_bps:
+            anim_bp = unreal.EditorAssetLibrary.load_asset(anim_bps[0].package_name)
+        else:
+            monster_assets = ar.get_assets_by_path(ue_path, recursive=True)
+            anim_bps = [a for a in monster_assets if str(a.asset_class_path.asset_name) == "AnimBlueprint"]
+            if anim_bps:
+                anim_bp = unreal.EditorAssetLibrary.load_asset(anim_bps[0].package_name)
+                
+        # GENERATE NEW BLUEPRINT IF NOT FOUND
+        if not anim_bp:
+            print(f"No Animation Blueprint found. Generating a new one for {folder_name}...")
+            skeleton_path = f"/Game/Pal/Model/Character/Skeleton/{folder_name}/SK_{folder_name}_Skeleton"
+            skel = unreal.EditorAssetLibrary.load_asset(skeleton_path)
+            
+            if skel:
+                factory = unreal.AnimBlueprintFactory()
+                factory.set_editor_property('target_skeleton', skel)
+                bp_name = f"{folder_name}_BP"
+                
+                anim_bp = asset_tools.create_asset(bp_name, skeleton_dir, unreal.AnimBlueprint.static_class(), factory)
+                if anim_bp:
+                    print(f"Created new Animation Blueprint: {bp_name}")
+            else:
+                print(f"ERROR: Cannot create Animation Blueprint because skeleton {skeleton_path} is missing.")
+                
+        if anim_bp:
+            print(f"Applying PalBaker rigging setup to: {anim_bp.get_name()}")
+            try:
+                success = unreal.AnimScriptingLibrary.apply_pal_baker_rigging(anim_bp, json_path)
+                if success:
+                    print("Rigging applied and compiled successfully.")
+                else:
+                    print("C++ Rigging module returned false.")
+            except Exception as e:
+                print(f"Failed to execute rigging setup: {e}")
 
     print("Flushing all generated assets to disk...")
     unreal.EditorLoadingAndSavingUtils.save_dirty_packages(save_map_packages=False, save_content_packages=True)

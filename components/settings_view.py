@@ -1,7 +1,9 @@
 import flet as ft
 from utils.config import save_settings
+from utils.plugin_manager import setup_and_compile_plugin
+import threading
 
-class SettingsView: # Changed: Standard Python Class to bypass Flet's __getattr__ bugs
+class SettingsView:
     def __init__(self, page: ft.Page, settings: dict, on_save_callback):
         self.main_page = page
         self.settings = settings
@@ -20,7 +22,6 @@ class SettingsView: # Changed: Standard Python Class to bypass Flet's __getattr_
             value=bool(settings.get("show_mapped", False))
         )
 
-        # Satisfies Pylance's list covariance requirements by declaring empty list and extending
         view_controls: list[ft.Control] = []
         view_controls.extend([
             ft.Text("Application Paths", size=20, weight=ft.FontWeight.BOLD),
@@ -36,16 +37,12 @@ class SettingsView: # Changed: Standard Python Class to bypass Flet's __getattr_
             ft.ElevatedButton("Save and Reload Mod List", icon=ft.Icons.SAVE, on_click=self.save_clicked, height=50)
         ])
         
-        # We store the layout column directly inside our .view property
         self.view = ft.Column(
             scroll=ft.ScrollMode.AUTO,
             spacing=20,
             controls=view_controls
         )
 
-    # ---------------------------------------------------
-    # Modern Async FilePickers (Flet 0.85+ Services)
-    # ---------------------------------------------------
     async def pick_fmodel_folder(self, e):
         picker = ft.FilePicker()
         self.main_page.overlay.append(picker)
@@ -109,6 +106,10 @@ class SettingsView: # Changed: Standard Python Class to bypass Flet's __getattr_
         field.update()
 
     def save_clicked(self, e):
+        # Notify the user that background compilation may occur
+        self.main_page.overlay.append(ft.SnackBar(ft.Text("Saving settings and verifying plugins..."), open=True))
+        self.main_page.update()
+
         self.settings.update({
             "fmodel_output": str(self.fmodel_output_field.value),
             "ue_root": str(self.ue_root_field.value),
@@ -118,6 +119,17 @@ class SettingsView: # Changed: Standard Python Class to bypass Flet's __getattr_
             "show_mapped": bool(self.show_mapped_switch.value)
         })
         save_settings(self.settings)
-        self.main_page.overlay.append(ft.SnackBar(ft.Text("Settings saved!"), open=True))
-        self.main_page.update()
-        self.on_save_callback()
+
+        # Run the plugin compiler asynchronously so it doesn't freeze the UI
+        def verify_and_build():
+            success, msg = setup_and_compile_plugin(self.settings["ue_root"], self.settings["uproject"])
+            
+            # Show result popup
+            color = ft.Colors.GREEN_400 if success else ft.Colors.RED_400
+            self.main_page.overlay.append(ft.SnackBar(ft.Text(msg, color=color), open=True))
+            self.main_page.update()
+            
+            # Trigger the standard reload
+            self.on_save_callback()
+
+        threading.Thread(target=verify_and_build, daemon=True).start()

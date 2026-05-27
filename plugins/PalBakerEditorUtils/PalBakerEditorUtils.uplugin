@@ -1,0 +1,16 @@
+{
+    "FileVersion": 3,
+    "Version": 1,
+    "VersionName": "1.0",
+    "FriendlyName": "PalBaker Editor Utilities",
+    "Description": "Automated AnimGraph Generation for Palworld Modding",
+    "Category": "Editor",
+    "EnabledByDefault": true,
+    "Modules": [
+        {
+            "Name": "PalBakerEditorUtils",
+            "Type": "Editor",
+            "LoadingPhase": "PostEngineInit"
+        }
+    ]
+}

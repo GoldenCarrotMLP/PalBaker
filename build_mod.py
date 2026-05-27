@@ -37,7 +37,7 @@ SKELETON_VIRTUAL_PATH = f"/Game/Pal/Model/Character/Skeleton/{MONSTER_NAME}"
 
 sys.path.append(UE_PYTHON_DIR)
 try:
-    import remote_execution
+    import remote_execution  # type: ignore
 except ImportError:
     print(f"ERROR: Could not find remote_execution.py in {UE_PYTHON_DIR}")
     sys.exit(1)
@@ -62,7 +62,6 @@ def run_and_stream(cmd_args):
     if process.stdout:
         for line in iter(process.stdout.readline, ''):
             if not line: break
-            # Force immediate console flush so the Flet UI captures it
             print(line.strip(), flush=True) 
             
     process.wait()
@@ -144,20 +143,19 @@ def main():
         if blend_files:
             blend_file = blend_files[0]
             fbx_file = os.path.join(FMODEL_DIR, f"{MONSTER_NAME}.fbx")
-            print("Running headless Blender...", flush=True)
             
-            blender_export_script = (
-                f"import bpy; "
-                f"bpy.ops.export_scene.fbx("
-                f"filepath=r'{fbx_file}', "
-                f"use_selection=False, "
-                f"add_leaf_bones=False, "
-                f"mesh_smooth_type='FACE', "
-                f"armature_nodetype='ROOT', "
-                f"global_scale=0.01, "
-                f"apply_scale_options='FBX_SCALE_ALL')"
-            )
-            subprocess.run([BLENDER_PATH, "-b", blend_file, "--python-expr", blender_export_script], check=True, stdout=subprocess.DEVNULL, stderr=subprocess.DEVNULL)
+            extractor_script = os.path.join(os.path.dirname(__file__), "utils", "blender_extractor.py")
+            output_json = os.path.join(FMODEL_DIR, "bone_data.json")
+            
+            print("Running headless Blender (Extracting Rigging & Exporting FBX)...", flush=True)
+            subprocess.run([
+                BLENDER_PATH, 
+                "-b", blend_file, 
+                "--python", extractor_script, 
+                "--", 
+                "--output", output_json, 
+                "--fbx", fbx_file
+            ], check=True, stdout=subprocess.DEVNULL, stderr=subprocess.DEVNULL)
 
         pngs = glob.glob(os.path.join(FMODEL_DIR, "*.png"))
         jsons = glob.glob(os.path.join(FMODEL_DIR, "MI_*.json"))
@@ -228,7 +226,6 @@ def main():
 
         try:
             print("Cooking Target Folders...", flush=True)
-            # FIXED: Streams the Unreal Cook logs in absolute real-time without buffering
             run_and_stream([UE_CMD_PATH, UPROJECT_PATH, "-run=cook", "-targetplatform=Windows", "-unversioned", "-NoUI", "-Map=/Engine/Maps/Entry"])
 
             print("Preparing Pak (Filtering out Skeleton and Physics)...", flush=True)
@@ -255,7 +252,6 @@ def main():
                 sys.exit(1)
 
             print(f"Building final PAK ({files_found} files)...", flush=True)
-            # FIXED: Streams the UnrealPak log in absolute real-time
             run_and_stream([UNREALPAK_PATH, output_pak, f"-Create={response_file}"])
             print(f"SUCCESS! Pak created at: {output_pak}", flush=True)
 
