@@ -34,6 +34,7 @@ UE_PYTHON_DIR = os.path.join(UE_ROOT, "Engine", "Plugins", "Experimental", "Pyth
 FMODEL_DIR = os.path.join(FMODEL_ROOT, "Exports", "Pal", "Content", "Pal", "Model", "Character", CATEGORY, MONSTER_NAME)
 UE_VIRTUAL_PATH = f"/Game/Pal/Model/Character/{CATEGORY}/{MONSTER_NAME}"
 SKELETON_VIRTUAL_PATH = f"/Game/Pal/Model/Character/Skeleton/{MONSTER_NAME}"
+ANIMS_VIRTUAL_PATH = f"/Game/Pal/Animation/Character/Monster/{MONSTER_NAME}"
 
 sys.path.append(UE_PYTHON_DIR)
 try:
@@ -68,7 +69,7 @@ def run_and_stream(cmd_args):
     if process.returncode != 0:
         raise subprocess.CalledProcessError(process.returncode, cmd_args)
 
-def inject_packaging_settings(ini_path):
+def inject_packaging_settings(ini_path, has_anims):
     if not os.path.exists(ini_path):
         return
     with open(ini_path, "r", encoding="utf-8-sig", errors="replace") as f:
@@ -79,7 +80,6 @@ def inject_packaging_settings(ini_path):
     section_found = False
     section_header = "[/Script/UnrealEd.ProjectPackagingSettings]"
     
-    # We strip out existing keys to prevent duplicates when updating
     keys_to_override = [
         "DirectoriesToAlwaysCook", "+DirectoriesToAlwaysCook", "-DirectoriesToAlwaysCook",
         "bCookAll", "bUseIoStore", "bShareMaterialShaderCode", "MapsToCook", "+MapsToCook", "-MapsToCook"
@@ -92,12 +92,14 @@ def inject_packaging_settings(ini_path):
                 in_section = True
                 section_found = True
                 new_lines.append(line)
-                # Inject settings to disable IoStore and Material Sharing to output loose .uassets
                 new_lines.append("bCookAll=False\n")
                 new_lines.append("bUseIoStore=False\n")
                 new_lines.append("bShareMaterialShaderCode=False\n")
                 new_lines.append(f'+DirectoriesToAlwaysCook=(Path="{UE_VIRTUAL_PATH}")\n')
                 new_lines.append(f'+DirectoriesToAlwaysCook=(Path="{SKELETON_VIRTUAL_PATH}")\n')
+                # FIXED: If custom animations exist, instruct the cooker to compile them
+                if has_anims:
+                    new_lines.append(f'+DirectoriesToAlwaysCook=(Path="{ANIMS_VIRTUAL_PATH}")\n')
                 new_lines.append("MapsToCook=\n")
                 continue
             else:
@@ -115,6 +117,8 @@ def inject_packaging_settings(ini_path):
         new_lines.append("bShareMaterialShaderCode=False\n")
         new_lines.append(f'+DirectoriesToAlwaysCook=(Path="{UE_VIRTUAL_PATH}")\n')
         new_lines.append(f'+DirectoriesToAlwaysCook=(Path="{SKELETON_VIRTUAL_PATH}")\n')
+        if has_anims:
+            new_lines.append(f'+DirectoriesToAlwaysCook=(Path="{ANIMS_VIRTUAL_PATH}")\n')
         
     with open(ini_path, "w", encoding="utf-8") as f:
         f.writelines(new_lines)
@@ -133,6 +137,10 @@ def main():
             f.write("[/Script/UnrealEd.ProjectPackagingSettings]\n")
             
     ini_backup = os.path.join(config_dir, "DefaultGame.ini.bak")
+
+    # FIXED: Check if custom animations are present inside the ModKit
+    anims_source_dir = os.path.join(project_dir, "Content", "Pal", "Animation", "Character", "Monster", MONSTER_NAME)
+    has_anims = os.path.exists(anims_source_dir)
 
     # Determine Output directory
     output_dir = FMODEL_DIR if os.path.exists(FMODEL_DIR) else project_dir
@@ -205,7 +213,7 @@ def main():
         ue_script_path = os.path.join(os.path.dirname(__file__), "ue_import.py").replace("\\", "/")
         print("Injecting import commands...", flush=True)
         
-        cmd = f'TARGET_FOLDER = r"{FMODEL_DIR}"; exec(open(r"{ue_script_path}").read())'
+        cmd = f'TARGET_FOLDER = r"{FMODEL_DIR}"; PALBAKER_ROOT = r"{os.path.dirname(__file__).replace("\\", "/")}"; exec(open(r"{ue_script_path}").read())'
         response = remote_exec.run_command(cmd)
         remote_exec.stop()
 
@@ -232,19 +240,22 @@ def main():
     # -------------------------------------------------------------
     if ACTION in ["cook", "full"]:
         rel_ue_path = UE_VIRTUAL_PATH.replace("/Game/", "").replace("/", os.sep)
-        # FIXED: Use the dynamic target_project_name instead of hardcoded "Pal"
         cooked_dir = os.path.join(project_dir, "Saved", "Cooked", "Windows", target_project_name, "Content", rel_ue_path)
         
         rel_skel_path = SKELETON_VIRTUAL_PATH.replace("/Game/", "").replace("/", os.sep)
-        # FIXED: Use the dynamic target_project_name instead of hardcoded "Pal"
         cooked_skel_dir = os.path.join(project_dir, "Saved", "Cooked", "Windows", target_project_name, "Content", rel_skel_path)
+
+        # FIXED: Compute cooked animations path
+        rel_anims_path = ANIMS_VIRTUAL_PATH.replace("/Game/", "").replace("/", os.sep)
+        cooked_anims_dir = os.path.join(project_dir, "Saved", "Cooked", "Windows", target_project_name, "Content", rel_anims_path)
         
         if os.path.exists(cooked_dir): shutil.rmtree(cooked_dir, ignore_errors=True)
         if os.path.exists(cooked_skel_dir): shutil.rmtree(cooked_skel_dir, ignore_errors=True)
+        if os.path.exists(cooked_anims_dir): shutil.rmtree(cooked_anims_dir, ignore_errors=True)
 
         if os.path.exists(ini_path): 
             shutil.copy2(ini_path, ini_backup)
-            inject_packaging_settings(ini_path)
+            inject_packaging_settings(ini_path, has_anims)
 
         try:
             print("Cooking Target Folders...", flush=True)
@@ -252,7 +263,20 @@ def main():
 
             print("Preparing Pak (Filtering out Skeleton and Physics)...", flush=True)
             response_file = os.path.join(output_dir, "response.txt")
-            folders_to_pack = [(cooked_dir, UE_VIRTUAL_PATH.replace("/Game/", "")), (cooked_skel_dir, SKELETON_VIRTUAL_PATH.replace("/Game/", ""))]
+            
+            # FIXED: Build the pack array dynamically. Add animations folder if present.
+            folders_to_pack = [
+                (cooked_dir, UE_VIRTUAL_PATH.replace("/Game/", ""))
+            ]
+            
+            # The skeleton directory is only added to the pak target if custom animations exist
+            if has_anims:
+                folders_to_pack.append((cooked_skel_dir, SKELETON_VIRTUAL_PATH.replace("/Game/", "")))
+                folders_to_pack.append((cooked_anims_dir, ANIMS_VIRTUAL_PATH.replace("/Game/", "")))
+                print("  -> Custom animations detected: Including Skeleton and Animation assets in .pak", flush=True)
+            else:
+                print("  -> No custom animations: Skeleton assets will be stripped from .pak to prevent ragdoll glitches.", flush=True)
+
             files_found = 0
             
             with open(response_file, "w") as f:
@@ -261,8 +285,14 @@ def main():
                         for root, dirs, files in os.walk(c_dir):
                             for file in files:
                                 if file.endswith((".uasset", ".uexp", ".ubulk")):
-                                    if "PhysicsAsset" in file or "Skeleton" in file:
+                                    # PhysicsAsset is always excluded from paks (handled via in-editor references)
+                                    if "PhysicsAsset" in file:
                                         continue
+                                    
+                                    # FIXED: Strip skeleton files ONLY if has_anims is False (this is now handled by the dynamic folders_to_pack logic, but kept as a redundant safeguard)
+                                    if "Skeleton" in file and not has_anims:
+                                        continue
+                                        
                                     abs_path = os.path.join(root, file)
                                     rel_to_cooked = os.path.relpath(abs_path, c_dir)
                                     rel_virtual = "../../../Pal/Content/" + v_path + "/" + rel_to_cooked.replace("\\", "/")
