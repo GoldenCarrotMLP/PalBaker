@@ -97,7 +97,6 @@ def inject_packaging_settings(ini_path, has_anims):
                 new_lines.append("bShareMaterialShaderCode=False\n")
                 new_lines.append(f'+DirectoriesToAlwaysCook=(Path="{UE_VIRTUAL_PATH}")\n')
                 new_lines.append(f'+DirectoriesToAlwaysCook=(Path="{SKELETON_VIRTUAL_PATH}")\n')
-                # FIXED: If custom animations exist, instruct the cooker to compile them
                 if has_anims:
                     new_lines.append(f'+DirectoriesToAlwaysCook=(Path="{ANIMS_VIRTUAL_PATH}")\n')
                 new_lines.append("MapsToCook=\n")
@@ -138,7 +137,7 @@ def main():
             
     ini_backup = os.path.join(config_dir, "DefaultGame.ini.bak")
 
-    # FIXED: Check if custom animations are present inside the ModKit
+    # Check if custom animations are present inside the ModKit
     anims_source_dir = os.path.join(project_dir, "Content", "Pal", "Animation", "Character", "Monster", MONSTER_NAME)
     has_anims = os.path.exists(anims_source_dir)
 
@@ -245,7 +244,7 @@ def main():
         rel_skel_path = SKELETON_VIRTUAL_PATH.replace("/Game/", "").replace("/", os.sep)
         cooked_skel_dir = os.path.join(project_dir, "Saved", "Cooked", "Windows", target_project_name, "Content", rel_skel_path)
 
-        # FIXED: Compute cooked animations path
+        # Compute cooked animations path
         rel_anims_path = ANIMS_VIRTUAL_PATH.replace("/Game/", "").replace("/", os.sep)
         cooked_anims_dir = os.path.join(project_dir, "Saved", "Cooked", "Windows", target_project_name, "Content", rel_anims_path)
         
@@ -264,18 +263,19 @@ def main():
             print("Preparing Pak (Filtering out Skeleton and Physics)...", flush=True)
             response_file = os.path.join(output_dir, "response.txt")
             
-            # FIXED: Build the pack array dynamically. Add animations folder if present.
+            # FIXED: Always include both model and skeleton directories so that the 
+            # custom Animation Blueprint is always shipped.
             folders_to_pack = [
-                (cooked_dir, UE_VIRTUAL_PATH.replace("/Game/", ""))
+                (cooked_dir, UE_VIRTUAL_PATH.replace("/Game/", "")),
+                (cooked_skel_dir, SKELETON_VIRTUAL_PATH.replace("/Game/", ""))
             ]
             
-            # The skeleton directory is only added to the pak target if custom animations exist
+            # The animations directory is appended to the targets only if custom animations exist
             if has_anims:
-                folders_to_pack.append((cooked_skel_dir, SKELETON_VIRTUAL_PATH.replace("/Game/", "")))
                 folders_to_pack.append((cooked_anims_dir, ANIMS_VIRTUAL_PATH.replace("/Game/", "")))
-                print("  -> Custom animations detected: Including Skeleton and Animation assets in .pak", flush=True)
+                print("  -> Custom animations detected: Shipping complete Skeleton, Animation, and BP assets.", flush=True)
             else:
-                print("  -> No custom animations: Skeleton assets will be stripped from .pak to prevent ragdoll glitches.", flush=True)
+                print("  -> No custom animations: Shipping BP assets, but stripping Skeleton asset to prevent ragdoll glitches.", flush=True)
 
             files_found = 0
             
@@ -289,7 +289,7 @@ def main():
                                     if "PhysicsAsset" in file:
                                         continue
                                     
-                                    # FIXED: Strip skeleton files ONLY if has_anims is False (this is now handled by the dynamic folders_to_pack logic, but kept as a redundant safeguard)
+                                    # FIXED: Strip skeleton files ONLY if has_anims is False (Animation Blueprint is preserved) [1]
                                     if "Skeleton" in file and not has_anims:
                                         continue
                                         
