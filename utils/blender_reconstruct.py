@@ -1,18 +1,24 @@
+# utils/blender_reconstruct.py
 import bpy
 import sys
 import os
 import json
 from mathutils import Matrix
 
-# Ensure utils package can be imported inside the headless Blender environment
+# Inject paths into Blender context to allow importing from utils package
 current_dir = os.path.dirname(__file__)
 if current_dir not in sys.path:
     sys.path.append(current_dir)
 
+# Ensure the parent directory is in path so we can import 'fmodel_helper' and 'node_builder'
+parent_dir = os.path.dirname(current_dir)
+if parent_dir not in sys.path:
+    sys.path.append(parent_dir)
+
 import node_builder
+from fmodel_helper import resolve_and_copy_material_json
 
 def parse_args():
-    """Parses command-line arguments passed after the double dash '--' in Blender."""
     args = []
     if "--" in sys.argv:
         args = sys.argv[sys.argv.index("--") + 1:]
@@ -27,99 +33,113 @@ def parse_args():
     return fbx_path, blend_path
 
 def fix_hierarchy():
-    """Removes dummy Empties from UE imports and secures the Armature name."""
     print("Cleaning up bone hierarchy (removing dummy Empties)...")
     empties = [obj for obj in bpy.data.objects if obj.type == 'EMPTY']
     
     for empty in empties:
         children = list(empty.children)
         for child in children:
-            # Preserve the exact world transform so nothing shifts when unparented
             world_mat = child.matrix_world.copy()
             child.parent = None
             child.matrix_world = world_mat
-        
         bpy.data.objects.remove(empty, do_unlink=True)
         
-    # Name parent Armature Object to exactly "Armature" (retains the inner bone "root")
     for obj in bpy.data.objects:
         if obj.type == 'ARMATURE':
             obj.name = "Armature"
             obj.data.name = "Armature"
 
-def parse_fmodel_jsons(working_dir):
-    """Scans the working folder for raw FModel MI_*.json files and parses their properties directly."""
-    metadata = {}
-    
-    for file in os.listdir(working_dir):
-        if file.startswith("MI_") and file.endswith(".json"):
-            json_path = os.path.join(working_dir, file)
-            try:
-                with open(json_path, "r", encoding="utf-8") as f:
-                    data = json.load(f)
-                
-                # FModel exports arrays with one main object containing "Properties"
-                if isinstance(data, list) and len(data) > 0 and "Properties" in data[0]:
-                    props = data[0]["Properties"]
-                    mat_name = data[0].get("Name", os.path.splitext(file)[0])
-                    
-                    parent_name = "CharacterBodyBase"
-                    if "Parent" in props:
-                        parent_name = props["Parent"].get("ObjectName", "CharacterBodyBase")
-                    
-                    params = {}
-                    for tex_param in props.get("TextureParameterValues", []):
-                        param_name = tex_param.get("ParameterInfo", {}).get("Name", "")
-                        param_val = tex_param.get("ParameterValue", {}).get("ObjectName", "")
-                        if param_name and param_val:
-                            # Extract raw texture name from "Texture2D'T_BlueThunderHorse_Body_B'"
-                            if "'" in param_val:
-                                tex_name = param_val.split("'")[1]
-                            else:
-                                tex_name = param_val
-                            params[param_name] = tex_name
-                            
-                    metadata[mat_name] = {
-                        "parent_class": parent_name,
-                        "parameters": params
-                    }
-            except Exception as e:
-                print(f"Warning: Failed to parse raw FModel JSON {file}: {e}")
-                
-    return metadata
-
 def reconstruct_materials(working_dir):
-    """Reads metadata (or parses raw FModel JSONs) and calls the node_builder to construct materials."""
+    """
+    Constructs materials loaded into Blender. If materials are missing configurations 
+    locally, it performs a search across FModel folders to resolve dependencies dynamically.
+    """
+    # FModel base root directory is 7 layers up from the CHARACTER directory
+    # Exports/Pal/Content/Pal/Model/Character/Category/Monster ->Exports is level 7
+    # Let's derive fmodel_root safely:
+    # working_dir e.g.: "FMODEL_ROOT/Exports/Pal/Content/Pal/Model/Character/Category/Monster"
+    fmodel_root = working_dir
+    parts = os.path.normpath(working_dir).replace("\\", "/").split("/")
+    
+    # Find index of "Exports"
+    if "Exports" in parts:
+        exp_idx = parts.index("Exports")
+        fmodel_root = "/".join(parts[:exp_idx])
+    
     meta_path = os.path.join(working_dir, "materials_metadata.json")
     
     metadata = {}
     if os.path.exists(meta_path):
-        with open(meta_path, "r", encoding="utf-8") as f:
-            metadata = json.load(f)
-    else:
-        print("No materials_metadata.json found. Attempting to parse raw FModel JSONs...")
-        metadata = parse_fmodel_jsons(working_dir)
+        try:
+            with open(meta_path, "r", encoding="utf-8") as f:
+                metadata = json.load(f)
+        except Exception as e:
+            print(f"Warning: Failed to load local materials_metadata: {e}")
 
-    # FIXED: Added diagnostic printing to see what metadata keys are being loaded
+    # Inspect materials active inside Blender after mesh import
+    active_materials = [mat.name for mat in bpy.data.materials if mat]
+    print(f"Discovered active mesh materials in Blender: {active_materials}")
+
+    updated_meta = False
+
+    for mat_name in active_materials:
+        # Ignore dummy Blender default material
+        if mat_name.lower() == "material":
+            continue
+            
+        # Clean naming variant formatting (e.g. MI_Body.001 -> MI_Body)
+        clean_name = mat_name.split(".")[0]
+        
+        # If this material doesn't have local metadata, perform dynamic parent-wide pull
+        if clean_name not in metadata:
+            print(f"Missing local configuration for '{clean_name}'. Executing dynamic search...", flush=True)
+            resolved = resolve_and_copy_material_json(clean_name, working_dir, fmodel_root)
+            if resolved:
+                metadata[clean_name] = resolved
+                updated_meta = True
+
+    # Save resolved metadata locally to optimize subsequent pipeline runs
+    if updated_meta:
+        try:
+            with open(meta_path, "w", encoding="utf-8") as f:
+                json.dump(metadata, f, indent=4)
+        except Exception as e:
+            print(f"Warning: Failed to write updated materials_metadata: {e}")
+
     print(f"Resolved Metadata Keys: {list(metadata.keys()) if metadata else 'None'}")
 
     if metadata:
-        for mat_name, data in metadata.items():
-            # Case-insensitive lookup to protect against naming deviations
-            mat = None
-            for m in bpy.data.materials:
-                if m.name.lower() == mat_name.lower():
-                    mat = m
-                    break
-            if not mat:
-                mat = bpy.data.materials.new(name=mat_name)
+        for mat_name in active_materials:
+            if mat_name.lower() == "material":
+                continue
                 
-            parent_class = data.get("parent_class", "")
-            params = data.get("parameters", {})
-            
-            node_builder.build_material(mat, parent_class, params, working_dir)
+            clean_name = mat_name.split(".")[0]
+            mat = bpy.data.materials.get(mat_name)
+            if not mat:
+                continue
+                
+            data = metadata.get(clean_name)
+            if data:
+                parent_class = data.get("parent_class", "")
+                params = data.get("parameters", {})
+                node_builder.build_material(mat, parent_class, params, working_dir)
+            else:
+                print(f"Warning: No mapping resolved for '{mat_name}', running suffix fallback...")
+                # Run dynamic suffix matching on this single slot
+                textures = [os.path.join(working_dir, f).replace("\\", "/") for f in os.listdir(working_dir) if f.endswith(".png")]
+                tex_base = node_builder.find_best_texture_match(mat_name, textures, "B")
+                tex_norm = node_builder.find_best_texture_match(mat_name, textures, "N")
+                tex_mrao = node_builder.find_best_texture_match(mat_name, textures, "M")
+                tex_em = node_builder.find_best_texture_match(mat_name, textures, "EM")
+                
+                params = {}
+                if tex_base: params["Base Texture"] = tex_base
+                if tex_norm: params["Normal Map"] = tex_norm
+                if tex_mrao: params["MetallicRoughnessOcclusionSpecularTexture"] = tex_mrao
+                if tex_em: params["Emissive Texture"] = tex_em
+                
+                node_builder.build_material(mat, mat_name, params, working_dir)
     else:
-        # Run the Blender-Side Suffix Heuristics Fallback if no JSONs exist
         node_builder.build_materials_heuristically(working_dir)
 
 def reconstruct_blend(input_path, blend_path):
@@ -127,11 +147,9 @@ def reconstruct_blend(input_path, blend_path):
         print(f"ERROR: Input mesh file not found at {input_path}")
         sys.exit(1)
 
-    # Normalize incoming paths to forward slashes to prevent string escaping crashes
     input_path = os.path.abspath(input_path).replace("\\", "/")
     blend_path = os.path.abspath(blend_path).replace("\\", "/")
 
-    # Force-inject the Blender 4.2+ extensions directory on Windows
     if os.name == 'nt':
         appdata = os.environ.get("APPDATA", "")
         if appdata:
@@ -140,17 +158,12 @@ def reconstruct_blend(input_path, blend_path):
                 sys.path.append(ext_path)
                 print(f"Injected AppData extensions path: {ext_path}")
 
-    # Clear default scene objects manually instead of resetting factory settings.
-    # This prevents the command-line loaded addons from being unregistered.
     print("Clearing default scene objects...")
     for obj in list(bpy.data.objects):
         bpy.data.objects.remove(obj, do_unlink=True)
 
-    # Detect if we are importing a raw FModel PSK or a compiled Unreal FBX
     if input_path.lower().endswith(".psk"):
         print(f"Importing PSK: {input_path}")
-        
-        # Loop through both modern namespaced Extension IDs and legacy local Addon IDs
         addons_to_try = [
             "bl_ext.blender_org.io_scene_psk_psa",
             "bl_ext.user_default.io_scene_psk_psa",
@@ -166,7 +179,6 @@ def reconstruct_blend(input_path, blend_path):
             except Exception as e:
                 pass
             
-        # Check which API standard is active on this machine
         has_darklight = hasattr(bpy.ops, "psk") and hasattr(bpy.ops.psk, "import_file")
         has_legacy = hasattr(bpy.ops.import_scene, "psk")
         
@@ -174,7 +186,6 @@ def reconstruct_blend(input_path, blend_path):
             print("CRITICAL ERROR: No PSK importer addon/extension is registered in this Blender environment.")
             sys.exit(1)
             
-        # Route to the correct operator standard dynamically
         if has_darklight:
             print("Executing modern 'bpy.ops.psk.import_file' operator...")
             bpy.ops.psk.import_file(filepath=input_path)

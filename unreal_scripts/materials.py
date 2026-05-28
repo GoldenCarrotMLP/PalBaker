@@ -158,9 +158,12 @@ def build_materials(ue_path, json_path, textures, target_asset_path):
                 
             parent_path = "/Game/Pal/Material/Character/Common/MI_PalLit_CharacterBodyBase"
             parent_class_lower = data.get("parent_class", "").lower()
-            if "eye" in parent_class_lower or "mouth" in parent_class_lower:
+            mat_name_lower = mat_name.lower()
+            
+            # SAFE ROUTING: Evaluate both parent class and slot name
+            if "eye" in parent_class_lower or "mouth" in parent_class_lower or "eye" in mat_name_lower or "mouth" in mat_name_lower:
                 parent_path = "/Game/Pal/Material/Character/Common/MI_PalLit_CharacterEyeBase"
-            elif "hair" in parent_class_lower:
+            elif "hair" in parent_class_lower or "hair" in mat_name_lower:
                 parent_path = "/Game/Pal/Material/Character/Common/MI_PalLit_CharacterHairBase"
                 
             parent_mat = unreal.EditorAssetLibrary.load_asset(parent_path)
@@ -180,6 +183,7 @@ def build_materials(ue_path, json_path, textures, target_asset_path):
     else:
         # Fallback to suffix matching
         return build_materials_heuristically(ue_path, textures, material_slots)
+
 
 def bind_materials_to_mesh(target_asset_path, target_phys_path, mi_assets):
     if not target_asset_path:

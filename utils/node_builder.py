@@ -13,17 +13,26 @@ PARAMETER_MAPPING = {
     "normal": [
         "Normal Map",
         "NormalTexture",
-        "Normal"
+        "Normal",
+        "PM_Normals"
     ],
     "mrao": [
         "MetallicRoughnessOcclusionSpecularTexture",
         "ParameterMap",
         "MaskMap",
-        "MRAO"
+        "MRAO",
+        "PM_SpecularMasks"
     ],
     "subsurface": [
         "Subsurface Texture",
         "Subsurface"
+    ],
+    "emissive": [
+        "Emissive Texture",
+        "PM_Emissive",
+        "EmissiveTexture",
+        "Emissive",
+        "Fresnel Emissive Color"
     ]
 }
 
@@ -48,7 +57,7 @@ def find_best_texture_match(slot_name, textures, suffix):
     # Conflict check mapping to prevent Eye slots from grabbing Body textures
     exclusive_keywords = {"body", "eye", "mouth", "hair", "tail", "head"}
     slot_exclusives = slot_tokens.intersection(exclusive_keywords)
-    non_base_suffixes = ["_n", "_normal", "_m", "_s", "_specular", "_param", "_mrao", "_ao", "_em", "_rgn"]
+    non_base_suffixes = ["_n", "_normal", "_m", "_s", "_specular", "_param", "_mrao", "_ao", "_em", "_emissive", "_rgn"]
     
     for tex in textures:
         tex_name = os.path.splitext(os.path.basename(tex))[0].lower()
@@ -64,6 +73,9 @@ def find_best_texture_match(slot_name, textures, suffix):
                 is_suffix_match = True
         elif suffix == "M":
             if any(tex_name.endswith(s) for s in ["_m", "_s", "_specular", "_param", "_mrao"]):
+                is_suffix_match = True
+        elif suffix == "EM":
+            if any(tex_name.endswith(s) for s in ["_em", "_emissive"]):
                 is_suffix_match = True
                 
         if not is_suffix_match:
@@ -180,11 +192,13 @@ def build_body_template(mat, params, working_dir):
     tex_mrao_name = get_mapped_texture(params, "mrao")
     tex_norm_name = get_mapped_texture(params, "normal")
     tex_sss_name = get_mapped_texture(params, "subsurface")
+    tex_em_name = get_mapped_texture(params, "emissive")
 
     print(f"  -> Resolved Base Texture:  {tex_base_name}")
     print(f"  -> Resolved Normal Map:    {tex_norm_name}")
     print(f"  -> Resolved MRAO/Mask Map: {tex_mrao_name}")
     print(f"  -> Resolved Subsurface:    {tex_sss_name}")
+    print(f"  -> Resolved Emissive:      {tex_em_name}")
 
     # Texture Nodes (created unconditionally)
     base_tex = create_texture_node(nodes, working_dir, tex_base_name, -800, 300)
@@ -222,6 +236,17 @@ def build_body_template(mat, params, working_dir):
     sss_tex = create_texture_node(nodes, working_dir, tex_sss_name, -400, -600)
     links.new(sss_tex.outputs["Color"], bsdf_node.inputs["Subsurface Radius"])
 
+    # --- Dynamic Emission Connection ---
+    em_tex = create_texture_node(nodes, working_dir, tex_em_name, -800, -600)
+    em_socket = bsdf_node.inputs.get("Emission Color") or bsdf_node.inputs.get("Emission")
+    if em_socket:
+        links.new(em_tex.outputs["Color"], em_socket)
+        
+    # Set Emission Strength to 1.0 so that connected emissive textures are active
+    em_strength = bsdf_node.inputs.get("Emission Strength")
+    if em_strength:
+        em_strength.default_value = 1.0
+
 def build_materials_heuristically(working_dir):
     """Builds all materials currently loaded in Blender using naming heuristics when no JSON exists."""
     print("No JSON metadata resolved. Running Blender-side suffix matching heuristics...")
@@ -238,19 +263,26 @@ def build_materials_heuristically(working_dir):
         tex_base = find_best_texture_match(slot_name, textures, "B")
         tex_norm = find_best_texture_match(slot_name, textures, "N")
         tex_mrao = find_best_texture_match(slot_name, textures, "M")
+        tex_em = find_best_texture_match(slot_name, textures, "EM")
         
         # Combine into parameters dictionary
         params = {}
         if tex_base: params["Base Texture"] = tex_base
         if tex_norm: params["Normal Map"] = tex_norm
         if tex_mrao: params["MetallicRoughnessOcclusionSpecularTexture"] = tex_mrao
+        if tex_em: params["Emissive Texture"] = tex_em
         
         build_material(mat, slot_name, params, working_dir)
 
 def build_material(mat, parent_class, params, working_dir):
-    """Router function to evaluate the target template."""
-    parent_lower = parent_class.lower()
-    if "eye" in parent_lower or "mouth" in parent_lower:
+    """
+    Router function to evaluate the target template.
+    Checks both parent class and material slot name for 'eye' or 'mouth' indicators.
+    """
+    parent_lower = parent_class.lower() if parent_class else ""
+    mat_name_lower = mat.name.lower() if mat and hasattr(mat, "name") else ""
+    
+    if "eye" in parent_lower or "mouth" in parent_lower or "eye" in mat_name_lower or "mouth" in mat_name_lower:
         build_eye_template(mat, params, working_dir)
     else:
         build_body_template(mat, params, working_dir)

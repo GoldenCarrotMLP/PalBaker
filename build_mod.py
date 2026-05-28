@@ -78,6 +78,10 @@ def main():
         psk_file_clean = psk_file.replace("\\", "/")
         blend_file_clean = blend_file.replace("\\", "/")
         
+        # NEW: Intercept raw files, resolve/copy shared texture files, and produce the metadata mapping
+        from utils.fmodel_helper import preprocess_fmodel_textures
+        preprocess_fmodel_textures(FMODEL_DIR, FMODEL_ROOT)
+        
         print("Launching headless Blender to reconstruct .blend workspace from .psk...", flush=True)
         result = run_headless_blender(
             BLENDER_PATH, 
@@ -88,7 +92,6 @@ def main():
         
         if os.path.exists(blend_file):
             print(f"SUCCESS! .blend file generated at: {blend_file}", flush=True)
-            # FIXED: Always print Blender's output stream so we can see the decompiler diagnostics
             if result.stdout.strip():
                 print("\n=== BLENDER PIPELINE LOGS ===", flush=True)
                 print(result.stdout, flush=True)
@@ -98,6 +101,7 @@ def main():
             print(result.stdout, flush=True)
             print(result.stderr, flush=True)
             sys.exit(1)
+
 
 
     # -------------------------------------------------------------
