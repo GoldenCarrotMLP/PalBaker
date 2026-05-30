@@ -19,22 +19,28 @@ class SettingsController:
         self.on_save_callback = on_save_callback
 
     async def pick_directory(self, target_picker_component):
+        """Asynchronously triggers directory selection and handles results safely."""
         picker = ft.FilePicker()
-        self.view.main_page.overlay.append(picker)
+        # FIX: Append to page.services instead of page.overlay
+        self.view.main_page.services.append(picker)
         self.view.main_page.update()
         
-        result = await picker.get_directory_path_async()
+        # FIX: Changed get_directory_path_async() to get_directory_path()
+        result = await picker.get_directory_path()
         if result:
             target_picker_component.set_value(str(result))
 
     async def pick_file(self, target_picker_component, allowed_extensions=None):
+        """Asynchronously triggers file selection and handles results safely."""
         picker = ft.FilePicker()
-        self.view.main_page.overlay.append(picker)
+        self.view.main_page.services.append(picker)
         self.view.main_page.update()
         
-        result = await picker.pick_files_async(allow_multiple=False, allowed_extensions=allowed_extensions)
-        if result and result.files and result.files[0].path:
-            target_picker_component.set_value(str(result.files[0].path))
+        result = await picker.pick_files(allow_multiple=False, allowed_extensions=allowed_extensions)
+        # FIX: result is a raw list in Flet 0.84.0+
+        if result and len(result) > 0 and result[0].path:
+            target_picker_component.set_value(str(result[0].path))
+
 
     def save_clicked(self, current_paths: dict, show_mapped: bool):
         self.settings.update(current_paths)

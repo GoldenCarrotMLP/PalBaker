@@ -1,5 +1,6 @@
 import os
 import sys
+import json  # ADDED: Fix NameError inside main execution block
 from utils.plugins.detector import (
     get_max_source_mtime, 
     get_max_dll_mtime, 

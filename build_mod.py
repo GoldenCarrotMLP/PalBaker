@@ -42,6 +42,10 @@ def main():
     UE_VIRTUAL_PATH = f"/Game/Pal/Model/Character/{CATEGORY}/{MONSTER_NAME}"
     SKELETON_VIRTUAL_PATH = f"/Game/Pal/Model/Character/Skeleton/{MONSTER_NAME}"
     ANIMS_VIRTUAL_PATH = f"/Game/Pal/Animation/Character/Monster/{MONSTER_NAME}"
+    ICON_VIRTUAL_PATH = "/Game/Pal/Texture/PalIcon/Normal"
+    ICON_FMODEL_PATH = os.path.join(FMODEL_ROOT, "Exports", "Pal", "Content", "Pal", "Texture", "PalIcon", "Normal", f"T_{MONSTER_NAME}_icon_normal.png")
+    HAS_ICON = os.path.exists(ICON_FMODEL_PATH)
+
 
     project_dir = os.path.dirname(UPROJECT_PATH)
     target_project_name = os.path.splitext(os.path.basename(UPROJECT_PATH))[0]
@@ -138,7 +142,8 @@ def main():
             "ue_target_path": UE_VIRTUAL_PATH,
             "textures": pngs,
             "fbx_file": fbx_file if os.path.exists(fbx_file) else None,
-            "mi_jsons": jsons
+            "mi_jsons": jsons,
+            "icon_file": ICON_FMODEL_PATH if HAS_ICON else None  # Pass icon specifically
         }
         config_path = os.path.join(FMODEL_DIR, "import_config.json")
         with open(config_path, "w") as f:
@@ -198,6 +203,10 @@ def main():
         if has_custom_shader:
             extra_cook_paths.append("/Game/CartoonCelShader/Materials/CelShader")
 
+        if HAS_ICON:
+            extra_cook_paths.append(ICON_VIRTUAL_PATH)
+
+
         if os.path.exists(ini_path): 
             shutil.copy2(ini_path, ini_backup)
             inject_packaging_settings(
@@ -236,6 +245,23 @@ def main():
                 folders_to_pack.append((custom_shader_cooked, "CartoonCelShader/Materials/CelShader"))
                 print("  -> Custom Cartoon Cel Shader detected: Packing shader dependencies.", flush=True)
 
+            if HAS_ICON:
+                # Find all cooked parts of the specific icon file (uasset, uexp, etc.)
+                icon_cooked_base = os.path.join(project_dir, "Saved", "Cooked", "Windows", target_project_name, "Content", "Pal", "Texture", "PalIcon", "Normal", f"T_{MONSTER_NAME}_icon_normal")
+                
+                icon_parts_found = False
+                for ext in [".uasset", ".uexp", ".ubulk"]:
+                    cooked_file = icon_cooked_base + ext
+                    if os.path.exists(cooked_file):
+                        # Construct its precise virtual destination path
+                        virtual_file = f"Pal/Texture/PalIcon/Normal/T_{MONSTER_NAME}_icon_normal{ext}"
+                        folders_to_pack.append((cooked_file, virtual_file))
+                        icon_parts_found = True
+                
+                if icon_parts_found:
+                    print(f"  -> Custom Icon detected: Packing only {MONSTER_NAME} icon files.", flush=True)
+
+
             print(f"Building final PAK...", flush=True)
             files_found = pack_cooked_assets(UNREALPAK_PATH, response_file, final_pak_path, folders_to_pack, has_anims)
             
@@ -244,6 +270,16 @@ def main():
                 sys.exit(1)
                 
             print(f"SUCCESS! Pak created at: {final_pak_path} ({files_found} files)", flush=True)
+            for suffix in ["_err_P.pak", "_err_p.pak"]:
+                err_pak = os.path.join(output_dir, f"{MONSTER_NAME}{suffix}")
+                if os.path.exists(err_pak):
+                    try:
+                        os.remove(err_pak)
+                        print(f"Cleaned up legacy error pak: {os.path.basename(err_pak)}", flush=True)
+                    except OSError as e:
+                        print(f"Warning: Failed to delete legacy error pak {err_pak}: {e}", flush=True)
+
+
 
         finally:
             if os.path.exists(ini_backup):

@@ -42,7 +42,15 @@ def get_mod_info(settings: dict):
         has_fmodel = bool(fmodel_path)
         has_blend = has_fmodel and any(f.endswith(".blend") for f in os.listdir(fmodel_path))
         has_ue = bool(ue_path) and any(f.endswith(".uasset") for f in os.listdir(ue_path))
-        
+        icon_path = ""
+        if fmodel_base:
+            icon_path = os.path.join(fmodel_base, "Exports", "Pal", "Content", "Pal", "Texture", "PalIcon", "Normal", f"T_{name}_icon_normal.png")
+            
+        has_icon = os.path.exists(icon_path) if icon_path else False
+        data["icon_path"] = icon_path
+        data["has_icon"] = has_icon
+
+
         if has_fmodel and not has_blend:
             badges.append(("RAW", "#333333"))  # Return hex or simple representations
         if has_blend:

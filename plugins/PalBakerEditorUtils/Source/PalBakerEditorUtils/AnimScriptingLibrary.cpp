@@ -57,6 +57,7 @@ bool UAnimScriptingLibrary::ApplyPalBakerRigging(UAnimBlueprint* AnimBP, const F
     } else {
         UAnimGraphNode_LinkedInputPose* InputNode = NewObject<UAnimGraphNode_LinkedInputPose>(AnimGraph);
         AnimGraph->AddNode(InputNode);
+        InputNode->CreateNewGuid(); // FIX: Assign unique NodeGuid programmatically
         InputNode->AllocateDefaultPins();
         InputNode->Node.Name = FName(TEXT("InPose"));
         InputNode->NodePosX = NodeX - 400;
@@ -69,6 +70,7 @@ bool UAnimScriptingLibrary::ApplyPalBakerRigging(UAnimBlueprint* AnimBP, const F
     // --- Create Local to Component Space ---
     UAnimGraphNode_LocalToComponentSpace* L2C = NewObject<UAnimGraphNode_LocalToComponentSpace>(AnimGraph);
     AnimGraph->AddNode(L2C);
+    L2C->CreateNewGuid(); // FIX: Assign unique NodeGuid programmatically
     L2C->AllocateDefaultPins();
     L2C->NodePosX = NodeX;
     L2C->NodePosY = NodeY;
@@ -87,6 +89,7 @@ bool UAnimScriptingLibrary::ApplyPalBakerRigging(UAnimBlueprint* AnimBP, const F
             
             UAnimGraphNode_ModifyBone* ModBone = NewObject<UAnimGraphNode_ModifyBone>(AnimGraph);
             AnimGraph->AddNode(ModBone);
+            ModBone->CreateNewGuid(); // FIX: Assign unique NodeGuid programmatically
             ModBone->AllocateDefaultPins();
             ModBone->NodePosX = NodeX;
             ModBone->NodePosY = NodeY;
@@ -144,6 +147,7 @@ bool UAnimScriptingLibrary::ApplyPalBakerRigging(UAnimBlueprint* AnimBP, const F
             
             UAnimGraphNode_SpringBone* SpringBone = NewObject<UAnimGraphNode_SpringBone>(AnimGraph);
             AnimGraph->AddNode(SpringBone);
+            SpringBone->CreateNewGuid(); // FIX: Assign unique NodeGuid programmatically
             SpringBone->AllocateDefaultPins();
             SpringBone->NodePosX = NodeX;
             SpringBone->NodePosY = NodeY;
@@ -171,6 +175,7 @@ bool UAnimScriptingLibrary::ApplyPalBakerRigging(UAnimBlueprint* AnimBP, const F
     // --- Create Component to Local Space ---
     UAnimGraphNode_ComponentToLocalSpace* C2L = NewObject<UAnimGraphNode_ComponentToLocalSpace>(AnimGraph);
     AnimGraph->AddNode(C2L);
+    C2L->CreateNewGuid(); // FIX: Assign unique NodeGuid programmatically
     C2L->AllocateDefaultPins();
     C2L->NodePosX = NodeX;
     C2L->NodePosY = NodeY;

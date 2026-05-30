@@ -2,16 +2,11 @@
 import asyncio
 import os
 import sys
+import shutil
 from utils import get_mod_info
-from components.mods.mod_card import ModItem  # Temporarily importing as ModItem to match your existing class name
 from utils.builder.pipeline_runner import run_pipeline_async
 from utils.builder.log_analyzer import LogAnalyzer
 from utils.plugins.decompiler import run_decompile_pipeline
-from components.mods.dialogs import (
-    create_overwrite_warning_dialog,
-    create_decompile_options_dialog,
-    create_troubleshooting_advisor_dialog
-)
 
 class ModsController:
     def __init__(self, view, settings: dict):
@@ -23,7 +18,6 @@ class ModsController:
         self.active_token = {"process": None}
         
         self.raw_mods: list[dict] = []
-        self.cached_items: list[ModItem] = [] 
         self.search_query = ""
         self.show_mapped = False
         self.selected_badges: set[str] = set()
@@ -54,25 +48,10 @@ class ModsController:
             self.view.set_refresh_state(loading=True)
             def worker():
                 self.raw_mods = get_mod_info(self.settings)
-                self.cached_items.clear()
-                for mod_data in self.raw_mods:
-                    self.cached_items.append(
-                        ModItem(
-                            mod_data, 
-                            on_action_click=self.handle_action, 
-                            on_cancel_click=self.handle_cancel,
-                            is_building=self.is_building,
-                            show_mapped=self.show_mapped
-                        )
-                    )
                 self.view.set_refresh_state(loading=False)
                 self.apply_filters()
-            self.view.main_page.run_thread(worker)
+            self.view.run_in_thread(worker)
         else:
-            for item in self.cached_items:
-                item.set_show_mapped(self.show_mapped)
-                is_active = (getattr(item, "mod_data")["name"] == self.active_mod_name)
-                item.set_state(global_building=self.is_building, is_active_target=is_active)
             self.apply_filters()
 
     def apply_filters(self):
@@ -81,11 +60,8 @@ class ModsController:
             self.view.render_error("Set a valid FModel Output Folder in Settings.")
             return
 
-        filtered_items = []
-        for item in self.cached_items:
-            mod = getattr(item, "mod_data", None)
-            if not mod: continue
-            
+        filtered_mods = []
+        for mod in self.raw_mods:
             search_lower = self.search_query.lower()
             name_match = (search_lower in mod["name"].lower()) or (search_lower in mod["localized_name"].lower())
             if not name_match: continue
@@ -97,34 +73,34 @@ class ModsController:
             if self.selected_statuses:
                 if mod["pak_status"] not in self.selected_statuses: continue
 
-            filtered_items.append(item)
+            filtered_mods.append(mod)
 
-        filtered_items.sort(key=lambda x: str(getattr(x, "mod_data")["localized_name"] if self.show_mapped else getattr(x, "mod_data")["name"]).lower())
+        filtered_mods.sort(key=lambda x: str(x["localized_name"] if self.show_mapped else x["name"]).lower())
 
-        if not filtered_items:
+        if not filtered_mods:
             self.view.render_empty()
         else:
-            self.view.render_mods([item.view for item in filtered_items])
+            # Pass the raw data dictionaries to the View. The View will instantiate the UI components.
+            self.view.render_mods(filtered_mods, self.is_building, self.active_mod_name)
+
+    def apply_custom_icon(self, mod_data: dict, src_path: str):
+        """Pure disk I/O logic for setting an icon."""
+        dest_path = mod_data["icon_path"]
+        os.makedirs(os.path.dirname(dest_path), exist_ok=True)
+        try:
+            shutil.copy2(src_path, dest_path)
+            self.view.write_log(f"SUCCESS: Set custom icon for {mod_data['name']}", "success")
+            self.refresh_mods(scan_disk=True)
+        except Exception as e:
+            self.view.write_log(f"ERROR: Failed to copy icon file: {e}", "error")
 
     def handle_action(self, mod_data, action):
         if self.is_building: return
 
         if action in ["push", "full"] and mod_data.get("ue_modified"):
-            dlg = create_overwrite_warning_dialog(
-                mod_data.get("ue_modified_files", []),
-                on_confirm=lambda e: (self.view.pop_dialog(), self.execute_pipeline(mod_data, action)),
-                on_cancel=lambda e: self.view.pop_dialog()
-            )
-            self.view.show_dialog(dlg)
-
+            self.view.prompt_overwrite_warning(mod_data, lambda: self.execute_pipeline(mod_data, action))
         elif action == "decompile":
-            dlg = create_decompile_options_dialog(
-                on_missing_only=lambda e: (self.view.pop_dialog(), self.execute_decompile_pipeline(mod_data, overwrite=False)),
-                on_overwrite_all=lambda e: (self.view.pop_dialog(), self.execute_decompile_pipeline(mod_data, overwrite=True)),
-                on_cancel=lambda e: self.view.pop_dialog()
-            )
-            self.view.show_dialog(dlg)
-            
+            self.view.prompt_decompile_options(mod_data)
         elif action == "browse_unreal":
             self.execute_browse_unreal(mod_data)
         else:
@@ -178,7 +154,7 @@ class ModsController:
             elif status == "success_with_warnings":
                 self.view.write_log("WARNING: Decompile completed with warnings.", "warning")
             elif status == "success_with_errors":
-                self.view.write_log("ERROR: Decompile completed but found compiler or traceback errors.", "error")
+                self.view.write_log("ERROR: Decompile completed but found compiler errors.", "error")
             else:
                 self.view.write_log("FAILED: Decompile failed. Check logs.", "error")
                 
@@ -186,13 +162,11 @@ class ModsController:
             self.active_mod_name = ""
             
             if summary:
-                dlg = create_troubleshooting_advisor_dialog(summary, on_dismiss=lambda e: self.view.pop_dialog())
-                self.view.show_dialog(dlg)
+                self.view.prompt_troubleshooting_advisor(summary)
                 
             self.refresh_mods(scan_disk=True)
-
             
-        self.view.main_page.run_task(decompile_task)
+        self.view.run_async_task(decompile_task)
 
     def execute_pipeline(self, mod_data, action):
         self.is_building = True
@@ -211,10 +185,7 @@ class ModsController:
                     self.view.force_update()
                     
             def progress_callback(line, flush=True):
-                for item in self.cached_items:
-                    if getattr(item, "mod_data")["name"] == self.active_mod_name:
-                        item.update_progress(line, flush=flush)
-                        break
+                self.view.update_card_progress(self.active_mod_name, line, flush)
                         
             def complete_callback(success, returncode, summary):
                 status = "pure_success"
@@ -234,27 +205,20 @@ class ModsController:
                 self.view.set_log_autoscroll(False)
                 self.active_token = {"process": None}
                 
-                for item in self.cached_items:
-                    if getattr(item, "mod_data")["name"] == self.active_mod_name:
-                        # Treat success_with_errors as a card-level failure
-                        card_success = success and (status != "success_with_errors")
-                        item.set_state(global_building=False, is_active_target=False, success=card_success)
-                        break
-                        
+                # Signal view to reset the specific card
+                card_success = success and (status != "success_with_errors")
+                self.view.reset_card_state(self.active_mod_name, card_success)
                 self.active_mod_name = ""
                 
-                # Auto-open diagnostic advisory card on any errors/warnings
                 if summary:
-                    dlg = create_troubleshooting_advisor_dialog(summary, on_dismiss=lambda e: self.view.pop_dialog())
-                    self.view.show_dialog(dlg)
+                    self.view.prompt_troubleshooting_advisor(summary)
                     
                 self.refresh_mods(scan_disk=True)
-
 
             script_args = [mod_data["name"], mod_data["category"], action]
             await run_pipeline_async(script_args, log_callback, progress_callback, complete_callback, self.active_token)
 
-        self.view.main_page.run_task(run_task)
+        self.view.run_async_task(run_task)
 
     def execute_browse_unreal(self, mod_data):
         self.is_building = True
@@ -286,4 +250,4 @@ class ModsController:
             self.active_mod_name = ""
             self.refresh_mods(scan_disk=False)
             
-        self.view.main_page.run_task(browse_task)
+        self.view.run_async_task(browse_task)

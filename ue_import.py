@@ -33,6 +33,11 @@ def run_pipeline():
     # 1. Import meshes and textures
     target_asset_path, target_phys_path = import_assets(ue_path, config["textures"], config.get("fbx_file"), folder_name)
     
+    icon_file = config.get("icon_file")
+    if icon_file:
+        from unreal_scripts.importer import import_icon
+        import_icon(icon_file, "/Game/Pal/Texture/PalIcon/Normal")
+
     # 2. Build material instances dynamically (Passes the correct json_path parameters)
     json_path = os.path.join(working_dir, "bone_data.json")
     mi_assets = build_materials(ue_path, json_path, config["textures"], target_asset_path)

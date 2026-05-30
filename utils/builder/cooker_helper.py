@@ -38,26 +38,36 @@ def run_and_stream(cmd_args) -> bool:
 
 
 def pack_cooked_assets(unrealpak_path: str, response_file: str, output_pak: str, folders_to_pack: list, has_anims: bool) -> int:
-    """Creates the response file for UnrealPak and executes the packaging."""
+    """
+    Creates the response file for UnrealPak and executes the packaging.
+    Supports both Directory-level and File-level packaging paths.
+    """
     files_found = 0
     with open(response_file, "w") as f:
-        for c_dir, v_path in folders_to_pack:
-            if os.path.exists(c_dir):
-                for root, _, files in os.walk(c_dir):
-                    for file in files:
-                        if file.endswith((".uasset", ".uexp", ".ubulk")):
-                            # Exclude PhysicsAsset always
-                            if "PhysicsAsset" in file:
-                                continue
-                            # Exclude Skeleton if no custom animations are shipped
-                            if "Skeleton" in file and not has_anims:
-                                continue
-                                
-                            abs_path = os.path.join(root, file)
-                            rel_to_cooked = os.path.relpath(abs_path, c_dir)
-                            rel_virtual = "../../../Pal/Content/" + v_path + "/" + rel_to_cooked.replace("\\", "/")
-                            f.write(f'"{abs_path}" "{rel_virtual}"\n')
-                            files_found += 1
+        for path_on_disk, relative_virtual_path in folders_to_pack:
+            if os.path.exists(path_on_disk):
+                # Case A: Directory-level packaging (Standard recursive walk)
+                if os.path.isdir(path_on_disk):
+                    for root, _, files in os.walk(path_on_disk):
+                        for file in files:
+                            if file.endswith((".uasset", ".uexp", ".ubulk")):
+                                # Exclude PhysicsAsset always
+                                if "PhysicsAsset" in file:
+                                    continue
+                                # Exclude Skeleton if no custom animations are shipped
+                                if "Skeleton" in file and not has_anims:
+                                    continue
+                                    
+                                abs_path = os.path.join(root, file)
+                                rel_to_cooked = os.path.relpath(abs_path, path_on_disk)
+                                rel_virtual = "../../../Pal/Content/" + relative_virtual_path + "/" + rel_to_cooked.replace("\\", "/")
+                                f.write(f'"{abs_path}" "{rel_virtual}"\n')
+                                files_found += 1
+                # Case B: File-level packaging (Single explicit asset)
+                else:
+                    rel_virtual = "../../../Pal/Content/" + relative_virtual_path.replace("\\", "/")
+                    f.write(f'"{path_on_disk}" "{rel_virtual}"\n')
+                    files_found += 1
                             
     if files_found > 0:
         run_and_stream([unrealpak_path, output_pak, f"-Create={response_file}"])

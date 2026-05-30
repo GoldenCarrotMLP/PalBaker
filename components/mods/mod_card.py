@@ -1,4 +1,4 @@
-# components/mod_item.py
+# components/mods/mod_card.py
 import flet as ft
 import os
 import sys
@@ -7,6 +7,7 @@ import glob
 import re
 import threading
 import time
+from components.mods.mod_details import ModDetails
 
 def open_folder(path: str):
     """Opens a directory path in the operating system's native file explorer."""
@@ -24,13 +25,10 @@ def open_file_in_explorer(file_path: str):
         return
     if os.path.exists(file_path):
         if os.name == 'nt':
-            # On Windows, explorer.exe /select,path highlights the file
             subprocess.run(['explorer.exe', f'/select,{os.path.normpath(file_path)}'])
         elif sys.platform == 'darwin':
-            # macOS select-and-reveal Finder flag
             subprocess.Popen(['open', '-R', file_path])
         else:
-            # Linux fallback
             parent_dir = os.path.dirname(file_path)
             if os.path.exists(parent_dir):
                 subprocess.Popen(['xdg-open', parent_dir])
@@ -42,11 +40,12 @@ def safe_update(control):
     except Exception:
         pass
 
-class ModItem: # Decoupled plain Python class to bypass Flet subclassing bugs
-    def __init__(self, mod_data: dict, on_action_click, on_cancel_click, is_building: bool, show_mapped: bool):
+class ModItem:
+    def __init__(self, mod_data: dict, on_action_click, on_cancel_click, on_pick_icon, is_building: bool, show_mapped: bool):
         self.mod_data = mod_data
         self.on_action_click = on_action_click
         self.on_cancel_click = on_cancel_click
+        self.on_pick_icon = on_pick_icon
         self.is_building = is_building
         self.show_mapped = show_mapped
 
@@ -61,15 +60,13 @@ class ModItem: # Decoupled plain Python class to bypass Flet subclassing bugs
             size=16
         )
 
-         # Map semantic strings to visual Flet colors
-        status_colors = {
-            "Packed": ft.Colors.GREEN_400,
-            "Packed with Errors": ft.Colors.YELLOW_400,
-            "Outdated": ft.Colors.ORANGE_400,
-            "Unpacked": ft.Colors.RED_400
-        }
-        status_color = status_colors.get(mod_data["pak_status"], ft.Colors.RED_400)
-
+        # Dropdown Toggle
+        self.details_visible = False
+        self.chevron = ft.IconButton(
+            icon=ft.Icons.KEYBOARD_ARROW_DOWN,
+            on_click=self.toggle_details,
+            icon_size=20
+        )
 
         badge_controls = []
         for text, color_hex in mod_data["badges"]:
@@ -89,13 +86,20 @@ class ModItem: # Decoupled plain Python class to bypass Flet subclassing bugs
             badge_controls.append(
                 ft.Container(
                     content=ft.Text(text, size=10, weight=ft.FontWeight.BOLD),
-                    bgcolor=color_hex,  # Now safe as scanner returns pure Hex / agnostic format
+                    bgcolor=color_hex, 
                     padding=ft.Padding(left=6, right=6, top=2, bottom=2), 
                     border_radius=4,
                     tooltip=tooltip_msg
-
                 )
             )
+
+        status_colors = {
+            "Packed": ft.Colors.GREEN_400,
+            "Packed with Errors": ft.Colors.YELLOW_400,
+            "Outdated": ft.Colors.ORANGE_400,
+            "Unpacked": ft.Colors.RED_400
+        }
+        status_color = status_colors.get(mod_data["pak_status"], ft.Colors.RED_400)
 
         self.update_primary_button_config()
 
@@ -117,17 +121,16 @@ class ModItem: # Decoupled plain Python class to bypass Flet subclassing bugs
         )
 
         row_controls: list[ft.Control] = [
+            self.chevron,
             ft.Icon(ft.Icons.FOLDER, color=ft.Colors.BLUE_200),
             self.name_text,
             ft.Row(badge_controls, spacing=5),
             ft.Container(expand=True),
-            # Bind the mapped color
             ft.Text(mod_data["pak_status"], color=status_color, size=12, width=120, text_align=ft.TextAlign.RIGHT),
             self.primary_button,
             overflow_menu
         ]
         self.main_row = ft.Row(controls=row_controls)
-
 
         # --- Progress Bar UI ---
         self.progress_bar = ft.ProgressBar(value=0.0, color=ft.Colors.CYAN_400, bgcolor=ft.Colors.WHITE10)
@@ -142,8 +145,12 @@ class ModItem: # Decoupled plain Python class to bypass Flet subclassing bugs
             spacing=5
         )
 
+        # Initialize Dropdown Details
+        self.details = ModDetails(mod_data, self.on_pick_icon)
+        self.details_container = ft.Container(content=self.details.view, visible=False)
+
         self.container = ft.Container(
-            content=ft.Column([self.main_row, self.progress_container], spacing=0),
+            content=ft.Column([self.main_row, self.progress_container, self.details_container], spacing=0),
             padding=10,
             border=ft.Border.all(1, ft.Colors.WHITE24),
             border_radius=8,
@@ -164,18 +171,22 @@ class ModItem: # Decoupled plain Python class to bypass Flet subclassing bugs
                 ft.PopupMenuItem(
                     content=ft.Text("Show in Unreal Content Browser"),
                     on_click=lambda e: on_action_click(self.mod_data, "browse_unreal"),
-                    disabled=not self.mod_data["has_ue"]  # Disabled unless UE ASSETS is active
+                    disabled=not self.mod_data["has_ue"]
                 )
             ]
         ) # type: ignore
 
+    def toggle_details(self, e):
+        self.details_visible = not self.details_visible
+        self.details_container.visible = self.details_visible
+        self.chevron.icon = ft.Icons.KEYBOARD_ARROW_UP if self.details_visible else ft.Icons.KEYBOARD_ARROW_DOWN
+        safe_update(self.view)
 
     def handle_button_click(self, e):
         """Intelligently routes the button click based on current state."""
         if self.is_building:
             if self.on_cancel_click:
                 self.on_cancel_click()
-        # FIXED: Route create_blend to the background orchestrator instead of just opening the folder
         elif self.primary_action == "create_blend":
             self.on_action_click(self.mod_data, "create_blend")
         elif self.primary_action == "open_folder":
@@ -195,7 +206,6 @@ class ModItem: # Decoupled plain Python class to bypass Flet subclassing bugs
                 self.primary_action = "cook"
                 self.primary_icon = ft.Icons.FAST_FORWARD
         elif self.mod_data["has_fmodel"]:
-            # FIXED: Set the primary action to run our headless decompiler
             if not self.mod_data.get("has_blend", False):
                 self.primary_text = "Create .blend file"
                 self.primary_action = "create_blend"

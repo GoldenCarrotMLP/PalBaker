@@ -2,6 +2,34 @@
 import unreal
 import os
 
+def import_icon(icon_file, ue_icon_path):
+    if not icon_file or not os.path.exists(icon_file):
+        return
+        
+    asset_tools = unreal.AssetToolsHelpers.get_asset_tools()
+    print(f"Importing UI Icon: {os.path.basename(icon_file)}")
+    
+    task = unreal.AssetImportTask()
+    task.set_editor_property('filename', icon_file)
+    task.set_editor_property('destination_path', ue_icon_path)
+    task.set_editor_property('automated', True)
+    task.set_editor_property('save', True)
+    task.set_editor_property('replace_existing', True)
+    
+    tasks = unreal.Array(unreal.AssetImportTask)
+    tasks.append(task)
+    asset_tools.import_asset_tasks(tasks)
+    
+    # Icons require strict UI texture group and compression configurations
+    # otherwise they will be blurred or improperly sized by Unreal's mipmap generation
+    imported_asset = unreal.EditorAssetLibrary.load_asset(f"{ue_icon_path}/{os.path.splitext(os.path.basename(icon_file))[0]}")
+    if imported_asset:
+        imported_asset.set_editor_property('compression_settings', unreal.TextureCompressionSettings.TC_EDITOR_ICON)
+        imported_asset.set_editor_property('lod_group', unreal.TextureGroup.TEXTUREGROUP_UI)
+        unreal.EditorAssetLibrary.save_loaded_asset(imported_asset)
+
+
+
 def clear_cache(ue_path, fbx_file, folder_name):
     if fbx_file and os.path.exists(fbx_file):
         fbx_base_name = os.path.splitext(os.path.basename(fbx_file))[0]
