@@ -17,6 +17,11 @@ def main(page: ft.Page):
     # Load state
     settings = load_settings()
 
+    # FIX: Automatically restore any stranded backups immediately on UI launch
+    uproject_path = settings.get("uproject")
+    if isinstance(uproject_path, str):
+        restore_palbaker_backup(uproject_path)
+
     # Mount decoupled UI controllers
     mods_view = ModsView(page, settings)
     settings_view = SettingsView(page, settings, on_save_callback=mods_view.refresh_mods)
