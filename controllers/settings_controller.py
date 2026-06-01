@@ -77,10 +77,13 @@ class SettingsController:
 
             # Plugin Sync
             if reqs["needs_plugin_sync"] or reqs["needs_compile"]:
+                plugin_names = ["PalBaker Editor Utilities"]
+                plugins_text = "\n".join([f" • {name}" for name in plugin_names])
                 content = ft.Column([
-                    ft.Text("PalBaker requires a custom C++ Editor Utility Plugin to automatically generate Animation Blueprints via Python."),
-                    ft.Text("The plugin is missing or outdated in your active Unreal Engine project.", color=ft.Colors.ORANGE_400),
-                    ft.Text("Would you like to install and bind it to your ModKit now?", weight=ft.FontWeight.BOLD)
+                    ft.Text("PalBaker requires the following custom C++ Editor Utility Plugin(s) to automatically generate Animation Blueprints via Python:"),
+                    ft.Text(plugins_text, color=ft.Colors.CYAN_200, weight=ft.FontWeight.BOLD),
+                    ft.Text("The plugin(s) are missing or outdated in your active Unreal Engine project.", color=ft.Colors.ORANGE_400),
+                    ft.Text("Would you like to install and bind them to your ModKit now?", weight=ft.FontWeight.BOLD)
                 ], tight=True)
 
                 if ask_user_modal("Required Plugin Missing", content):

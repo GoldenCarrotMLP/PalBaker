@@ -60,9 +60,28 @@ class ModsView:
         self.refresh_button.disabled = False
         self.refresh_spinner = ft.ProgressRing(width=16, height=16, stroke_width=2, visible=False)
 
+        self.console_height = int(settings.get("console_height", 200))
+        
+        self.mods_list_container = ft.Container(
+            self.mods_list, 
+            expand=True, # Allow it to fill remaining space
+            border=ft.Border.all(1, ft.Colors.WHITE10), 
+            border_radius=10, 
+            padding=10
+        )
+        
         self.console_container = ft.Container(
-            content=self.log_view, expand=True, bgcolor=ft.Colors.BLACK, 
-            border_radius=10, padding=15, border=ft.Border.all(1, ft.Colors.WHITE10)
+            content=self.log_view, 
+            height=self.console_height,
+            bgcolor=ft.Colors.BLACK, 
+            border_radius=10, 
+            padding=15, 
+            border=ft.Border.all(1, ft.Colors.WHITE10)
+        )
+
+        self.divider_handle = ft.GestureDetector(
+            content=ft.Container(height=10, content=ft.Icon(ft.Icons.DRAG_HANDLE, size=16), bgcolor=ft.Colors.WHITE10, border_radius=5),
+            on_pan_update=self.on_divider_drag
         )
 
         self.view = ft.Column(
@@ -71,7 +90,8 @@ class ModsView:
                 ft.Row([self.search_bar, self.refresh_spinner, self.refresh_button]),
                 self.badge_chips,
                 self.status_chips,
-                ft.Container(self.mods_list, height=300, border=ft.Border.all(1, ft.Colors.WHITE10), border_radius=10, padding=10),
+                self.mods_list_container,
+                self.divider_handle,
                 ft.Row([
                     ft.Text("Build Console", size=16, weight=ft.FontWeight.BOLD),
                     ft.IconButton(icon=ft.Icons.COPY_ALL, tooltip="Copy console", on_click=self.copy_console_to_clipboard)
@@ -79,6 +99,19 @@ class ModsView:
                 self.console_container
             ]
         )
+
+    def on_divider_drag(self, e: ft.DragUpdateEvent):
+        delta = e.delta_y
+        new_console_height = max(50, self.console_container.height - delta)
+        self.console_container.height = new_console_height
+        self.console_height = new_console_height
+        
+        # Save setting
+        self.settings["console_height"] = new_console_height
+        from utils.config import save_settings
+        save_settings(self.settings)
+        
+        self.force_update()
 
     def run_in_thread(self, func):
         self.main_page.run_thread(func)

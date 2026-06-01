@@ -75,6 +75,16 @@ class SettingsView:
             ]
         )
 
+    def update_settings(self, new_settings: dict):
+        self.settings = new_settings
+        self.fmodel_picker.set_value(str(new_settings.get("fmodel_output", "")))
+        self.ue_root_picker.set_value(str(new_settings.get("ue_root", "")))
+        self.uproject_picker.set_value(str(new_settings.get("uproject", "")))
+        self.blender_picker.set_value(str(new_settings.get("blender", "")))
+        self.palworld_exe_picker.set_value(str(new_settings.get("palworld_exe", "")))
+        self.show_mapped_switch.value = bool(new_settings.get("show_mapped", False))
+        self.main_page.update()
+
     def _on_save(self, e):
         current_paths = {
             "fmodel_output": self.fmodel_picker.get_value(),
