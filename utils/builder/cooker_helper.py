@@ -30,7 +30,8 @@ def run_and_stream(cmd_args) -> bool:
             
             # Scan for issues
             line_lower = stripped.lower()
-            if "error:" in line_lower or "warning:" in line_lower:
+            #f "error:" in line_lower or "warning:" in line_lower:
+            if "error:" in line_lower in line_lower:
                 had_issues = True
             
     process.wait()
@@ -63,6 +64,19 @@ def resolve_packaging_manifest(workspace, has_anims: bool) -> list[tuple[str, st
         (workspace.cooked_dir, workspace.ue_virtual_path.replace("/Game/", "")),
         (workspace.cooked_skel_dir, workspace.skeleton_virtual_path.replace("/Game/", ""))
     ]
+
+    if hasattr(workspace, 'cooked_bp_dir') and os.path.exists(workspace.cooked_bp_dir):
+        bp_cooked_base = os.path.join(workspace.cooked_bp_dir, f"BP_{workspace.monster_name}")
+        bp_parts_found = False
+        for ext in [".uasset", ".uexp", ".ubulk"]:
+            cooked_file = bp_cooked_base + ext
+            if os.path.exists(cooked_file):
+                virtual_file = f"Pal/Blueprint/Character/Monster/PalActorBP/{workspace.monster_name}/BP_{workspace.monster_name}{ext}"
+                folders_to_pack.append((cooked_file, virtual_file))
+                bp_parts_found = True
+        if bp_parts_found:
+            print(f"  -> Custom Blueprint detected: Packing only BP_{workspace.monster_name} Blueprint files.", flush=True)
+
 
     if has_anims:
         folders_to_pack.append((workspace.cooked_anims_dir, workspace.anims_virtual_path.replace("/Game/", "")))
@@ -102,8 +116,12 @@ def pack_cooked_assets(unrealpak_path: str, response_file: str, output_pak: str,
     Creates the response file for UnrealPak and executes the packaging.
     Supports both Directory-level and File-level packaging paths.
     """
+    # SELF-HEALING: Automatically create the target folder if it is missing!
+    os.makedirs(os.path.dirname(response_file), exist_ok=True)
+
     files_found = 0
     with open(response_file, "w") as f:
+
         for path_on_disk, relative_virtual_path in folders_to_pack:
             if os.path.exists(path_on_disk):
                 # Case A: Directory-level packaging (Standard recursive walk)

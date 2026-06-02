@@ -31,6 +31,7 @@ class ModWorkspace:
         self.ue_virtual_path = f"/Game/Pal/Model/Character/{category}/{monster_name}"
         self.skeleton_virtual_path = f"/Game/Pal/Model/Character/Skeleton/{monster_name}"
         self.anims_virtual_path = f"/Game/Pal/Animation/Character/Monster/{monster_name}"
+        self.blueprint_virtual_path = f"/Game/Pal/Blueprint/Character/Monster/PalActorBP/{monster_name}"
         self.icon_virtual_path = "/Game/Pal/Texture/PalIcon/Normal"
 
         # Configuration Backups
@@ -42,7 +43,8 @@ class ModWorkspace:
         self.cooked_dir = os.path.join(self.project_dir, "Saved", "Cooked", "Windows", self.target_project_name, "Content", self.ue_virtual_path.replace("/Game/", "").replace("/", os.sep)) if self.project_dir else ""
         self.cooked_skel_dir = os.path.join(self.project_dir, "Saved", "Cooked", "Windows", self.target_project_name, "Content", self.skeleton_virtual_path.replace("/Game/", "").replace("/", os.sep)) if self.project_dir else ""
         self.cooked_anims_dir = os.path.join(self.project_dir, "Saved", "Cooked", "Windows", self.target_project_name, "Content", self.anims_virtual_path.replace("/Game/", "").replace("/", os.sep)) if self.project_dir else ""
-
+        self.cooked_bp_dir = os.path.join(self.project_dir, "Saved", "Cooked", "Windows", self.target_project_name, "Content", self.blueprint_virtual_path.replace("/Game/", "").replace("/", os.sep)) if self.project_dir else ""
+        
         # Custom ModKit Staging Checks
         self.anims_source_dir = os.path.join(self.project_dir, "Content", "Pal", "Animation", "Character", "Monster", monster_name) if self.project_dir else ""
         self.has_anims = os.path.exists(self.anims_source_dir) if self.anims_source_dir else False

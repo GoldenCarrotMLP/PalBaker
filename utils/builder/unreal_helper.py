@@ -111,7 +111,7 @@ def run_remote_import(ue_root: str, project_name: str, fmodel_dir: str, ue_scrip
     palbaker_root = os.path.abspath(os.path.join(os.path.dirname(__file__), "..", "..")).replace("\\", "/")
     ue_script_path_clean = ue_script_path.replace("\\", "/")
     
-    cmd = f'TARGET_FOLDER = r"{fmodel_dir}"; PALBAKER_ROOT = r"{palbaker_root}"; exec(open(r"{ue_script_path_clean}").read())'
+    cmd = f'TARGET_FOLDER = r"{fmodel_dir}"; PALBAKER_ROOT = r"{palbaker_root}"; f = open(r"{ue_script_path_clean}"); exec(f.read()); f.close()'
     
     print("Injecting import commands into Unreal Editor...")
     response = remote_exec.run_command(cmd)
