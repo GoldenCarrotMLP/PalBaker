@@ -132,6 +132,7 @@ def main():
             extra_cook_paths.append("/Game/CartoonCelShader/Materials/CelShader")
         if workspace.has_icon:
             extra_cook_paths.append(workspace.icon_virtual_path)
+        extra_cook_paths.append(workspace.blueprint_virtual_path)
 
         # 3. Use the Context Manager to handle DefaultGame.ini backup & safety automatically
         with GameIniCookContext(workspace, extra_paths=extra_cook_paths):
@@ -141,7 +142,7 @@ def main():
                 workspace.uproject_path, 
                 "-run=cook", 
                 "-targetplatform=Windows", 
-                "-unversioned", 
+                #"-unversioned", 
                 "-NoUI", 
                 "-Map=/Engine/Maps/Entry"
             ])
@@ -166,16 +167,16 @@ def main():
             if files_found == 0:
                 print("ERROR: No files found to pack. Cook process might have failed.", flush=True)
                 sys.exit(1)
-                
-            print(f"SUCCESS! Pak created at: {final_pak_path} ({files_found} files)", flush=True)
-            for suffix in ["_err_P.pak", "_err_p.pak"]:
-                err_pak = os.path.join(workspace.output_dir, f"{MONSTER_NAME}{suffix}")
-                if os.path.exists(err_pak):
-                    try:
-                        os.remove(err_pak)
-                        print(f"Cleaned up legacy error pak: {os.path.basename(err_pak)}", flush=True)
-                    except OSError as e:
-                        print(f"Warning: Failed to delete legacy error pak {err_pak}: {e}", flush=True)
+            if not had_cook_issues:
+                print(f"SUCCESS! Pak created at: {final_pak_path} ({files_found} files)", flush=True)
+                for suffix in ["_err_P.pak", "_err_p.pak"]:
+                    err_pak = os.path.join(workspace.output_dir, f"{MONSTER_NAME}{suffix}")
+                    if os.path.exists(err_pak):
+                        try:
+                            os.remove(err_pak)
+                            print(f"Cleaned up legacy error pak: {os.path.basename(err_pak)}", flush=True)
+                        except OSError as e:
+                            print(f"Warning: Failed to delete legacy error pak {err_pak}: {e}", flush=True)
 
 if __name__ == "__main__":
     main()
