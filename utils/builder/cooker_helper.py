@@ -66,10 +66,17 @@ def clean_cook_environment(workspace):
 
 def resolve_packaging_manifest(workspace, has_anims: bool) -> list[tuple[str, str]]:
     """Compiles the absolute file sources and virtual destination paths to pass to UnrealPak."""
-    folders_to_pack = [
-        (workspace.cooked_dir, workspace.ue_virtual_path.replace("/Game/", "")),
-        (workspace.cooked_skel_dir, workspace.skeleton_virtual_path.replace("/Game/", ""))
-    ]
+    folders_to_pack = []
+
+    # FIXED: Determine whether we should pack the vanilla original directory into the final mod pak.
+    should_pack_vanilla = not workspace.is_altermatic_active or workspace.base_type == "custom"
+
+    if should_pack_vanilla:
+        if os.path.exists(workspace.cooked_dir):
+            folders_to_pack.append((workspace.cooked_dir, workspace.ue_virtual_path.replace("/Game/", "")))
+            
+    if os.path.exists(workspace.cooked_skel_dir):
+        folders_to_pack.append((workspace.cooked_skel_dir, workspace.skeleton_virtual_path.replace("/Game/", "")))
 
     # Package Altermatic cooked directories strictly if the framework switch is toggled ON
     if workspace.is_altermatic_active and os.path.exists(workspace.cooked_altermatic_dir):

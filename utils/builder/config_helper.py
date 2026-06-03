@@ -28,8 +28,7 @@ def restore_palbaker_backup(uproject_path: str | None) -> bool:
             
     return False
 
-# FIXED: Changed signature of extra_paths from 'list' to 'list | None' to prevent Pylance type mismatches
-def inject_packaging_settings(ini_path: str, ue_virtual_path: str, skeleton_virtual_path: str, anims_virtual_path: str, has_anims: bool, extra_paths: list | None = None):
+def inject_packaging_settings(ini_path: str, ue_virtual_path: str, skeleton_virtual_path: str, anims_virtual_path: str, has_anims: bool, should_cook_vanilla: bool, extra_paths: list | None = None):
     """Safely updates DefaultGame.ini packaging settings without modifying existing user entries."""
     if not os.path.exists(ini_path):
         return
@@ -51,9 +50,14 @@ def inject_packaging_settings(ini_path: str, ue_virtual_path: str, skeleton_virt
         "bCookAll=False\n",
         "bUseIoStore=False\n",
         "bShareMaterialShaderCode=False\n",
-        f'+DirectoriesToAlwaysCook=(Path="{ue_virtual_path}")\n',
-        f'+DirectoriesToAlwaysCook=(Path="{skeleton_virtual_path}")\n',
     ]
+    
+    # FIXED: Only cook the vanilla directory if should_cook_vanilla evaluates to True
+    if should_cook_vanilla:
+        append_lines.append(f'+DirectoriesToAlwaysCook=(Path="{ue_virtual_path}")\n')
+        
+    append_lines.append(f'+DirectoriesToAlwaysCook=(Path="{skeleton_virtual_path}")\n')
+        
     if has_anims:
         append_lines.append(f'+DirectoriesToAlwaysCook=(Path="{anims_virtual_path}")\n')
         
@@ -90,7 +94,6 @@ def inject_packaging_settings(ini_path: str, ue_virtual_path: str, skeleton_virt
 
 class GameIniCookContext:
     """Context Manager to safely backup, modify, and restore DefaultGame.ini during a cook run."""
-    # FIXED: Changed signature of extra_paths from 'list' to 'list | None' to prevent Pylance type mismatches
     def __init__(self, workspace, extra_paths: list | None = None):
         self.workspace = workspace
         self.extra_paths = extra_paths
@@ -101,12 +104,17 @@ class GameIniCookContext:
 
         if os.path.exists(self.workspace.ini_path):
             shutil.copy2(self.workspace.ini_path, self.workspace.ini_backup)
+            
+            # FIXED: Dynamically toggle cooking of the original vanilla model directory
+            should_cook_vanilla = not self.workspace.is_altermatic_active or self.workspace.base_type == "custom"
+            
             inject_packaging_settings(
                 self.workspace.ini_path,
                 self.workspace.ue_virtual_path,
                 self.workspace.skeleton_virtual_path,
                 self.workspace.anims_virtual_path,
                 self.workspace.has_anims,
+                should_cook_vanilla,
                 extra_paths=self.extra_paths
             )
         return self

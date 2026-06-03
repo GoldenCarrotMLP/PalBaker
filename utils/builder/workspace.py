@@ -56,7 +56,10 @@ class ModWorkspace:
                         base_block = variants.get("base", {})
                     else:
                         base_block = next((v for v in variants if v.get("is_base")), {})
-                    base_type = base_block.get("base_type", "vanilla")
+                    
+                    # FIXED: Derive base_type directly based on base SkeletonSource to eliminate configuration desync
+                    base_skeleton = base_block.get("SkeletonSource", "base")
+                    base_type = "custom" if base_skeleton != "base" else "vanilla"
             except Exception:
                 pass
         self.is_altermatic_active = is_altermatic_active
@@ -95,7 +98,7 @@ class ModWorkspace:
 
         # Output PAK Directories
         self.output_dir = self.fmodel_dir if os.path.exists(self.fmodel_dir) else self.project_dir
-        if self.palworld_exe and os.path.exists(palworld_exe):
+        if self.palworld_exe and os.path.exists(self.palworld_exe):
             self.output_dir = os.path.join(os.path.dirname(self.palworld_exe), "Pal", "Content", "Paks", "palBaker")
 
         self.output_pak_clean = os.path.join(self.output_dir, f"{monster_name}_P.pak")

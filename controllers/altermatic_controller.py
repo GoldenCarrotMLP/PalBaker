@@ -175,6 +175,13 @@ class AltermaticController:
                         if os.path.exists(src_blend_path):
                             shutil.copy2(src_blend_path, target_blend_path)
                             self.view.write_log(f"Cloned skeleton: {os.path.basename(src_blend_path)} -> {target_blend_name}", "standard")
+                            
+                            # Inherit companion sidecar JSON metadata from the source file to preserve custom material overrides
+                            src_sidecar_path = os.path.join(os.path.dirname(src_blend_path), f"{os.path.splitext(os.path.basename(src_blend_path))[0]}_blend.json")
+                            dest_sidecar_path = os.path.join(os.path.dirname(target_blend_path), f"{os.path.splitext(os.path.basename(target_blend_path))[0]}_blend.json")
+                            if os.path.exists(src_sidecar_path):
+                                shutil.copy2(src_sidecar_path, dest_sidecar_path)
+                                self.view.write_log(f"Inherited material mappings: {os.path.basename(src_sidecar_path)} -> {os.path.basename(dest_sidecar_path)}", "standard")
                         else:
                             with open(target_blend_path, "w") as f: f.write("")
 
@@ -255,7 +262,8 @@ class AltermaticController:
         self.original_editing_label = v["label"]
 
         fmodel_altermatic_dir = mod_data.get("fmodel_altermatic_path")
-        blend_files = get_blend_files_for_context(fmodel_altermatic_dir)
+        fmodel_dir = mod_data.get("fmodel_path")
+        blend_files = get_blend_files_for_context(fmodel_altermatic_dir, fmodel_dir)
         
         fmodel_root = self.settings.get("fmodel_output", "")
         available_mats = get_available_materials_for_context(fmodel_root, fmodel_altermatic_dir, current_char_id)
@@ -340,19 +348,12 @@ class AltermaticController:
         is_base = variant_data.get("is_base", False)
         current_char_id = variant_data["CharacterID"]
 
-        # Resolve the folder holding the unified altermatic JSON manifest
-        if is_base:
-            fmodel_target_dir = os.path.join(
-                self.settings.get("fmodel_output", ""), 
-                "Exports", "Pal", "Content", "Pal", "Model", "Character", "Monster", 
-                current_char_id
-            )
-        else:
-            fmodel_target_dir = os.path.join(
-                self.settings.get("fmodel_output", ""), 
-                "Exports", "Pal", "Content", "Palbaker", "Model", "Character", "Monster", 
-                current_char_id
-            )
+        # ALWAYS save to the unified Altermatic staging directory (Palbaker) so that both base and variants reside in a single manifest!
+        fmodel_target_dir = os.path.join(
+            self.settings.get("fmodel_output", ""), 
+            "Exports", "Pal", "Content", "Palbaker", "Model", "Character", "Monster", 
+            current_char_id
+        )
 
         os.makedirs(fmodel_target_dir, exist_ok=True)
         
@@ -387,7 +388,7 @@ class AltermaticController:
         if index >= 0 and index < len(manifest_data["variants"]):
             old_variant = manifest_data["variants"].get(old_label, {})
             
-            # Match the true index using the persistent old_label
+            # Rename operations
             if old_label and old_label != new_label and not is_base:
                 # Rename the sidecar config file on disk
                 old_sidecar = os.path.join(fmodel_target_dir, f"{old_label}_blend.json")
@@ -409,7 +410,6 @@ class AltermaticController:
                             self.view.write_log(f"Renamed .blend model: {manifest_data['variants'][old_label]['SkeletonSource']} -> {new_blend_name}", "standard")
                         except OSError: pass
                     
-                    # Update the skeleton source reference inside our memory save block
                     variant_data["SkeletonSource"] = new_blend_name
 
             # Delete the old key from the dictionary manifest
@@ -447,19 +447,42 @@ class AltermaticController:
                     "Type": m.get("Type", "Free")
                 })
 
-        # Map saved fields
+        # --- DYNAMIC BASE TYPE DETERMINATION ---
+        # Automatically derive the base_type strictly from the base card's SkeletonSource choice
+        if is_base:
+            base_type = "custom" if variant_data["SkeletonSource"] != "base" else "vanilla"
+        else:
+            base_skel = manifest_data["variants"].get("base", {}).get("SkeletonSource", "base")
+            base_type = "custom" if base_skel != "base" else "vanilla"
+
+        # Map saved fields dynamically, pruning empty/unused configurations to prevent file bloating
         save_block = {
-            "SkeletonSource": variant_data["SkeletonSource"],
-            "Gender": sidecar_structure["Gender"],
-            "IsRarePal": sidecar_structure["IsRarePal"],
-            "SkinName": sidecar_structure["SkinName"],
-            "ReqTrait": sidecar_structure["ReqTrait"],
-            "PrefTrait": sidecar_structure["PrefTrait"],
-            "MaterialOverrides": sidecar_structure["MaterialOverrides"],
-            "MorphTarget": sidecar_structure["MorphTarget"],
-            "is_base": is_base,
-            "base_type": variant_data.get("base_type", "vanilla")  # Capture base type (vanilla vs custom)
+            "SkeletonSource": variant_data["SkeletonSource"]
         }
+
+        if sidecar_structure["Gender"] != "None":
+            save_block["Gender"] = sidecar_structure["Gender"]
+            
+        if sidecar_structure["IsRarePal"]:
+            save_block["IsRarePal"] = sidecar_structure["IsRarePal"]
+            
+        if sidecar_structure["SkinName"]:
+            save_block["SkinName"] = sidecar_structure["SkinName"]
+            
+        if sidecar_structure["ReqTrait"]:
+            save_block["ReqTrait"] = sidecar_structure["ReqTrait"]
+            
+        if sidecar_structure["PrefTrait"]:
+            save_block["PrefTrait"] = sidecar_structure["PrefTrait"]
+            
+        if sidecar_structure["MaterialOverrides"]:
+            save_block["MaterialOverrides"] = sidecar_structure["MaterialOverrides"]
+            
+        if sidecar_structure["MorphTarget"]:
+            save_block["MorphTarget"] = sidecar_structure["MorphTarget"]
+
+        save_block["is_base"] = is_base
+        save_block["base_type"] = base_type
 
         # Save directly to dictionary key
         manifest_data["variants"][new_label] = save_block
@@ -468,17 +491,33 @@ class AltermaticController:
             with open(manifest_path, "w", encoding="utf-8") as f:
                 json.dump(manifest_data, f, indent=4)
             self.view.write_log(f"Successfully saved Altermatic variant manifest: {manifest_name}", "success")
+            
+            # FIXED: Dynamically compile and deploy the updated Altermatic configuration to the game's SwapJSON directory
+            # instantly whenever "Apply Changes" is clicked. This allows real-time edits without packaging.
+            palworld_exe = self.settings.get("palworld_exe", "")
+            if palworld_exe and os.path.exists(palworld_exe):
+                swap_json_dir = os.path.join(os.path.dirname(palworld_exe), "Pal", "Content", "Paks", "~Mods", "SwapJSON")
+                from utils.altermatic_helper import compile_unified_altermatic_json
+                success, msg = compile_unified_altermatic_json(current_char_id, fmodel_target_dir, swap_json_dir)
+                if success:
+                    self.view.write_log(f"Auto-deployed updated Altermatic JSON config: {msg}", "success")
+                else:
+                    self.view.write_log(f"Auto-deployment failed: {msg}", "error")
         except Exception as e:
             self.view.write_log(f"ERROR: Failed to save Altermatic manifest: {e}", "error")
 
         self.mc.refresh_mods(scan_disk=True)
 
 # Helper function to scan files dynamically inside the controller
-def get_blend_files_for_context(fmodel_altermatic_dir: str) -> list[str]:
+def get_blend_files_for_context(fmodel_altermatic_dir: str, fmodel_dir: str = "") -> list[str]:
     """Helper used during UI population to resolve Blender choices dynamically."""
     blend_files = []
+    if fmodel_dir and os.path.exists(fmodel_dir):
+        for f in os.listdir(fmodel_dir):
+            if f.endswith(".blend"):
+                blend_files.append(f)
     if fmodel_altermatic_dir and os.path.exists(fmodel_altermatic_dir):
         for f in os.listdir(fmodel_altermatic_dir):
-            if f.endswith(".blend"):
+            if f.endswith(".blend") and f not in blend_files:
                 blend_files.append(f)
     return blend_files

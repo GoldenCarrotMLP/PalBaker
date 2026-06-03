@@ -7,48 +7,42 @@ def apply_rigging(working_dir, ue_path, folder_name, target_asset_path, bone_dat
     if not os.path.exists(json_path):
         return
 
-    print("Checking for Animation Blueprint to apply advanced rigging...")
+    print(f"Checking for Animation Blueprint to apply advanced rigging to: {target_asset_path}")
     anim_bp = None
     ar = unreal.AssetRegistryHelpers.get_asset_registry()
     asset_tools = unreal.AssetToolsHelpers.get_asset_tools()
     
-    skeleton_dir = f"/Game/Pal/Model/Character/Skeleton/{folder_name}"
+    # Derive name and directory from the target mesh asset path directly
+    mesh_name = target_asset_path.split("/")[-1] # e.g. "SK_WeaselDragon_Ferret_Shiny"
+    base_mesh_name = mesh_name.replace("SK_", "") # e.g. "WeaselDragon_Ferret_Shiny"
+    bp_name = f"{base_mesh_name}_BP" # e.g. "WeaselDragon_Ferret_Shiny_BP"
     
-    skeleton_assets = ar.get_assets_by_path(unreal.Name(skeleton_dir), recursive=True)
-    anim_bps = []
-    if skeleton_assets is not None:
-        anim_bps = [a for a in skeleton_assets if str(a.asset_class_path.asset_name) == "AnimBlueprint"]
-    
-    if anim_bps:
-        anim_bp = unreal.EditorAssetLibrary.load_asset(anim_bps[0].package_name)
+    # If the mesh is in Palbaker (Altermatic variant), place the AnimBlueprint right next to it!
+    # If it is vanilla, save it in the default skeleton folder.
+    if "Palbaker" in target_asset_path:
+        target_bp_dir = "/".join(target_asset_path.split("/")[:-1])
     else:
-        search_paths = [
-            f"/Game/Pal/Model/Character/Monster/{folder_name}",
-            f"/Game/Palbaker/Model/Character/Monster/{folder_name}"
-        ]
-        for path in search_paths:
-            if unreal.EditorAssetLibrary.does_directory_exist(path):
-                monster_assets = ar.get_assets_by_path(unreal.Name(path), recursive=True)
-                if monster_assets is not None:
-                    anim_bps = [a for a in monster_assets if str(a.asset_class_path.asset_name) == "AnimBlueprint"]
-                if anim_bps:
-                    anim_bp = unreal.EditorAssetLibrary.load_asset(anim_bps[0].package_name)
-                    break
-                
-    if not anim_bp:
-        print(f"No Animation Blueprint found. Generating a new one for {folder_name}...")
-        skeleton_path = f"/Game/Pal/Model/Character/Skeleton/{folder_name}/SK_{folder_name}_Skeleton"
-        skel = unreal.EditorAssetLibrary.load_asset(skeleton_path)
+        target_bp_dir = f"/Game/Pal/Model/Character/Skeleton/{folder_name}"
         
-        if skel:
-            factory = unreal.AnimBlueprintFactory()
-            factory.set_editor_property('target_skeleton', skel)
-            bp_name = f"{folder_name}_BP"
-            anim_bp = asset_tools.create_asset(bp_name, skeleton_dir, unreal.AnimBlueprint.static_class(), factory)
-            if anim_bp:
-                print(f"Created new Animation Blueprint: {bp_name}")
-        else:
-            print(f"ERROR: Cannot create Animation Blueprint because skeleton {skeleton_path} is missing.")
+    target_bp_path = f"{target_bp_dir}/{bp_name}"
+    skeleton_path = f"/Game/Pal/Model/Character/Skeleton/{folder_name}/SK_{folder_name}_Skeleton"
+
+    # FIXED: Always delete any stale or old variant AnimBlueprint first to prevent node piling
+    if unreal.EditorAssetLibrary.does_asset_exist(target_bp_path):
+        print(f"Cleaning old Animation Blueprint for fresh rebuild: {target_bp_path}")
+        unreal.EditorAssetLibrary.delete_asset(target_bp_path)
+        
+    print(f"Generating new custom Animation Blueprint: {target_bp_path}")
+    skel = unreal.EditorAssetLibrary.load_asset(skeleton_path)
+    if skel:
+        factory = unreal.AnimBlueprintFactory()
+        factory.set_editor_property('target_skeleton', skel)
+        unreal.EditorAssetLibrary.make_directory(target_bp_dir)
+        anim_bp = asset_tools.create_asset(bp_name, target_bp_dir, unreal.AnimBlueprint.static_class(), factory)
+        if anim_bp:
+            print(f"Successfully generated new Animation Blueprint: {bp_name}")
+    else:
+        print(f"ERROR: Cannot create Animation Blueprint because skeleton {skeleton_path} is missing.")
             
     if anim_bp:
         print(f"Applying PalBaker rigging setup to: {anim_bp.get_name()}")
@@ -57,33 +51,19 @@ def apply_rigging(working_dir, ue_path, folder_name, target_asset_path, bone_dat
             if success:
                 print("Rigging applied and compiled successfully.")
                 
-                paths_to_scan = [
-                    f"/Game/Pal/Model/Character/Monster/{folder_name}",
-                    f"/Game/Palbaker/Model/Character/Monster/{folder_name}"
-                ]
+                # Bind this newly generated AnimBlueprint to the Skeletal Mesh's Post-Process slot
+                loaded_mesh = unreal.EditorAssetLibrary.load_asset(target_asset_path)
                 
-                skeletal_meshes_to_bind = []
-                for scan_path in paths_to_scan:
-                    if unreal.EditorAssetLibrary.does_directory_exist(scan_path):
-                        assets = ar.get_assets_by_path(unreal.Name(scan_path), recursive=True)
-                        if assets is not None:
-                            for asset in assets:
-                                if str(asset.asset_class_path.asset_name) == "SkeletalMesh":
-                                    loaded_mesh = unreal.EditorAssetLibrary.load_asset(asset.package_name)
-                                    if loaded_mesh and loaded_mesh not in skeletal_meshes_to_bind:
-                                        skeletal_meshes_to_bind.append(loaded_mesh)
-
                 bp_name = anim_bp.get_name()
                 bp_path_name = anim_bp.get_path_name().split(".")[0]
                 class_path = f"{bp_path_name}.{bp_name}_C"
                 
                 gen_class = unreal.load_class(None, class_path)
-                if gen_class and skeletal_meshes_to_bind:
-                    for mesh_to_update in skeletal_meshes_to_bind:
-                        mesh_to_update.set_editor_property('post_process_anim_blueprint', gen_class)
-                        unreal.EditorAssetLibrary.save_loaded_asset(mesh_to_update)
-                        print(f"Successfully bound {gen_class.get_name()} to Mesh: {mesh_to_update.get_name()}!")
+                if gen_class and loaded_mesh:
+                    loaded_mesh.set_editor_property('post_process_anim_blueprint', gen_class)
+                    unreal.EditorAssetLibrary.save_loaded_asset(loaded_mesh)
+                    print(f"Successfully bound {gen_class.get_name()} to Mesh: {loaded_mesh.get_name()}!")
                 else:
-                    print("No skeletal mesh variants found to bind.")
+                    print("Failed to load generated blueprint class or skeletal mesh target.")
         except Exception as e:
             print(f"Failed to execute rigging setup: {e}")

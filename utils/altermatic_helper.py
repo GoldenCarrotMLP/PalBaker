@@ -212,10 +212,14 @@ def compile_unified_altermatic_json(monster_name: str, altermatic_staging_dir: s
             if not slots_order:
                 slots_order = ["mi_body", "mi_eye", "mi_mouth"]
 
+            # FIXED: Perform case-insensitive slot lookup to reconcile mismatching material casings (e.g., lower vs upper-case)
+            slots_order_lower = [s.lower() for s in slots_order]
+
             material_overrides = v.get("MaterialOverrides", {})
             for slot_name, mat_override_name in material_overrides.items():
-                if slot_name in slots_order and mat_override_name:
-                    idx = slots_order.index(slot_name)
+                slot_name_lower = slot_name.lower()
+                if slot_name_lower in slots_order_lower and mat_override_name:
+                    idx = slots_order_lower.index(slot_name_lower)
                     mat_resolved_dir = get_virtual_path_for_file(sidecar_path)
                     resolved_mat_path = f"{mat_resolved_dir}/{mat_override_name}"
                     mat_replace_list.append({

@@ -3,6 +3,7 @@ import os
 import sys
 import glob
 import json
+import shutil
 import subprocess
 from utils.builder.workspace import ModWorkspace
 from utils.builder.config_helper import restore_palbaker_backup, GameIniCookContext
@@ -73,9 +74,31 @@ def main():
     # -------------------------------------------------------------
     if ACTION in ["push", "full"]:
         import_targets = []
-        if os.path.exists(workspace.fmodel_dir):
-            import_targets.append((workspace.fmodel_dir, workspace.ue_virtual_path))
-            
+        
+        # Decide whether we should push our base modification to the vanilla original path
+        should_push_vanilla = not workspace.is_altermatic_active or workspace.base_type == "custom"
+
+        if should_push_vanilla:
+            if os.path.exists(workspace.fmodel_dir):
+                import_targets.append((workspace.fmodel_dir, workspace.ue_virtual_path))
+        else:
+            # Standalone Altermatic Fallback active ("vanilla base")
+            # Mirror modified base assets from the original base directory to the Palbaker staging directory
+            # so they compile under the /Game/Palbaker/ path instead of overwriting original files.
+            if os.path.exists(workspace.fmodel_dir) and os.path.exists(workspace.fmodel_altermatic_dir):
+                print("Standalone Altermatic Fallback active. Mirroring modified base assets to Palbaker directory...", flush=True)
+                for item in os.listdir(workspace.fmodel_dir):
+                    # Skip manifest and state files to prevent collisions
+                    if item == f"{MONSTER_NAME}_altermatic.json" or item == ".palbaker_state.json":
+                        continue
+                    src_file = os.path.join(workspace.fmodel_dir, item)
+                    if os.path.isfile(src_file):
+                        dest_file = os.path.join(workspace.fmodel_altermatic_dir, item)
+                        # Only copy if the source is newer or doesn't exist
+                        if not os.path.exists(dest_file) or os.path.getmtime(src_file) > os.path.getmtime(dest_file):
+                            shutil.copy2(src_file, dest_file)
+                            print(f"  Mirrored: {item}", flush=True)
+
         # Strictly append Altermatic assets only if the Switch is toggled ON
         if workspace.is_altermatic_active and os.path.exists(workspace.fmodel_altermatic_dir) and any(f.endswith(".blend") for f in os.listdir(workspace.fmodel_altermatic_dir)):
             import_targets.append((workspace.fmodel_altermatic_dir, workspace.ue_altermatic_virtual_path))
@@ -88,6 +111,17 @@ def main():
         from utils.altermatic_helper import sync_sidecar_metadata
         for target_dir, _ in import_targets:
             for blend_file in glob.glob(os.path.join(target_dir, "*.blend")):
+                # FIXED: Self-healing. If an Altermatic variant sidecar is missing but the parent base sidecar exists,
+                # replicate the base sidecar first. This ensures custom topological material configurations
+                # (such as MI_WeaselDragon_Body_Shiny) are compiled correctly and available inside Unreal.
+                if target_dir == workspace.fmodel_altermatic_dir:
+                    base_sidecar = os.path.join(workspace.fmodel_dir, f"{MONSTER_NAME}_blend.json")
+                    var_base_name = os.path.splitext(os.path.basename(blend_file))[0]
+                    var_sidecar = os.path.join(workspace.fmodel_altermatic_dir, f"{var_base_name}_blend.json")
+                    if os.path.exists(base_sidecar) and not os.path.exists(var_sidecar):
+                        print(f"  [Self-Healing] Restoring base sidecar {os.path.basename(base_sidecar)} to {os.path.basename(var_sidecar)}", flush=True)
+                        shutil.copy2(base_sidecar, var_sidecar)
+
                 print(f"Pre-import synchronizing layout metadata for {os.path.basename(blend_file)}...", flush=True)
                 sync_sidecar_metadata(workspace.blender_path, blend_file)
 

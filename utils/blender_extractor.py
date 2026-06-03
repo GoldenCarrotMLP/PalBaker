@@ -44,6 +44,12 @@ def parse_args():
     for i, arg in enumerate(args):
         if arg == "--output" and i + 1 < len(args):
             output_json = args[i + 1]
+            if not output_json.endswith(".json"):
+                # Handle possible argument offset errors
+                for next_arg in args[i+1:]:
+                    if next_arg.endswith(".json"):
+                        output_json = next_arg
+                        break
         elif arg == "--fbx" and i + 1 < len(args):
             output_fbx = args[i + 1]
     return output_json, output_fbx
@@ -165,11 +171,27 @@ def extract_metadata(output_path: str):
     mesh_objs = [obj for obj in bpy.data.objects if obj.type == 'MESH']
     fresh_morph_names = list(set(kb.name for obj in mesh_objs if obj.data.shape_keys for kb in obj.data.shape_keys.key_blocks if kb.name != 'Basis'))
 
+    # Load existing sidecar config if present to delta-merge custom material mappings
+    existing_data = {}
+    if os.path.exists(output_path):
+        try:
+            with open(output_path, "r", encoding="utf-8") as f:
+                existing_data = json.load(f)
+        except Exception:
+            pass
+
+    # FIXED: Non-destructive material delta-merge. Preserves custom material slots and reskins
+    # (such as MI_WeaselDragon_Body_Shiny) from being erased during headless Blender exports.
+    merged_materials = {}
+    if "materials" in existing_data:
+        merged_materials.update(existing_data["materials"])
+    merged_materials.update(materials_compile)
+
     # Save PURE layout data configuration next to the .blend file (No Altermatic state)
     layout_data = {
         "jiggle_bones": jiggle_bones,
         "offset_bones": offset_bones,
-        "materials": materials_compile,
+        "materials": merged_materials,
         "morph_targets": sorted(fresh_morph_names)
     }
 
