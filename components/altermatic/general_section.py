@@ -32,16 +32,6 @@ class GeneralSection:
             tooltip="Scan Blender file for new material slots and blendshapes on the spot",
             on_click=self.on_refresh_layout
         )
-        
-        # --- DYNAMIC BASE TYPE SELECTOR ---
-        self.base_type_dropdown = ft.Dropdown(
-            label="Base Model Type",
-            options=[
-                ft.dropdown.Option("vanilla", "vanilla base (Standalone Altermatic Fallback)"),
-                ft.dropdown.Option("custom", "custom base (Direct Vanilla Overwrite)")
-            ],
-            value="vanilla"
-        )
 
         self.gender_dropdown = ft.Dropdown(
             label="Gender",
@@ -70,7 +60,6 @@ class GeneralSection:
                 self.open_blend_button,
                 self.refresh_layout_button
             ], alignment=ft.MainAxisAlignment.SPACE_BETWEEN, spacing=5),
-            self.base_type_dropdown,  # Visible only for base
             self.conditions_row
         ], spacing=15)
 
@@ -83,7 +72,6 @@ class GeneralSection:
         # Manage visibility based on base card
         self.conditions_row.visible = not is_base
         self.skin_name_input.visible = not is_base
-        self.base_type_dropdown.visible = is_base
 
         # Populate Skeleton sources with clean stripped labels
         dropdown_options = [ft.dropdown.Option("base", "base (Vanilla Canonical Mesh)")]
@@ -99,21 +87,6 @@ class GeneralSection:
         if is_base:
             self.label_input.value = "base"
             self.skeleton_source_dropdown.value = variant_data.get("SkeletonSource", "base")
-            self.base_type_dropdown.value = variant_data.get("base_type", "vanilla")
-            
-            # --- DYNAMIC AVAILABILITY CHECK ---
-            has_base_blend = bool(variant_data.get("has_base_blend", False))
-            if not has_base_blend:
-                self.base_type_dropdown.options = [
-                    ft.dropdown.Option("vanilla", "vanilla base (Standalone Altermatic Fallback)"),
-                    ft.dropdown.Option("custom", "custom base (Requires base .blend - Disabled)", disabled=True)
-                ]
-                self.base_type_dropdown.value = "vanilla"
-            else:
-                self.base_type_dropdown.options = [
-                    ft.dropdown.Option("vanilla", "vanilla base (Standalone Altermatic Fallback)"),
-                    ft.dropdown.Option("custom", "custom base (Direct Vanilla Overwrite)")
-                ]
         else:
             raw_label = variant_data.get("label", "")
             prefix = f"{character_id}_"
@@ -132,6 +105,5 @@ class GeneralSection:
             "SkeletonSource": self.skeleton_source_dropdown.value,
             "Gender": self.gender_dropdown.value if self.gender_dropdown.value else "None",
             "IsRarePal": bool(self.is_rare_checkbox.value),
-            "SkinName": self.skin_name_input.value.strip() if self.skin_name_input.value else "",
-            "base_type": self.base_type_dropdown.value if self.base_type_dropdown.value else "vanilla"
+            "SkinName": self.skin_name_input.value.strip() if self.skin_name_input.value else ""
         }

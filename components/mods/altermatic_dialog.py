@@ -59,7 +59,6 @@ class AltermaticDialog:
         self.apply_btn = ft.TextButton("Apply Changes", on_click=self.save_variant)
 
         # --- DYNAMIC ACCORDION EXPANDER ---
-        # Fixed: Changed "text" keyword to positional "Advanced Options" string
         self.advanced_toggle_button = ft.TextButton(
             "Advanced Options",
             icon=ft.Icons.KEYBOARD_ARROW_DOWN_ROUNDED,
@@ -107,7 +106,7 @@ class AltermaticDialog:
         self.traits_section.populate(variant_data, self.is_base)
 
         # 3. Populate Material Selector & Morphs
-        self.materials_section.populate(character_id, self.general_section.skeleton_source_dropdown.value, variant_data.get("MatReplace"), available_mats, self.is_base)
+        self.materials_section.populate(character_id, self.general_section.skeleton_source_dropdown.value, variant_data, available_mats, self.is_base)
         self.morphs_section.populate(character_id, self.general_section.skeleton_source_dropdown.value, variant_data.get("MorphTarget", []), self.is_base)
 
         # Hide the delete button if editing the pinned canonical base mesh fallback
@@ -126,6 +125,13 @@ class AltermaticDialog:
         self.dialog.title = ft.Text(f"Configurator: {clean_title}")
 
         show_dialog_safe(self.page, self.dialog)
+        
+        # FIXED: Explicitly force UI update after show_dialog_safe to ensure cleared options
+        # or list modifications sync immediately with Flet client engine.
+        try:
+            self.dialog.update()
+        except Exception:
+            pass
 
     def toggle_advanced_panel(self, e):
         """Animates and toggles the visibility of the advanced parameters accordion."""
@@ -248,8 +254,7 @@ class AltermaticDialog:
             "PrefTrait": pref_traits,
             "MatReplace": mat_replaces,
             "MorphTarget": morphs,
-            "is_base": self.is_base,
-            "base_type": general_values.get("base_type", "vanilla")  # Capture base type (vanilla vs custom)
+            "is_base": self.is_base
         }
 
         close_dialog_safe(self.page, self.dialog)
