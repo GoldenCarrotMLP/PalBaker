@@ -9,6 +9,7 @@ from components.mods.dialogs import (
     create_decompile_options_dialog,
     create_troubleshooting_advisor_dialog
 )
+from components.mods.altermatic_dialog import AltermaticDialog
 
 class ModsView:
     def __init__(self, page: ft.Page, settings: dict):
@@ -21,7 +22,7 @@ class ModsView:
         self.log_view = ft.ListView(expand=True, spacing=2, auto_scroll=True)
         self.cached_components = {}
 
-        # FIXED: Add FilePickers to page.services, NOT page.overlay
+        # Non-visual file picker services
         self.icon_picker = ft.FilePicker()
         self.main_page.services.append(self.icon_picker)
         
@@ -42,6 +43,7 @@ class ModsView:
             ft.Chip(label=ft.Text("SOURCE"), on_select=lambda e: self.controller.update_badge_filter("SOURCE", e.control.selected)),
             ft.Chip(label=ft.Text("UE ASSETS"), on_select=lambda e: self.controller.update_badge_filter("UE ASSETS", e.control.selected)),
             ft.Chip(label=ft.Text("MODIFIED"), on_select=lambda e: self.controller.update_badge_filter("MODIFIED", e.control.selected)),
+            ft.Chip(label=ft.Text("ALTERMATIC"), on_select=lambda e: self.controller.update_badge_filter("ALTERMATIC", e.control.selected)),
         ], spacing=10)
 
         self.status_chips = ft.Row([
@@ -64,7 +66,7 @@ class ModsView:
         
         self.mods_list_container = ft.Container(
             self.mods_list, 
-            expand=True, # Allow it to fill remaining space
+            expand=True,
             border=ft.Border.all(1, ft.Colors.WHITE10), 
             border_radius=10, 
             padding=10
@@ -100,13 +102,28 @@ class ModsView:
             ]
         )
 
+        # Instantiate Altermatic visual modal dialog cleanly using the traits database and dispatcher
+        self.altermatic_dialog = AltermaticDialog(
+            self.main_page, 
+            self.settings, 
+            self.controller.traits_db, 
+            self.controller.save_altermatic_variant_callback,
+            on_refresh_callback=self.controller.run_refresh_pipeline_callback,
+            on_delete_callback=self.controller.delete_altermatic_variant_by_index # Dynamically binds the modal's deletion trigger
+        )
+
     def on_divider_drag(self, e: ft.DragUpdateEvent):
-        delta = e.delta_y
+        # Version-safe fallback lookup supporting older and newer Flet gestures
+        delta = 0.0
+        if hasattr(e, "local_delta") and e.local_delta is not None:
+            delta = e.local_delta.y
+        elif hasattr(e, "delta_y"):
+            delta = e.delta_y
+
         new_console_height = max(50, self.console_container.height - delta)
         self.console_container.height = new_console_height
         self.console_height = new_console_height
         
-        # Save setting
         self.settings["console_height"] = new_console_height
         from utils.config import save_settings
         save_settings(self.settings)
@@ -141,6 +158,11 @@ class ModsView:
                     on_pick_audio=self.trigger_audio_picker,
                     on_play_audio=self.controller.play_audio,
                     on_clear_audio=self.controller.clear_audio,
+                    # Altermatic UI forward bindings
+                    on_toggle_altermatic=self.controller.toggle_altermatic,
+                    on_add_variant=self.controller.add_altermatic_variant,
+                    on_edit_variant=self.controller.edit_altermatic_variant,
+                    on_delete_variant=self.controller.delete_altermatic_variant,
                     is_building=global_building,
                     show_mapped=self.controller.show_mapped
                 )
@@ -151,24 +173,18 @@ class ModsView:
         self.force_update()
 
     async def trigger_icon_picker(self, mod_data):
-        """Asynchronously triggers the file picker and applies the selected icon on success."""
         result = await self.icon_picker.pick_files(allow_multiple=False, allowed_extensions=["png", "jpg", "jpeg"])
         if result and len(result) > 0:
             path = result[0].path
-            # Explicit type guard narrows 'str | None' to 'str' for Pylance
             if isinstance(path, str):
                 self.controller.apply_custom_icon(mod_data, path)
 
-
     async def trigger_audio_picker(self, mod_data, cry_name):
-        """Asynchronously triggers the file picker for custom cries (Supports WAV, MP3, and OGG)."""
         result = await self.audio_picker.pick_files(allow_multiple=False, allowed_extensions=["wav", "mp3", "ogg"])
         if result and len(result) > 0:
             path = result[0].path
-            # Explicit type guard narrows 'str | None' to 'str' for Pylance
             if isinstance(path, str):
                 await self.controller.apply_custom_audio(mod_data, cry_name, path)
-
 
     def update_card_progress(self, mod_name: str, line: str, flush: bool):
         if mod_name in self.cached_components:
@@ -228,6 +244,11 @@ class ModsView:
 
     def pop_dialog(self):
         self.main_page.pop_dialog()
+
+    def show_snackbar(self, message: str, color):
+        """Displays a temporary colored popup alert at the bottom of the screen."""
+        self.main_page.overlay.append(ft.SnackBar(ft.Text(message, color=color), open=True))
+        self.main_page.update()
 
     def force_update(self):
         try: self.view.update()

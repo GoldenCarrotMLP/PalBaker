@@ -2,13 +2,19 @@
 import flet as ft
 
 class ModDetails:
-    def __init__(self, mod_data: dict, on_pick_icon, on_pick_audio, on_play_audio, on_clear_audio):
+    def __init__(self, mod_data: dict, on_pick_icon, on_pick_audio, on_play_audio, on_clear_audio,
+                 on_toggle_altermatic, on_add_variant, on_edit_variant, on_delete_variant):
         self.mod_data = mod_data
         self.on_pick_icon = on_pick_icon
         self.on_pick_audio = on_pick_audio
         self.on_play_audio = on_play_audio
         self.on_clear_audio = on_clear_audio
         
+        # Altermatic custom callbacks
+        self.on_toggle_altermatic = on_toggle_altermatic
+        self.on_add_variant = on_add_variant
+        self.on_edit_variant = on_edit_variant
+
         # --- ICON SLOT COMPONENT ---
         has_icon = mod_data.get("has_icon", False)
         icon_path = mod_data.get("icon_path", "")
@@ -35,7 +41,7 @@ class ModDetails:
         ], spacing=5)
 
         # --- AUDIO CUSTOMIZATION SECTION ---
-        audio_section_controls = []
+        audio_section_controls: list[ft.Control] = []
         has_fmodel = mod_data.get("has_fmodel", False)
         sound_meta = mod_data.get("sound_metadata", {})
 
@@ -62,8 +68,8 @@ class ModDetails:
                 ft.Text("Custom Pal Cries (.wav, .mp3, .ogg)", size=11, weight=ft.FontWeight.BOLD)
             )
             
-            col1_controls = []
-            col2_controls = []
+            col1_controls: list[ft.Control] = []
+            col2_controls: list[ft.Control] = []
             audio_overrides = mod_data.get("audio_overrides", {})
             available_cries = [c for c in ["Normal", "Joy", "Anger", "Sorrow", "Pain", "Death"] if c in sound_meta]
 
@@ -74,7 +80,6 @@ class ModDetails:
 
                 cry_row = ft.Container(
                     content=ft.Row([
-                        # Preview Audio Button (binds directly, passes cry_name via data)
                         ft.IconButton(
                             icon=ft.Icons.PLAY_ARROW_ROUNDED,
                             icon_size=16,
@@ -87,7 +92,6 @@ class ModDetails:
                             ft.Text(cry_name, size=11, weight=ft.FontWeight.BOLD),
                             ft.Text(status_text, size=9, color=color)
                         ], spacing=1, expand=True),
-                        # Upload File Button
                         ft.IconButton(
                             icon=ft.Icons.UPLOAD_FILE_ROUNDED,
                             icon_size=16,
@@ -95,7 +99,6 @@ class ModDetails:
                             tooltip=f"Set custom sound for {cry_name}",
                             on_click=self.handle_upload_click
                         ),
-                        # Revert/Clear File Button
                         ft.IconButton(
                             icon=ft.Icons.DELETE_OUTLINE_ROUNDED,
                             icon_size=16,
@@ -121,21 +124,173 @@ class ModDetails:
                 ft.Row([
                     ft.Column(col1_controls, spacing=5, expand=True),
                     ft.Column(col2_controls, spacing=5, expand=True)
-                ], spacing=20, expand=True)
+                ], spacing=10, expand=True)
             )
 
         audio_section = ft.Column(audio_section_controls, spacing=5, expand=True)
+
+        # --- ALTERMATIC CUSTOMIZATION SECTION ---
+        altermatic_section_controls: list[ft.Control] = []
+        is_altermatic_active = mod_data.get("is_altermatic_active", False)
+
+        # Master Toggle
+        self.altermatic_switch = ft.Switch(
+            label="Enable Altermatic Framework",
+            value=is_altermatic_active,
+            on_change=self.handle_switch_toggle,
+            label_position=ft.LabelPosition.RIGHT
+        )
+
+        # Dynamic Horizontal Wrapping Grid
+        self.variants_row = ft.Row(wrap=True, spacing=10)
+        
+        self.add_variant_button = ft.TextButton(
+            "Add Variant", 
+            icon=ft.Icons.ADD_CIRCLE_OUTLINE_ROUNDED,
+            on_click=lambda e: self.on_add_variant(self.mod_data)
+        )
+
+        self.variants_panel = ft.Column([
+            ft.Text("Spawn Variants List:", size=11, weight=ft.FontWeight.BOLD),
+            self.variants_row,
+            self.add_variant_button
+        ], visible=is_altermatic_active, spacing=10, expand=True)
+
+        altermatic_section_controls.append(self.altermatic_switch)
+        altermatic_section_controls.append(self.variants_panel)
+
+        altermatic_section = ft.Column(altermatic_section_controls, spacing=5, expand=True)
+
+        self.build_variants_list()
 
         self.view = ft.Container(
             content=ft.Row([
                 icon_section,
                 ft.VerticalDivider(width=1, color=ft.Colors.WHITE10),
-                audio_section
+                audio_section,
+                ft.VerticalDivider(width=1, color=ft.Colors.WHITE10),
+                altermatic_section
             ], spacing=20, vertical_alignment=ft.CrossAxisAlignment.START),
             padding=ft.Padding(left=40, top=10, right=10, bottom=10),
             bgcolor=ft.Colors.WHITE10,
             border_radius=8
         )
+
+    # --- Type-Safe Event Closures ---
+    def make_edit_handler(self, index: int):
+        return lambda e: self.on_edit_variant(self.mod_data, index)
+
+    def build_variants_list(self):
+        """Compiles active sidecars in memory and renders visual chips below the clickable text links."""
+        self.variants_row.controls.clear()
+        
+        variants = self.mod_data.get("altermatic_variants", [])
+        
+        if not variants:
+            self.variants_row.controls.append(
+                ft.Text("No custom variants added yet.", size=11, color=ft.Colors.WHITE38, italic=True)
+            )
+            return
+
+        for idx, v in enumerate(variants):
+            is_base = v.get("is_base", False)
+            traits_count = len(v.get("ReqTrait", [])) + len(v.get("PrefTrait", []))
+            mats_count = len(v.get("MatReplace", []))
+            morphs_count = len(v.get("MorphTarget", []))
+            
+            badge_controls: list[ft.Control] = []
+            
+            display_label = v["label"]
+            prefix = f"{self.mod_data['name']}_"
+            if display_label.startswith(prefix):
+                display_label = display_label[len(prefix):]
+
+            if is_base:
+                badge_controls.append(
+                    ft.Container(
+                        content=ft.Text("BASE", size=7, weight=ft.FontWeight.BOLD),
+                        bgcolor=ft.Colors.GREY_700,
+                        padding=2,
+                        border_radius=2
+                    )
+                )
+            else:
+                # Do NOT render gender badge if set to "None"
+                if v.get("Gender", "None") != "None":
+                    badge_controls.append(
+                        ft.Container(
+                            content=ft.Text(v.get("Gender", "None")[:1], size=7, weight=ft.FontWeight.BOLD),
+                            bgcolor=ft.Colors.BLUE_900,
+                            padding=2,
+                            border_radius=2
+                        )
+                    )
+                if v.get("IsRarePal"):
+                    badge_controls.append(
+                        ft.Container(
+                            content=ft.Text("LUCKY", size=7, weight=ft.FontWeight.BOLD),
+                            bgcolor=ft.Colors.AMBER_900,
+                            padding=2,
+                            border_radius=2
+                        )
+                    )
+                if traits_count > 0:
+                    badge_controls.append(
+                        ft.Container(
+                            content=ft.Text(f"T: {traits_count}", size=7, weight=ft.FontWeight.BOLD),
+                            bgcolor=ft.Colors.GREEN_900,
+                            padding=2,
+                            border_radius=2
+                        )
+                    )
+                if mats_count > 0:
+                    badge_controls.append(
+                        ft.Container(
+                            content=ft.Text(f"M: {mats_count}", size=7, weight=ft.FontWeight.BOLD),
+                            bgcolor=ft.Colors.PURPLE_900,
+                            padding=2,
+                            border_radius=2
+                        )
+                    )
+                if morphs_count > 0:
+                    badge_controls.append(
+                        ft.Container(
+                            content=ft.Text(f"MPH: {morphs_count}", size=7, weight=ft.FontWeight.BOLD),
+                            bgcolor=ft.Colors.CYAN_900,
+                            padding=2,
+                            border_radius=2
+                        )
+                    )
+
+            internal_column_controls: list[ft.Control] = [
+                ft.Text(display_label, size=11, weight=ft.FontWeight.BOLD, color=ft.Colors.CYAN_400, overflow=ft.TextOverflow.ELLIPSIS),
+                ft.Row(badge_controls, spacing=2, tight=True),
+                # --- DUMMY SPACER FOR MIN-WIDTH ---
+                # Forces the container to be at least 60px wide cleanly on all versions of Flet
+                ft.Container(width=60, height=0)
+            ]
+
+            # Unified compact variant chip
+            self.variants_row.controls.append(
+                ft.Container(
+                    content=ft.Column(internal_column_controls, spacing=2, tight=True),
+                    bgcolor=ft.Colors.WHITE10,
+                    border_radius=6,
+                    padding=8,
+                    ink=True,
+                    on_click=self.make_edit_handler(idx),
+                    tooltip=f"Configure {v['label']}"
+                )
+            )
+
+    def handle_switch_toggle(self, e):
+        is_active = e.control.value
+        self.variants_panel.visible = is_active
+        self.on_toggle_altermatic(self.mod_data, is_active)
+        try:
+            self.view.update()
+        except Exception:
+            pass
 
     async def handle_icon_click(self, e):
         await self.on_pick_icon(self.mod_data)

@@ -30,8 +30,7 @@ def run_and_stream(cmd_args) -> bool:
             
             # Scan for issues
             line_lower = stripped.lower()
-            #f "error:" in line_lower or "warning:" in line_lower:
-            if "error:" in line_lower in line_lower:
+            if "error:" in line_lower:
                 had_issues = True
             
     process.wait()
@@ -52,10 +51,17 @@ def clean_cook_environment(workspace):
                 print(f"CRITICAL ERROR: Cannot overwrite '{os.path.basename(p)}'. Close the game!", flush=True)
                 sys.exit(1)
 
-    # Clean cooked folders
-    if os.path.exists(workspace.cooked_dir): shutil.rmtree(workspace.cooked_dir, ignore_errors=True)
-    if os.path.exists(workspace.cooked_skel_dir): shutil.rmtree(workspace.cooked_skel_dir, ignore_errors=True)
-    if os.path.exists(workspace.cooked_anims_dir): shutil.rmtree(workspace.cooked_anims_dir, ignore_errors=True)
+    # Clean cooked folders (including Altermatic variants)
+    if os.path.exists(workspace.cooked_dir): 
+        shutil.rmtree(workspace.cooked_dir, ignore_errors=True)
+    if os.path.exists(workspace.cooked_altermatic_dir): 
+        shutil.rmtree(workspace.cooked_altermatic_dir, ignore_errors=True)
+    if os.path.exists(workspace.cooked_skel_dir): 
+        shutil.rmtree(workspace.cooked_skel_dir, ignore_errors=True)
+    if os.path.exists(workspace.cooked_anims_dir): 
+        shutil.rmtree(workspace.cooked_anims_dir, ignore_errors=True)
+    if os.path.exists(workspace.cooked_bp_dir): 
+        shutil.rmtree(workspace.cooked_bp_dir, ignore_errors=True)
 
 
 def resolve_packaging_manifest(workspace, has_anims: bool) -> list[tuple[str, str]]:
@@ -64,6 +70,11 @@ def resolve_packaging_manifest(workspace, has_anims: bool) -> list[tuple[str, st
         (workspace.cooked_dir, workspace.ue_virtual_path.replace("/Game/", "")),
         (workspace.cooked_skel_dir, workspace.skeleton_virtual_path.replace("/Game/", ""))
     ]
+
+    # Package Altermatic cooked directories strictly if the framework switch is toggled ON
+    if workspace.is_altermatic_active and os.path.exists(workspace.cooked_altermatic_dir):
+        folders_to_pack.append((workspace.cooked_altermatic_dir, workspace.ue_altermatic_virtual_path.replace("/Game/", "")))
+        print("  -> Altermatic variants detected: Packing custom variant meshes.", flush=True)
 
     if hasattr(workspace, 'cooked_bp_dir') and os.path.exists(workspace.cooked_bp_dir):
         bp_cooked_base = os.path.join(workspace.cooked_bp_dir, f"BP_{workspace.monster_name}")
@@ -76,7 +87,6 @@ def resolve_packaging_manifest(workspace, has_anims: bool) -> list[tuple[str, st
                 bp_parts_found = True
         if bp_parts_found:
             print(f"  -> Custom Blueprint detected: Packing only BP_{workspace.monster_name} Blueprint files.", flush=True)
-
 
     if has_anims:
         folders_to_pack.append((workspace.cooked_anims_dir, workspace.anims_virtual_path.replace("/Game/", "")))
@@ -116,12 +126,10 @@ def pack_cooked_assets(unrealpak_path: str, response_file: str, output_pak: str,
     Creates the response file for UnrealPak and executes the packaging.
     Supports both Directory-level and File-level packaging paths.
     """
-    # SELF-HEALING: Automatically create the target folder if it is missing!
     os.makedirs(os.path.dirname(response_file), exist_ok=True)
 
     files_found = 0
     with open(response_file, "w") as f:
-
         for path_on_disk, relative_virtual_path in folders_to_pack:
             if os.path.exists(path_on_disk):
                 # Case A: Directory-level packaging (Standard recursive walk)

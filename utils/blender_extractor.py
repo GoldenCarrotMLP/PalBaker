@@ -4,7 +4,7 @@ import json
 import sys
 import os
 import math
-import re  # ADDED: Regular expressions import
+import re
 from mathutils import Matrix
 
 current_dir = os.path.dirname(__file__)
@@ -13,23 +13,7 @@ if current_dir not in sys.path:
 
 import image_combiner
 
-# Define physics presets for arbitrary bone suffixes.
 PHYSICS_BONE_PRESETS = {
-    # --- EXAMPLE PRESET WITH ALL PROPERTIES COMMENTED ---
-    "_example": {
-        "spring_stiffness": 300.0,      
-        "spring_damping": 8.0,          
-        "max_displacement": 20.0,       
-        "error_reset_thresh": 1000.0,   
-        "limit_displacement": True,     
-        "translate_x": True,            
-        "translate_y": True,            
-        "translate_z": True,            
-        "rotate_x": True,               
-        "rotate_y": True,               
-        "rotate_z": True,               
-        "alpha": 1.0                    
-    },
     "_jiggle": {
         "spring_stiffness": 300.0, "spring_damping": 8.0, "max_displacement": 20.0, 
         "error_reset_thresh": 1000.0, "limit_displacement": True,
@@ -55,7 +39,7 @@ def parse_args():
     if "--" in sys.argv:
         args = sys.argv[sys.argv.index("--") + 1:]
     
-    output_json = "bone_data.json"
+    output_json = "sidecar_blend.json"
     output_fbx = None
     for i, arg in enumerate(args):
         if arg == "--output" and i + 1 < len(args):
@@ -80,26 +64,22 @@ def extract_metadata(output_path: str):
     offset_bones = []
     swap = Matrix(((1, 0, 0, 0), (0, -1, 0, 0), (0, 0, 1, 0), (0, 0, 0, 1)))
     
-    for p_bone in armature_obj.pose.bones:# type: ignore
+    for p_bone in armature_obj.pose.bones:
         raw_name = p_bone.name
-        # Keep the physical name modification intact so the hierarchy matches the FBX
         ue_bone_name = raw_name.replace('.', '_')
         raw_name_lower = raw_name.lower()
         
-        # Strip trailing dot-digit duplicates (e.g. '.001', '.002') for suffix comparison
         match_name = re.sub(r'\.\d+$', '', raw_name_lower)
         
-        # Route physics configuration from preset dictionary
         is_physics_bone = False
         for suffix, preset in PHYSICS_BONE_PRESETS.items():
-            if match_name.endswith(suffix) and suffix != "_example":
+            if match_name.endswith(suffix):
                 bone_config = {"bone_name": ue_bone_name}
                 bone_config.update(preset)
                 jiggle_bones.append(bone_config)
                 is_physics_bone = True
                 break
                 
-        # Preserve legacy behavior for "_phy" anywhere in the name
         if not is_physics_bone and "_phy" in match_name:
             bone_config = {"bone_name": ue_bone_name}
             bone_config.update(PHYSICS_BONE_PRESETS["_phy"])
@@ -127,14 +107,13 @@ def extract_metadata(output_path: str):
                 "bone_name": ue_bone_name, "translation": ue_translation, "rotation": ue_rotation, "scale": ue_scale
             })
 
-
-    # TOPOLOGY COMPILER
+    # --- TOPOLOGY MATERIAL COMPILER ---
     materials_compile = {}
     folder_name = os.path.basename(working_dir)
 
     for mat in bpy.data.materials:
         if not mat.use_nodes: continue
-        out_node = next((n for n in mat.node_tree.nodes if n.type == 'OUTPUT_MATERIAL'), None)# type: ignore
+        out_node = next((n for n in mat.node_tree.nodes if n.type == 'OUTPUT_MATERIAL'), None)
         if not out_node or not out_node.inputs['Surface'].links: continue
         
         bsdf = out_node.inputs['Surface'].links[0].from_node
@@ -182,15 +161,27 @@ def extract_metadata(output_path: str):
         if tex_mrao: materials_compile[mat.name]["textures"]["MetallicRoughnessOcclusionSpecularTexture"] = tex_mrao
         if tex_sss: materials_compile[mat.name]["textures"]["Subsurface Texture"] = tex_sss
 
+    # Extract shape keys to dynamically sync morph targets list
+    mesh_objs = [obj for obj in bpy.data.objects if obj.type == 'MESH']
+    fresh_morph_names = list(set(kb.name for obj in mesh_objs if obj.data.shape_keys for kb in obj.data.shape_keys.key_blocks if kb.name != 'Basis'))
+
+    # Save PURE layout data configuration next to the .blend file (No Altermatic state)
+    layout_data = {
+        "jiggle_bones": jiggle_bones,
+        "offset_bones": offset_bones,
+        "materials": materials_compile,
+        "morph_targets": sorted(fresh_morph_names)
+    }
+
     with open(output_path, "w", encoding="utf-8") as f:
-        json.dump({"jiggle_bones": jiggle_bones, "offset_bones": offset_bones, "materials": materials_compile}, f, indent=4)
+        json.dump(layout_data, f, indent=4)
 
     if "--fbx" in sys.argv:
         fbx_path = sys.argv[sys.argv.index("--fbx") + 1]
         print("Clearing pose transforms to Rest Pose...")
-        for p_bone in armature_obj.pose.bones:# type: ignore
+        for p_bone in armature_obj.pose.bones:
             p_bone.matrix_basis = Matrix.Identity(4)
-        bpy.context.view_layer.update()# type: ignore
+        bpy.context.view_layer.update()
         bpy.ops.export_scene.fbx(filepath=os.path.abspath(fbx_path), use_selection=False, add_leaf_bones=False, mesh_smooth_type='FACE', armature_nodetype='ROOT', global_scale=0.01, apply_scale_options='FBX_SCALE_ALL')
 
 if __name__ == "__main__":
