@@ -45,7 +45,6 @@ def parse_args():
         if arg == "--output" and i + 1 < len(args):
             output_json = args[i + 1]
             if not output_json.endswith(".json"):
-                # Handle possible argument offset errors
                 for next_arg in args[i+1:]:
                     if next_arg.endswith(".json"):
                         output_json = next_arg
@@ -104,8 +103,8 @@ def extract_metadata(output_path: str):
             blender_delta_mat = l_pose @ l_rest.inverted()
             ue_delta_mat = swap @ blender_delta_mat @ swap
             _, rot_ue, _ = ue_delta_mat.decompose()
-            rot_euler_ue = rot_ue.to_euler('XYZ')
-            ue_rotation = [round(math.degrees(rot_euler_ue.x), 6), round(math.degrees(rot_euler_ue.y), 6), round(math.degrees(rot_euler_ue.z), 6)]
+            rot_ue_euler = rot_ue.to_euler('XYZ')
+            ue_rotation = [round(math.degrees(rot_ue_euler.x), 6), round(math.degrees(rot_ue_euler.y), 6), round(math.degrees(rot_ue_euler.z), 6)]
             
             ue_scale = [round(scale.x, 6), round(scale.y, 6), round(scale.z, 6)]
             
@@ -117,8 +116,32 @@ def extract_metadata(output_path: str):
     materials_compile = {}
     folder_name = os.path.basename(working_dir)
 
+    # FIXED: Reconstruct selection scanner to query physical mesh slots first. This preserves the 
+    # absolute mesh slot indices (Source of Truth) and prevents alphabetical database offsets.
+    mesh_objs = [obj for obj in bpy.data.objects if obj.type == 'MESH']
+    slots_in_order = []
+    
+    # 1. Harvest materials strictly in their physical mesh slots order first
+    for obj in mesh_objs:
+        for slot in obj.material_slots:
+            if slot.material and slot.material.name not in slots_in_order:
+                slots_in_order.append(slot.material.name)
+                
+    # 2. Append any unassigned materials in Blender's database to the end of the order
     for mat in bpy.data.materials:
-        if not mat.use_nodes: continue
+        if mat.name not in slots_in_order:
+            slots_in_order.append(mat.name)
+
+    # Process metadata according to resolved physical slot index order
+    for mat_name in slots_in_order:
+        mat = bpy.data.materials.get(mat_name)
+        if not mat or not mat.use_nodes: continue
+        
+        # Skip "Dots Stroke" and dot-prefixed assets to keep indexes and slot orders clean
+        mat_name_lower = mat.name.lower()
+        if "dots stroke" in mat_name_lower or mat.name.startswith("."):
+            continue
+
         out_node = next((n for n in mat.node_tree.nodes if n.type == 'OUTPUT_MATERIAL'), None)
         if not out_node or not out_node.inputs['Surface'].links: continue
         
@@ -180,12 +203,20 @@ def extract_metadata(output_path: str):
         except Exception:
             pass
 
-    # FIXED: Non-destructive material delta-merge. Preserves custom material slots and reskins
-    # (such as MI_WeaselDragon_Body_Shiny) from being erased during headless Blender exports.
+    # FIXED: Prioritized material delta-merge. Places active physical material slots 
+    # strictly at the top of the dictionary, and appends other custom materials (like 
+    # unassigned variants) at the end, preventing database index-shifting on-cook.
     merged_materials = {}
+    for k, v in materials_compile.items():
+        merged_materials[k] = v
+
     if "materials" in existing_data:
-        merged_materials.update(existing_data["materials"])
-    merged_materials.update(materials_compile)
+        for k, v in existing_data["materials"].items():
+            k_lower = k.lower()
+            if "dots stroke" in k_lower or k.startswith("."):
+                continue
+            if k not in merged_materials:
+                merged_materials[k] = v
 
     # Save PURE layout data configuration next to the .blend file (No Altermatic state)
     layout_data = {
