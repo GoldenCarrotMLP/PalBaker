@@ -11,7 +11,8 @@ def get_virtual_path_for_file(absolute_path: str) -> str:
     marker = "Pal/Content/"
     if marker in clean_path:
         relative_part = clean_path.split(marker, 1)[1]
-        folder_part = "/".join(relative_part.split("/")[:-1])
+        # Sanitize spaces to underscores to match Unreal Engine's internal import rules
+        folder_part = "/".join(relative_part.split("/")[:-1]).replace(" ", "_")
         return f"/Game/{folder_part}"
     return ""
 
@@ -36,13 +37,13 @@ class ModWorkspace:
         self.ue_cmd_path = os.path.join(self.ue_root, "Engine", "Binaries", "Win64", "UnrealEditor-Cmd.exe") if self.ue_root else ""
         self.unrealpak_path = os.path.join(self.ue_root, "Engine", "Binaries", "Win64", "UnrealPak.exe") if self.ue_root else ""
 
-        # Staging Source Directories
-        self.fmodel_dir = os.path.join(self.fmodel_root, "Exports", "Pal", "Content", "Pal", "Model", "Character", "Monster", monster_name) if self.fmodel_root else ""
-        self.fmodel_altermatic_dir = os.path.join(self.fmodel_root, "Exports", "Pal", "Content", "Palbaker", "Model", "Character", "Monster", monster_name) if self.fmodel_root else ""
+        # Staging Source Directories (Physical paths keep their spaces)
+        self.fmodel_dir = os.path.join(self.fmodel_root, "Exports", "Pal", "Content", "Pal", "Model", "Character", category, monster_name) if self.fmodel_root else ""
+        self.fmodel_altermatic_dir = os.path.join(self.fmodel_root, "Exports", "Pal", "Content", "Palbaker", "Model", "Character", category, monster_name) if self.fmodel_root else ""
         
         # --- Persistent Switch Integration ---
         is_altermatic_active = False
-        base_type = "vanilla"  # Default fallback base type is standalone vanilla
+        base_type = "vanilla"
         manifest_path = os.path.join(self.fmodel_altermatic_dir if self.fmodel_altermatic_dir else self.fmodel_dir, f"{monster_name}_altermatic.json")
         if os.path.exists(manifest_path):
             try:
@@ -51,13 +52,11 @@ class ModWorkspace:
                     is_altermatic_active = bool(data.get("is_altermatic_active", False))
                     
                     variants = data.get("variants", [])
-                    # Support lookup on both map-dict and list formats safely
                     if isinstance(variants, dict):
                         base_block = variants.get("base", {})
                     else:
                         base_block = next((v for v in variants if v.get("is_base")), {})
                     
-                    # FIXED: Derive base_type directly based on base SkeletonSource to eliminate configuration desync
                     base_skeleton = base_block.get("SkeletonSource", "base")
                     base_type = "custom" if base_skeleton != "base" else "vanilla"
             except Exception:
@@ -68,9 +67,10 @@ class ModWorkspace:
         self.icon_fmodel_path = os.path.join(self.fmodel_root, "Exports", "Pal", "Content", "Pal", "Texture", "PalIcon", "Normal", f"T_{monster_name}_icon_normal.png") if self.fmodel_root else ""
         self.has_icon = os.path.exists(self.icon_fmodel_path) if self.icon_fmodel_path else False
 
-        # Dumb/Resolved Virtual Paths
-        self.ue_virtual_path = f"/Game/Pal/Model/Character/Monster/{monster_name}"
-        self.ue_altermatic_virtual_path = f"/Game/Palbaker/Model/Character/Monster/{monster_name}"
+        # Dumb/Resolved Virtual Paths (FIXED: Sanitized spaces to underscores for Unreal)
+        category_sanitized = category.replace(" ", "_")
+        self.ue_virtual_path = f"/Game/Pal/Model/Character/{category_sanitized}/{monster_name}"
+        self.ue_altermatic_virtual_path = f"/Game/Palbaker/Model/Character/{category_sanitized}/{monster_name}"
         
         self.skeleton_virtual_path = f"/Game/Pal/Model/Character/Skeleton/{monster_name}"
         self.anims_virtual_path = f"/Game/Pal/Animation/Character/Monster/{monster_name}"

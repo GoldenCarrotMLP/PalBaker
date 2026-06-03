@@ -9,6 +9,20 @@ import flet as ft
 from utils.altermatic_helper import sync_sidecar_metadata, get_available_materials_for_context
 from components.mods.altermatic_dialog import show_dialog_safe, close_dialog_safe
 
+# Helper function to scan files dynamically inside the controller
+def get_blend_files_for_context(fmodel_altermatic_dir: str, fmodel_dir: str = "") -> list[str]:
+    """Helper used during UI population to resolve Blender choices dynamically."""
+    blend_files = []
+    if fmodel_dir and os.path.exists(fmodel_dir):
+        for f in os.listdir(fmodel_dir):
+            if f.endswith(".blend"):
+                blend_files.append(f)
+    if fmodel_altermatic_dir and os.path.exists(fmodel_altermatic_dir):
+        for f in os.listdir(fmodel_altermatic_dir):
+            if f.endswith(".blend") and f not in blend_files:
+                blend_files.append(f)
+    return blend_files
+
 class AltermaticController:
     def __init__(self, master_controller):
         self.mc = master_controller
@@ -18,12 +32,26 @@ class AltermaticController:
         # Track the active edited variant label to map indices safely
         self.original_editing_label = ""
 
+    def get_category_from_path(self, path: str) -> str:
+        """Parses a physical file path to resolve the true character category (e.g. Monster, Pending Monster)."""
+        if not path:
+            return "Monster"
+        parts = path.replace("\\", "/").split("/")
+        if "Character" in parts:
+            idx = parts.index("Character")
+            if idx + 1 < len(parts):
+                return parts[idx + 1]
+        return "Monster"
+
     def toggle_altermatic(self, mod_data: dict, is_active: bool):
         current_char_id = mod_data["name"]
+        
+        category = self.get_category_from_path(mod_data.get("fmodel_path"))
+        
         fmodel_altermatic_dir = mod_data.get("fmodel_altermatic_path")
         if not fmodel_altermatic_dir:
             fmodel_root = self.settings.get("fmodel_output", "")
-            fmodel_altermatic_dir = os.path.join(fmodel_root, "Exports", "Pal", "Content", "Palbaker", "Model", "Character", "Monster", current_char_id)
+            fmodel_altermatic_dir = os.path.join(fmodel_root, "Exports", "Pal", "Content", "Palbaker", "Model", "Character", category, current_char_id)
 
         os.makedirs(fmodel_altermatic_dir, exist_ok=True)
         manifest_name = f"{mod_data['name']}_altermatic.json"
@@ -51,6 +79,12 @@ class AltermaticController:
                 base_blend_name = f"{mod_data['name']}.blend"
                 if mod_data.get("fmodel_path") and os.path.exists(os.path.join(mod_data["fmodel_path"], base_blend_name)):
                     default_skeleton_source = base_blend_name
+                    
+                    base_blend_path = os.path.join(mod_data["fmodel_path"], base_blend_name)
+                    base_sidecar = os.path.join(mod_data["fmodel_path"], f"{mod_data['name']}_blend.json")
+                    if os.path.exists(base_blend_path) and not os.path.exists(base_sidecar):
+                        self.view.write_log("Generating missing companion sidecar layout for base .blend...", "standard")
+                        sync_sidecar_metadata(self.settings.get("blender"), base_blend_path)
 
                 manifest_data["variants"]["base"] = {
                     "SkeletonSource": default_skeleton_source,
@@ -81,10 +115,13 @@ class AltermaticController:
     def add_altermatic_variant(self, mod_data: dict):
         """Launches the dynamic cloning onboarding wizard dialog."""
         current_char_id = mod_data["name"]
+        
+        category = self.get_category_from_path(mod_data.get("fmodel_path"))
+        
         fmodel_altermatic_dir = mod_data.get("fmodel_altermatic_path")
         if not fmodel_altermatic_dir:
             fmodel_root = self.settings.get("fmodel_output", "")
-            fmodel_altermatic_dir = os.path.join(fmodel_root, "Exports", "Pal", "Content", "Palbaker", "Model", "Character", "Monster", current_char_id)
+            fmodel_altermatic_dir = os.path.join(fmodel_root, "Exports", "Pal", "Content", "Palbaker", "Model", "Character", category, current_char_id)
 
         # UI Input controls
         label_input = ft.TextField(label="New Variant Name/Label", hint_text="e.g., SFW_Bikini_T-Shirt")
@@ -149,6 +186,14 @@ class AltermaticController:
                 except Exception: pass
             
             close_dialog_safe(page, add_dlg)
+
+            # Check if base .blend file is created before attempting cloning
+            base_blend = os.path.join(mod_data["fmodel_path"], f"{current_char_id}.blend")
+            if custom_mesh_switch.value and clone_source_dropdown.value == "base" and not os.path.exists(base_blend):
+                self.view.write_log(f"ERROR: Base Blender model does not exist. Please click 'Create .blend file' for {current_char_id} first!", "error")
+                self.mc.view.show_snackbar("Please create the base .blend file first.", ft.Colors.RED_400)
+                return
+
             self.view.write_log(f"Staging Altermatic variant '{clean_label}'...", "standard")
 
             def background_clone_worker():
@@ -159,7 +204,6 @@ class AltermaticController:
                     target_blend_path = os.path.join(fmodel_altermatic_dir, target_blend_name)
 
                     # Always sync the base vanilla .blend first so its updated materials are mapped
-                    base_blend = os.path.join(mod_data["fmodel_path"], f"{current_char_id}.blend")
                     if os.path.exists(base_blend):
                         self.view.write_log(f"Refreshing base model layout...", "standard")
                         sync_sidecar_metadata(self.settings.get("blender"), base_blend)
@@ -183,7 +227,8 @@ class AltermaticController:
                                 shutil.copy2(src_sidecar_path, dest_sidecar_path)
                                 self.view.write_log(f"Inherited material mappings: {os.path.basename(src_sidecar_path)} -> {os.path.basename(dest_sidecar_path)}", "standard")
                         else:
-                            with open(target_blend_path, "w") as f: f.write("")
+                            self.view.write_log(f"ERROR: Source blend model {src_blend_path} is missing.", "error")
+                            return
 
                         # Headlessly synchronize the newly created variant skeletal layout
                         self.view.write_log(f"Extracting layout and metadata for {target_blend_name}...", "standard")
@@ -265,15 +310,21 @@ class AltermaticController:
         fmodel_dir = mod_data.get("fmodel_path")
         blend_files = get_blend_files_for_context(fmodel_altermatic_dir, fmodel_dir)
         
+        # Extract and pass the true resolved category to the dialog
+        f_path = mod_data.get("fmodel_path") or mod_data.get("fmodel_altermatic_path") or mod_data.get("ue_path")
+        category = self.get_category_from_path(f_path)
+
         fmodel_root = self.settings.get("fmodel_output", "")
-        available_mats = get_available_materials_for_context(fmodel_root, fmodel_altermatic_dir, current_char_id)
-        
+        # FIXED: Pass the resolved category to dynamically find the correct sidecar materials list
+        available_mats = get_available_materials_for_context(fmodel_root, fmodel_altermatic_dir, current_char_id, category)
+
         self.view.altermatic_dialog.show(
             current_char_id, 
             index, 
             v, 
             blend_files, 
-            available_mats
+            available_mats,
+            category
         )
 
     def delete_altermatic_variant(self, mod_data: dict, index: int):
@@ -348,10 +399,15 @@ class AltermaticController:
         is_base = variant_data.get("is_base", False)
         current_char_id = variant_data["CharacterID"]
 
+        # Resolve category dynamically using cached mod list to prevent path misalignment
+        mod_data = next((m for m in self.mc.raw_mods if m["name"] == current_char_id), None)
+        f_path = mod_data.get("fmodel_path") or mod_data.get("fmodel_altermatic_path") or mod_data.get("ue_path") if mod_data else ""
+        category = self.get_category_from_path(f_path)
+
         # ALWAYS save to the unified Altermatic staging directory (Palbaker) so that both base and variants reside in a single manifest!
         fmodel_target_dir = os.path.join(
             self.settings.get("fmodel_output", ""), 
-            "Exports", "Pal", "Content", "Palbaker", "Model", "Character", "Monster", 
+            "Exports", "Pal", "Content", "Palbaker", "Model", "Character", category, 
             current_char_id
         )
 
@@ -470,10 +526,10 @@ class AltermaticController:
             save_block["SkinName"] = sidecar_structure["SkinName"]
             
         if sidecar_structure["ReqTrait"]:
-            save_block["ReqTrait"] = sidecar_structure["ReqTrait"]
+            save_block["ReqTrait"] = save_block["ReqTrait"] = variant_data["ReqTrait"]
             
         if sidecar_structure["PrefTrait"]:
-            save_block["PrefTrait"] = sidecar_structure["PrefTrait"]
+            save_block["PrefTrait"] = variant_data["PrefTrait"]
             
         if sidecar_structure["MaterialOverrides"]:
             save_block["MaterialOverrides"] = sidecar_structure["MaterialOverrides"]
@@ -492,7 +548,7 @@ class AltermaticController:
                 json.dump(manifest_data, f, indent=4)
             self.view.write_log(f"Successfully saved Altermatic variant manifest: {manifest_name}", "success")
             
-            # FIXED: Dynamically compile and deploy the updated Altermatic configuration to the game's SwapJSON directory
+            # Dynamically compile and deploy the updated Altermatic configuration to the game's SwapJSON directory
             # instantly whenever "Apply Changes" is clicked. This allows real-time edits without packaging.
             palworld_exe = self.settings.get("palworld_exe", "")
             if palworld_exe and os.path.exists(palworld_exe):
@@ -507,17 +563,3 @@ class AltermaticController:
             self.view.write_log(f"ERROR: Failed to save Altermatic manifest: {e}", "error")
 
         self.mc.refresh_mods(scan_disk=True)
-
-# Helper function to scan files dynamically inside the controller
-def get_blend_files_for_context(fmodel_altermatic_dir: str, fmodel_dir: str = "") -> list[str]:
-    """Helper used during UI population to resolve Blender choices dynamically."""
-    blend_files = []
-    if fmodel_dir and os.path.exists(fmodel_dir):
-        for f in os.listdir(fmodel_dir):
-            if f.endswith(".blend"):
-                blend_files.append(f)
-    if fmodel_altermatic_dir and os.path.exists(fmodel_altermatic_dir):
-        for f in os.listdir(fmodel_altermatic_dir):
-            if f.endswith(".blend") and f not in blend_files:
-                blend_files.append(f)
-    return blend_files

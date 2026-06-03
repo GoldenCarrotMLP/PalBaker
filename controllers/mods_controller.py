@@ -36,6 +36,17 @@ class ModsController:
         from utils.altermatic_helper import load_traits_database
         self.traits_db = load_traits_database()
 
+    def get_category_from_path(self, path: str) -> str:
+        """Parses a physical file path to resolve the true character category (e.g. Monster, Pending Monster)."""
+        if not path:
+            return "Monster"
+        parts = path.replace("\\", "/").split("/")
+        if "Character" in parts:
+            idx = parts.index("Character")
+            if idx + 1 < len(parts):
+                return parts[idx + 1]
+        return "Monster"
+
     def update_search(self, query: str):
         self.search_query = query
         self.apply_filters()
@@ -60,10 +71,14 @@ class ModsController:
         if scan_disk:
             self.view.set_refresh_state(loading=True)
             def worker():
-                self.raw_mods = get_mod_info(self.settings)
-                self.view.clear_ui_cache()
-                self.view.set_refresh_state(loading=False)
-                self.apply_filters()
+                try:
+                    self.raw_mods = get_mod_info(self.settings)
+                    self.view.clear_ui_cache()
+                except Exception as e:
+                    print(f"[PalBaker] Disk scan encountered an error: {e}", flush=True)
+                finally:
+                    self.view.set_refresh_state(loading=False)
+                    self.apply_filters()
             self.view.run_in_thread(worker)
         else:
             self.apply_filters()
@@ -170,7 +185,11 @@ class ModsController:
         
         async def decompile_task():
             fmodel_dir = mod_data["fmodel_path"]
-            ue_virtual_path = f"/Game/Pal/Model/Character/Monster/{mod_data['name']}"
+            
+            # FIXED: Sanitized spaces for UE remote execution path handling
+            category = self.get_category_from_path(fmodel_dir)
+            category_sanitized = category.replace(" ", "_")
+            ue_virtual_path = f"/Game/Pal/Model/Character/{category_sanitized}/{mod_data['name']}"
             
             success, msg = await asyncio.to_thread(
                 run_decompile_pipeline,
@@ -186,8 +205,8 @@ class ModsController:
             
             analyzer = LogAnalyzer()
             for line in msg.splitlines():
-                analyzed_text, category, is_error = analyzer.analyze_line(line)
-                self.view.write_log(analyzed_text, category, flush=False)
+                analyzed_text, category_log, is_error = analyzer.analyze_line(line)
+                self.view.write_log(analyzed_text, category_log, flush=False)
                 
             summary = analyzer.generate_summary(success)
             status = summary.get("status", "failed") if summary else "pure_success"
@@ -207,6 +226,7 @@ class ModsController:
             if summary:
                 self.view.prompt_troubleshooting_advisor(summary)
                 
+            self.refresh_mods(scan_disk=False)
             self.refresh_mods(scan_disk=True)
             
         self.view.run_async_task(decompile_task)
@@ -255,9 +275,13 @@ class ModsController:
                 if summary:
                     self.view.prompt_troubleshooting_advisor(summary)
                     
+                self.refresh_mods(scan_disk=False)
                 self.refresh_mods(scan_disk=True)
 
-            script_args = [mod_data["name"], "Monster", action]
+            f_path = mod_data.get("fmodel_path") or mod_data.get("fmodel_altermatic_path") or mod_data.get("ue_path")
+            category = self.get_category_from_path(f_path)
+
+            script_args = [mod_data["name"], category, action]
             await run_pipeline_async(script_args, log_callback, progress_callback, complete_callback, self.active_token)
 
         self.view.run_async_task(run_task)
@@ -269,7 +293,12 @@ class ModsController:
         self.view.write_log(f"\n>>> FOCUSING UNREAL CONTENT BROWSER: {mod_data['name']}", "stage")
         
         async def browse_task():
-            ue_virtual_path = f"/Game/Pal/Model/Character/Monster/{mod_data['name']}"
+            f_path = mod_data.get("fmodel_path") or mod_data.get("fmodel_altermatic_path") or mod_data.get("ue_path")
+            category = self.get_category_from_path(f_path)
+
+            # FIXED: Sanitized spaces for UE remote execution path handling
+            category_sanitized = category.replace(" ", "_")
+            ue_virtual_path = f"/Game/Pal/Model/Character/{category_sanitized}/{mod_data['name']}"
             python_cmd = f'import unreal; unreal.EditorUtilityLibrary.sync_browser_to_folders(["{ue_virtual_path}"])'
             
             from utils.builder.unreal_helper import run_remote_command, focus_unreal_window
@@ -295,7 +324,6 @@ class ModsController:
         self.view.run_async_task(browse_task)
 
 
-# Generic scanner loader used to populate Skeleton choices
 def get_blend_files_for_context(category: str, character_id: str) -> list[str]:
     """Scans the local staging workspace directory for .blend files dynamically."""
     from utils.config import load_settings
@@ -304,7 +332,7 @@ def get_blend_files_for_context(category: str, character_id: str) -> list[str]:
     if not fmodel_root:
         return []
     
-    target_dir = os.path.join(fmodel_root, "Exports", "Pal", "Content", "Palbaker", "Model", "Character", "Monster", character_id)
+    target_dir = os.path.join(fmodel_root, "Exports", "Pal", "Content", "Palbaker", "Model", "Character", category, character_id)
     blend_files = []
     if os.path.exists(target_dir):
         for f in os.listdir(target_dir):

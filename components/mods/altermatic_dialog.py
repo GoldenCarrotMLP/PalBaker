@@ -42,6 +42,7 @@ class AltermaticDialog:
         self.current_character_id = ""
         self.editing_index = -1
         self.is_base = False
+        self.current_category = "Monster"  
 
         # Instantiate React-style sub-components cleanly
         self.general_section = GeneralSection(
@@ -92,12 +93,13 @@ class AltermaticDialog:
         )
         self.page.dialog = self.dialog
 
-    def show(self, character_id: str, index: int, variant_data: dict, blend_files: list[str], available_mats: list[str]):
+    def show(self, character_id: str, index: int, variant_data: dict, blend_files: list[str], available_mats: list[str], category: str = "Monster"):
         """Populates the fields and opens the modal visual builder."""
         self.editing_index = index
         self.current_character_id = character_id
         self.available_mats = available_mats
         self.is_base = variant_data.get("is_base", False)
+        self.current_category = category  
 
         # 1. Populate General Section
         self.general_section.populate(character_id, blend_files, variant_data, self.is_base)
@@ -105,8 +107,8 @@ class AltermaticDialog:
         # 2. Populate Trait Selection Section
         self.traits_section.populate(variant_data, self.is_base)
 
-        # 3. Populate Material Selector & Morphs
-        self.materials_section.populate(character_id, self.general_section.skeleton_source_dropdown.value, variant_data, available_mats, self.is_base)
+        # 3. Populate Material Selector & Morphs (FIXED: Passed current_category down)
+        self.materials_section.populate(character_id, self.general_section.skeleton_source_dropdown.value, variant_data, available_mats, self.is_base, self.current_category)
         self.morphs_section.populate(character_id, self.general_section.skeleton_source_dropdown.value, variant_data.get("MorphTarget", []), self.is_base)
 
         # Hide the delete button if editing the pinned canonical base mesh fallback
@@ -126,7 +128,7 @@ class AltermaticDialog:
 
         show_dialog_safe(self.page, self.dialog)
         
-        # FIXED: Explicitly force UI update after show_dialog_safe to ensure cleared options
+        # Explicitly force UI update after show_dialog_safe to ensure cleared options
         # or list modifications sync immediately with Flet client engine.
         try:
             self.dialog.update()
@@ -143,7 +145,8 @@ class AltermaticDialog:
     def on_skeleton_source_changed(self, e):
         """Dynamic orchestrator update triggered when the selected skeleton source shifts."""
         selected_source = self.general_section.skeleton_source_dropdown.value
-        self.materials_section.populate(self.current_character_id, selected_source, None, self.available_mats, self.is_base)
+        # FIXED: Pass the current_category downwards to fetch sidecars accurately
+        self.materials_section.populate(self.current_character_id, selected_source, None, self.available_mats, self.is_base, self.current_category)
         self.morphs_section.populate(self.current_character_id, selected_source, [], self.is_base)
         self.force_ui_update()
 
@@ -167,12 +170,12 @@ class AltermaticDialog:
         # Resolve exact physical path of target .blend inside FModel exports directory
         if source == "base":
             blend_path = os.path.normpath(os.path.join(
-                fmodel_root, "Exports", "Pal", "Content", "Pal", "Model", "Character", "Monster", 
+                fmodel_root, "Exports", "Pal", "Content", "Pal", "Model", "Character", self.current_category,
                 self.current_character_id, f"{self.current_character_id}.blend"
             ))
         else:
             blend_path = os.path.normpath(os.path.join(
-                fmodel_root, "Exports", "Pal", "Content", "Palbaker", "Model", "Character", "Monster", 
+                fmodel_root, "Exports", "Pal", "Content", "Palbaker", "Model", "Character", self.current_category,
                 self.current_character_id, source
             ))
 
@@ -218,19 +221,19 @@ class AltermaticDialog:
         # Resolve traits
         req_traits, pref_traits = self.traits_section.get_values()
 
-        # Resolve materials & morphs
         from utils.altermatic_helper import get_virtual_path_for_file
         
         # Build physical path of sidecar on disk to resolve its virtual target directory
         root_dir = os.path.dirname(self.settings.get("uproject", ""))
         target_dir = os.path.join(
-            root_dir, "Content", "Palbaker", "Model", "Character", "Monster", 
+            root_dir, "Content", "Palbaker", "Model", "Character", self.current_category, 
             self.current_character_id
         )
         mat_resolved_dir = get_virtual_path_for_file(os.path.join(target_dir, "dummy_sidecar_blend.json"))
 
         mat_replaces = []
-        slots = self.materials_section.get_slots_for_skeleton(self.current_character_id, general_values["SkeletonSource"])
+        # FIXED: Pass current_category downward to cleanly resolve active slots
+        slots = self.materials_section.get_slots_for_skeleton(self.current_character_id, general_values["SkeletonSource"], self.current_category)
 
         for idx, dropdown in self.materials_section.active_material_dropdowns.items():
             if dropdown.value and dropdown.value != "default":

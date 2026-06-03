@@ -68,7 +68,6 @@ def resolve_packaging_manifest(workspace, has_anims: bool) -> list[tuple[str, st
     """Compiles the absolute file sources and virtual destination paths to pass to UnrealPak."""
     folders_to_pack = []
 
-    # FIXED: Determine whether we should pack the vanilla original directory into the final mod pak.
     should_pack_vanilla = not workspace.is_altermatic_active or workspace.base_type == "custom"
 
     if should_pack_vanilla:
@@ -89,7 +88,8 @@ def resolve_packaging_manifest(workspace, has_anims: bool) -> list[tuple[str, st
         for ext in [".uasset", ".uexp", ".ubulk"]:
             cooked_file = bp_cooked_base + ext
             if os.path.exists(cooked_file):
-                virtual_file = f"Pal/Blueprint/Character/Monster/PalActorBP/{workspace.monster_name}/BP_{workspace.monster_name}{ext}"
+                # FIXED: Base virtual path dynamically on workspace blueprint mapping rather than hardcoded string
+                virtual_file = f"{workspace.blueprint_virtual_path.replace('/Game/', '')}/BP_{workspace.monster_name}{ext}"
                 folders_to_pack.append((cooked_file, virtual_file))
                 bp_parts_found = True
         if bp_parts_found:

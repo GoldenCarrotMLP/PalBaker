@@ -109,11 +109,10 @@ class ModsView:
             self.controller.traits_db, 
             self.controller.save_altermatic_variant_callback,
             on_refresh_callback=self.controller.run_refresh_pipeline_callback,
-            on_delete_callback=self.controller.delete_altermatic_variant_by_index # Dynamically binds the modal's deletion trigger
+            on_delete_callback=self.controller.delete_altermatic_variant_by_index
         )
 
     def on_divider_drag(self, e: ft.DragUpdateEvent):
-        # Version-safe fallback lookup supporting older and newer Flet gestures
         delta = 0.0
         if hasattr(e, "local_delta") and e.local_delta is not None:
             delta = e.local_delta.y
@@ -239,11 +238,36 @@ class ModsView:
         self.mods_list.controls.append(ft.Text(message, color=ft.Colors.RED_400))
         self.force_update()
 
+    # FIXED: Reconstructed to provide version-safe dialog operations across Flet versions
+    # preventing UI locks and permanently disabled buttons.
     def show_dialog(self, dlg: ft.AlertDialog):
-        self.main_page.show_dialog(dlg)
+        if hasattr(self.main_page, "show_dialog"):
+            self.main_page.show_dialog(dlg)
+        elif hasattr(self.main_page, "open"):
+            self.main_page.open(dlg)
+        else:
+            self.main_page.dialog = dlg
+            dlg.open = True
+            self.main_page.update()
 
     def pop_dialog(self):
-        self.main_page.pop_dialog()
+        if hasattr(self.main_page, "pop_dialog"):
+            try:
+                self.main_page.pop_dialog()
+                return
+            except Exception:
+                pass
+                
+        if hasattr(self.main_page, "close") and hasattr(self.main_page, "dialog") and self.main_page.dialog:
+            try:
+                self.main_page.close(self.main_page.dialog)
+                return
+            except Exception:
+                pass
+                
+        if hasattr(self.main_page, "dialog") and self.main_page.dialog:
+            self.main_page.dialog.open = False
+            self.main_page.update()
 
     def show_snackbar(self, message: str, color):
         """Displays a temporary colored popup alert at the bottom of the screen."""

@@ -25,23 +25,22 @@ class MaterialsSection:
             self.mat_replaces_col
         ], spacing=15)
 
-    def get_slots_for_skeleton(self, character_id: str, source: str) -> list[str]:
+    # FIXED: Added 'category' parameter to prevent default "Monster" directory fallback
+    def get_slots_for_skeleton(self, character_id: str, source: str, category: str = "Monster") -> list[str]:
         """Resolves material slots directly from the consolidated sidecar JSON on disk (0ms overhead)."""
         fmodel_root = self.settings.get("fmodel_output", "")
         if not fmodel_root:
             return self.DEFAULT_SLOTS_MAP.get(character_id, ["mi_body", "mi_eye"])
             
-        # FIXED: Resolve sidecar path strictly from the FModel Output staging directory
-        # instead of the Unreal Engine project directory.
         if source == "base":
             sidecar_path = os.path.join(
-                fmodel_root, "Exports", "Pal", "Content", "Pal", "Model", "Character", "Monster", 
+                fmodel_root, "Exports", "Pal", "Content", "Pal", "Model", "Character", category, 
                 character_id, f"{character_id}_blend.json"
             )
         else:
             sidecar_name = f"{os.path.splitext(source)[0]}_blend.json"
             sidecar_path = os.path.join(
-                fmodel_root, "Exports", "Pal", "Content", "Palbaker", "Model", "Character", "Monster", 
+                fmodel_root, "Exports", "Pal", "Content", "Palbaker", "Model", "Character", category, 
                 character_id, sidecar_name
             )
 
@@ -59,7 +58,8 @@ class MaterialsSection:
         # Fallback to local default mappings if sidecar doesn't exist yet
         return self.DEFAULT_SLOTS_MAP.get(character_id, ["mi_body", "mi_eye"])
 
-    def populate(self, character_id: str, selected_source: str, variant_data: dict | None, available_mats: list[str], is_base: bool):
+    # FIXED: Piped 'category' parameter downwards
+    def populate(self, character_id: str, selected_source: str, variant_data: dict | None, available_mats: list[str], is_base: bool, category: str = "Monster"):
         self.view.visible = not is_base
         if is_base:
             return
@@ -67,7 +67,7 @@ class MaterialsSection:
         self.mat_replaces_col.controls.clear()
         self.active_material_dropdowns.clear()
 
-        slots = self.get_slots_for_skeleton(character_id, selected_source)
+        slots = self.get_slots_for_skeleton(character_id, selected_source, category)
 
         # Resolve preloaded material overrides cleanly from either format (MaterialOverrides dict or MatReplace list)
         preloaded_overrides_dict = {}

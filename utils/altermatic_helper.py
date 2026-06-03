@@ -22,7 +22,8 @@ def get_virtual_path_for_file(absolute_path: str) -> str:
     marker = "Pal/Content/"
     if marker in clean_path:
         relative_part = clean_path.split(marker, 1)[1]
-        folder_part = "/".join(relative_part.split("/")[:-1])
+        # Sanitize spaces to underscores to match Unreal Engine's internal import rules
+        folder_part = "/".join(relative_part.split("/")[:-1]).replace(" ", "_")
         return f"/Game/{folder_part}"
     return ""
 
@@ -175,6 +176,13 @@ def compile_unified_altermatic_json(monster_name: str, altermatic_staging_dir: s
     except Exception as e:
         return False, f"Failed to read Altermatic manifest: {e}"
 
+    category = "Monster"
+    parts = altermatic_staging_dir.replace("\\", "/").split("/")
+    if "Character" in parts:
+        idx = parts.index("Character")
+        if idx + 1 < len(parts):
+            category = parts[idx + 1]
+
     swaps_array = []
 
     for v in variants_list:
@@ -193,10 +201,12 @@ def compile_unified_altermatic_json(monster_name: str, altermatic_staging_dir: s
             if marker in clean_path:
                 relative_part = clean_path.split(marker, 1)[1]
                 sk_name = blend_base_name if blend_base_name.startswith("SK_") else f"SK_{blend_base_name}"
-                relative_virtual_dir = "/".join(relative_part.split("/")[:-1])
+                # FIXED: Force sanitization of the virtual path directory
+                relative_virtual_dir = "/".join(relative_part.split("/")[:-1]).replace(" ", "_")
                 mesh_resolved_path = f"/Game/{relative_virtual_dir}/{sk_name}"
             else:
-                mesh_resolved_path = f"/Game/Palbaker/Model/Character/Monster/{monster_name}/SK_{blend_base_name}"
+                cat_sanitized = category.replace(" ", "_")
+                mesh_resolved_path = f"/Game/Palbaker/Model/Character/{cat_sanitized}/{monster_name}/SK_{blend_base_name}"
 
             # 2. Compile Material Overrides from Slot Names directly from the Sidecar JSON (0ms overhead)
             mat_replace_list = []
@@ -212,7 +222,7 @@ def compile_unified_altermatic_json(monster_name: str, altermatic_staging_dir: s
             if not slots_order:
                 slots_order = ["mi_body", "mi_eye", "mi_mouth"]
 
-            # FIXED: Perform case-insensitive slot lookup to reconcile mismatching material casings (e.g., lower vs upper-case)
+            # Perform case-insensitive slot lookup to reconcile mismatching material casings
             slots_order_lower = [s.lower() for s in slots_order]
 
             material_overrides = v.get("MaterialOverrides", {})
@@ -284,7 +294,7 @@ def compile_unified_altermatic_json(monster_name: str, altermatic_staging_dir: s
         return False, f"Failed to write deployment JSON: {e}"
 
 
-def get_available_materials_for_context(fmodel_root: str, fmodel_altermatic_dir: str, character_id: str) -> list[str]:
+def get_available_materials_for_context(fmodel_root: str, fmodel_altermatic_dir: str, character_id: str, category: str = "Monster") -> list[str]:
     """
     Dynamically scans your workspace directories and parses all sidecars 
     to discover every compiled material available inside your ModKit.
@@ -293,7 +303,7 @@ def get_available_materials_for_context(fmodel_root: str, fmodel_altermatic_dir:
     paths_to_check = []
 
     if fmodel_root:
-        base_dir = os.path.join(fmodel_root, "Exports", "Pal", "Content", "Pal", "Model", "Character", "Monster", character_id)
+        base_dir = os.path.join(fmodel_root, "Exports", "Pal", "Content", "Pal", "Model", "Character", category, character_id)
         if os.path.exists(base_dir):
             paths_to_check.append(base_dir)
 
