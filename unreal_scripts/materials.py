@@ -11,7 +11,6 @@ def find_best_texture_match(slot_name, textures, suffix):
     best_match = None
     best_score = 0.0
     
-    # Conflict check mapping to prevent Eye slots from grabbing Body textures
     exclusive_keywords = {"body", "eye", "mouth", "hair", "tail", "head"}
     slot_exclusives = slot_tokens.intersection(exclusive_keywords)
     non_base_suffixes = ["_n", "_normal", "_m", "_s", "_specular", "_param", "_mrao", "_ao", "_em", "_rgn"]
@@ -46,12 +45,10 @@ def find_best_texture_match(slot_name, textures, suffix):
             
         tex_tokens = set(clean_tex_name.split("_"))
         
-        # Conflict Enforcement: If texture has an exclusive keyword that the slot DOES NOT have, skip it.
         tex_exclusives = tex_tokens.intersection(exclusive_keywords)
         if tex_exclusives and not tex_exclusives.issubset(slot_exclusives):
             continue
         
-        # Jaccard Similarity Score
         intersection = len(slot_tokens.intersection(tex_tokens))
         union = len(slot_tokens.union(tex_tokens))
         score = intersection / union if union > 0 else 0
@@ -97,7 +94,6 @@ def build_materials_heuristically(ue_path, textures, material_slots):
         if tex_b:
             loaded_tex = unreal.EditorAssetLibrary.load_asset(f"{ue_path}/{os.path.splitext(os.path.basename(tex_b))[0]}")
             if loaded_tex and isinstance(loaded_tex, unreal.Texture):
-                # FIXED: Wrapped parameter name string with unreal.Name()
                 unreal.MaterialEditingLibrary.set_material_instance_texture_parameter_value(mi_asset, unreal.Name("Base Texture"), loaded_tex)
                 print(f"  Bound BaseColor: {os.path.basename(tex_b)}")
                 
@@ -105,7 +101,6 @@ def build_materials_heuristically(ue_path, textures, material_slots):
         if tex_n:
             loaded_tex = unreal.EditorAssetLibrary.load_asset(f"{ue_path}/{os.path.splitext(os.path.basename(tex_n))[0]}")
             if loaded_tex and isinstance(loaded_tex, unreal.Texture):
-                # FIXED: Wrapped parameter name string with unreal.Name()
                 unreal.MaterialEditingLibrary.set_material_instance_texture_parameter_value(mi_asset, unreal.Name("Normal Map"), loaded_tex)
                 print(f"  Bound Normal: {os.path.basename(tex_n)}")
                 
@@ -113,7 +108,6 @@ def build_materials_heuristically(ue_path, textures, material_slots):
         if tex_m:
             loaded_tex = unreal.EditorAssetLibrary.load_asset(f"{ue_path}/{os.path.splitext(os.path.basename(tex_m))[0]}")
             if loaded_tex and isinstance(loaded_tex, unreal.Texture):
-                # FIXED: Wrapped parameter name string with unreal.Name()
                 unreal.MaterialEditingLibrary.set_material_instance_texture_parameter_value(mi_asset, unreal.Name("MetallicRoughnessOcclusionSpecularTexture"), loaded_tex)
                 print(f"  Bound ParameterMap: {os.path.basename(tex_m)}")
                 
@@ -131,7 +125,6 @@ def build_materials(ue_path, json_path, textures, target_asset_path):
             for mat in mesh.materials:
                 material_slots.append(str(mat.material_slot_name))
 
-    # Try to load topological data from bone_data.json
     materials_metadata = {}
     if os.path.exists(json_path):
         try:
@@ -164,7 +157,6 @@ def build_materials(ue_path, json_path, textures, target_asset_path):
             parent_class_lower = data.get("parent_class", "").lower()
             mat_name_lower = mat_name.lower()
             
-            # Safe Routing checks
             if "eye" in parent_class_lower or "mouth" in parent_class_lower or "eye" in mat_name_lower or "mouth" in mat_name_lower:
                 parent_path = "/Game/Pal/Material/Character/Common/MI_PalLit_CharacterEyeBase"
             elif "hair" in parent_class_lower or "hair" in mat_name_lower:
@@ -174,15 +166,41 @@ def build_materials(ue_path, json_path, textures, target_asset_path):
             if parent_mat:
                 unreal.MaterialEditingLibrary.set_material_instance_parent(mi_asset, parent_mat)
                 
-            for param_name, tex_name in data.get("textures", {}).items():
-                loaded_tex = unreal.EditorAssetLibrary.load_asset(f"{ue_path}/{tex_name}")
-                if loaded_tex:
-                    if isinstance(loaded_tex, unreal.Texture):
-                        # FIXED: Wrapped param_name string variable with unreal.Name()
-                        unreal.MaterialEditingLibrary.set_material_instance_texture_parameter_value(mi_asset, unreal.Name(param_name), loaded_tex)
-                        print(f"  Bound {param_name}: {tex_name}")
-                    else:
-                        print(f"  ⚠️ Warning: Skipping collision binding: '{tex_name}' loaded as {type(loaded_tex).__name__} (expected Texture)")
+            textures_dict = data.get("textures", {})
+            if textures_dict:
+                for param_name, tex_name in textures_dict.items():
+                    loaded_tex = unreal.EditorAssetLibrary.load_asset(f"{ue_path}/{tex_name}")
+                    if loaded_tex:
+                        if isinstance(loaded_tex, unreal.Texture):
+                            unreal.MaterialEditingLibrary.set_material_instance_texture_parameter_value(mi_asset, unreal.Name(param_name), loaded_tex)
+                            print(f"  Bound {param_name}: {tex_name}")
+                        else:
+                            print(f"  ⚠️ Warning: Skipping collision binding: '{tex_name}' loaded as {type(loaded_tex).__name__} (expected Texture)")
+            else:
+                # FIXED: If a material slot exists in the sidecar but has an empty texture block,
+                # immediately run our suffix-matching heuristics inside this specific slot.
+                print(f"  ⚠️ No mapped textures found in sidecar for {mat_name}. Reverting to heuristic search...", flush=True)
+                
+                tex_b = find_best_texture_match(mat_name, textures, "B")
+                if tex_b:
+                    loaded_tex = unreal.EditorAssetLibrary.load_asset(f"{ue_path}/{os.path.splitext(os.path.basename(tex_b))[0]}")
+                    if loaded_tex and isinstance(loaded_tex, unreal.Texture):
+                        unreal.MaterialEditingLibrary.set_material_instance_texture_parameter_value(mi_asset, unreal.Name("Base Texture"), loaded_tex)
+                        print(f"    Heuristic Bound Base: {os.path.basename(tex_b)}")
+                        
+                tex_n = find_best_texture_match(mat_name, textures, "N")
+                if tex_n:
+                    loaded_tex = unreal.EditorAssetLibrary.load_asset(f"{ue_path}/{os.path.splitext(os.path.basename(tex_n))[0]}")
+                    if loaded_tex and isinstance(loaded_tex, unreal.Texture):
+                        unreal.MaterialEditingLibrary.set_material_instance_texture_parameter_value(mi_asset, unreal.Name("Normal Map"), loaded_tex)
+                        print(f"    Heuristic Bound Normal: {os.path.basename(tex_n)}")
+                        
+                tex_m = find_best_texture_match(mat_name, textures, "M")
+                if tex_m:
+                    loaded_tex = unreal.EditorAssetLibrary.load_asset(f"{ue_path}/{os.path.splitext(os.path.basename(tex_m))[0]}")
+                    if loaded_tex and isinstance(loaded_tex, unreal.Texture):
+                        unreal.MaterialEditingLibrary.set_material_instance_texture_parameter_value(mi_asset, unreal.Name("MetallicRoughnessOcclusionSpecularTexture"), loaded_tex)
+                        print(f"    Heuristic Bound Parameter: {os.path.basename(tex_m)}")
                     
             unreal.EditorAssetLibrary.save_loaded_asset(mi_asset)
             mi_assets.append((mat_name.lower(), mi_asset))

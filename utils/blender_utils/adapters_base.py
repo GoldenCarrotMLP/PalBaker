@@ -54,13 +54,12 @@ def clean_scene_base():
 
 @translator.register("ensure_addon_enabled", (4, 2))
 def ensure_addon_enabled_v4_2(addon_name: str):
-    """Blender 4.2+ Extensions Platform enabler."""
     import addon_utils
     pkg_id = f"bl_ext.system.{addon_name}"
     
     state = addon_utils.check(pkg_id)
     if state and state[1]:
-        print(f"[PalBaker] Addon/Extension {pkg_id} is already active.")
+        print(f"[PalBaker] Addon {pkg_id} is already active.")
         return
 
     try:
@@ -85,14 +84,12 @@ def get_addon_name_v4_2() -> str:
 def get_addons_list_v4_2() -> str:
     return "bl_ext.system.io_scene_psk_psa"
 
-# Registered to query the REST API endpoint of Blender's official Extensions Platform on-the-spot
 @translator.register("get_download_url", (4, 2))
 def get_download_url_v4_2(version_str: str = "4.2") -> str:
     import urllib.request
     import json
     import ssl
     
-    # Formats version into a standardized "X.Y.Z" format (e.g. 4.5 -> 4.5.0)
     version_parts = version_str.split(".")
     while len(version_parts) < 3:
         version_parts.append("0")
@@ -118,18 +115,14 @@ def get_download_url_v4_2(version_str: str = "4.2") -> str:
     except Exception as e:
         print(f"[PalBaker] Warning: Extensions API check failed: {e}", flush=True)
         
-    # Standard, verified fallback URL if the Extensions REST API is offline
     return "https://extensions.blender.org/download/sha256:d89df8bca31a01ebf7cfa0ecb4382cda19c0b17b2b8004f141bf165e63df8e76/add-on-io_scene_psk_psa-v9.1.2.zip"
 
 @translator.register("get_target_addon_directory", (4, 2))
 def get_target_addon_directory_v4_2(blender_dir: str, version_str: str, appdata: str) -> str:
-    # Resolved to "system" repository folder instead of "user_default"
-    # to ensure headless Blender (-b) loads and registers the extension on boot.
     system_path = os.path.join(blender_dir, version_str, "extensions", "system", "io_scene_psk_psa")
     system_version_dir = os.path.join(blender_dir, version_str)
     if os.path.exists(system_path) or (os.path.exists(system_version_dir) and os.access(system_version_dir, os.W_OK)):
         return system_path
-    # Fallback to user AppData if system folder is write-protected
     return os.path.join(appdata, "Blender Foundation", "Blender", version_str, "extensions", "user_default", "io_scene_psk_psa")
 
 @translator.register("import_mesh", (0, 0))
@@ -175,8 +168,7 @@ def fix_hierarchy_base(armature_name: str = "Armature"):
 
 @translator.register("get_pose_bones_info", (0, 0))
 def get_pose_bones_info_base(armature_name: str = "Armature") -> list[dict]:
-    # Localized the mathutils import so that it is exclusively evaluated
-    # when this function runs inside the actual Blender headless runtime.
+    # Rule A: Strictly localized inside the execution context
     from mathutils import Matrix
     
     arm_obj = bpy.data.objects.get(armature_name)
@@ -248,10 +240,6 @@ def get_skeletal_mesh_material_slots_base() -> list[str]:
 
 @translator.register("connect_mix_nodes", (0, 0))
 def connect_mix_nodes_base(nodes, links, base_tex_output, blue_channel_output, base_color_socket):
-    """
-    Standard Blender 3.4+ Mix Node binder.
-    Utilizes generic ShaderNodeMix with RGBA configuration.
-    """
     mix_node = nodes.new("ShaderNodeMix")
     mix_node.data_type = 'RGBA'
     mix_node.blend_type = 'MULTIPLY'
@@ -268,7 +256,6 @@ def connect_mix_nodes_base(nodes, links, base_tex_output, blue_channel_output, b
 
 @translator.register("compile_material_instance", (0, 0))
 def compile_material_instance_base(mat_name: str, parent_class: str, params: dict, working_dir: str):
-    """Compiles a single PBR shader slot using the Blender 4.0+ BSDF model."""
     mat = bpy.data.materials.get(mat_name)
     if not mat: return
     
@@ -361,13 +348,11 @@ def compile_material_instance_base(mat_name: str, parent_class: str, params: dic
         links.new(norm_map.outputs["Normal"], normal_socket)
         links.new(norm_tex.outputs["Color"], norm_map.inputs["Color"])
 
-    # Subsurface
     tex_sss_name = params.get("Subsurface Texture")
     if tex_sss_name and subsurface_socket:
         sss_tex = create_texture_node(nodes, working_dir, tex_sss_name, -400, -600)
         links.new(sss_tex.outputs["Color"], subsurface_socket)
 
-    # Emissive
     tex_em_name = params.get("Emissive Texture")
     if tex_em_name and emission_color_socket:
         em_tex = create_texture_node(nodes, working_dir, tex_em_name, -800, -600)
@@ -377,7 +362,7 @@ def compile_material_instance_base(mat_name: str, parent_class: str, params: dic
 
 @translator.register("export_fbx", (0, 0))
 def export_fbx_base(fbx_path: str, armature_name: str = "Armature"):
-    # Localized mathutils import strictly to Blender headless runtime
+    # Rule A: Strictly localized inside the execution context
     from mathutils import Matrix
     
     arm_obj = bpy.data.objects.get(armature_name)
@@ -396,3 +381,123 @@ def export_fbx_base(fbx_path: str, armature_name: str = "Armature"):
         global_scale=0.01,
         apply_scale_options='FBX_SCALE_ALL'
     )
+
+# --- ADDED INTERACTIVE SHADER ADAPTERS ---
+
+@translator.register("get_bsdf_socket", (4, 0))
+def get_bsdf_socket_v4(bsdf_node, role: str):
+    """Blender 4.0+ Principled BSDF socket resolver."""
+    mapping = {
+        "base_color": "Base Color",
+        "subsurface_weight": "Subsurface Weight",
+        "subsurface_radius": "Subsurface Radius",
+        "metallic": "Metallic",
+        "roughness": "Roughness",
+        "specular": "Specular IOR Level",
+        "normal": "Normal",
+        "emission_color": "Emission Color",
+        "emission_strength": "Emission Strength",
+        "coat_weight": "Coat Weight",
+        "alpha": "Alpha"
+    }
+    socket_name = mapping.get(role)
+    if not socket_name or not bsdf_node:
+        return None
+    return bsdf_node.inputs.get(socket_name)
+
+@translator.register("get_material_textures", (0, 0))
+def get_material_textures_base(mat_name: str) -> dict:
+    """
+    Recursively walks through active material shader nodes inside Blender 
+    to extract currently bound texture parameters for Unreal mapping.
+    """
+    mat = bpy.data.materials.get(mat_name)
+    if not mat or not mat.use_nodes:
+        return {}
+        
+    textures = {}
+    nodes = mat.node_tree.nodes
+    
+    # 1. Inspect Principled BSDF socket links directly
+    bsdf = next((n for n in nodes if n.type == 'BSDF_PRINCIPLED'), None)
+    if bsdf:
+        def trace_texture(socket):
+            if not socket or not socket.is_linked:
+                return None
+            
+            link = socket.links[0]
+            from_node = link.from_node
+            
+            # Unwrap standard Unreal DirectX Normal Map converters
+            if from_node.type == 'NORMAL_MAP':
+                color_socket = from_node.inputs.get("Color")
+                if color_socket and color_socket.is_linked:
+                    from_node = color_socket.links[0].from_node
+            
+            # Unwrap Separate Color channels (Metallic/Roughness/Specular occlusion maps)
+            elif from_node.type in ['SEPARATE_COLOR', 'SEPARATE_RGB']:
+                color_socket = from_node.inputs.get("Color") or from_node.inputs.get("Image")
+                if color_socket and color_socket.is_linked:
+                    from_node = color_socket.links[0].from_node
+                    
+            # Unwrap Multiply Mix nodes
+            elif from_node.type in ['MIX', 'MIX_RGB']:
+                for input_name in ["A", "B", "Color1", "Color2"]:
+                    input_socket = from_node.inputs.get(input_name)
+                    if input_socket and input_socket.is_linked:
+                        potential_node = input_socket.links[0].from_node
+                        if potential_node.type == 'TEX_IMAGE' and potential_node.image:
+                            return potential_node.image.name.split(".")[0]
+
+            if from_node.type == 'TEX_IMAGE' and from_node.image:
+                return from_node.image.name.split(".")[0]
+            return None
+
+        base_socket = translator.execute("get_bsdf_socket", bsdf, "base_color")
+        base_tex = trace_texture(base_socket)
+        if base_tex:
+            textures["Base Texture"] = base_tex
+
+        normal_socket = translator.execute("get_bsdf_socket", bsdf, "normal")
+        normal_tex = trace_texture(normal_socket)
+        if normal_tex:
+            textures["Normal Map"] = normal_tex
+
+        metallic_socket = translator.execute("get_bsdf_socket", bsdf, "metallic")
+        mrao_tex = trace_texture(metallic_socket)
+        if not mrao_tex:
+            roughness_socket = translator.execute("get_bsdf_socket", bsdf, "roughness")
+            mrao_tex = trace_texture(roughness_socket)
+        if mrao_tex:
+            textures["MetallicRoughnessOcclusionSpecularTexture"] = mrao_tex
+
+        emissive_socket = translator.execute("get_bsdf_socket", bsdf, "emission_color")
+        emissive_tex = trace_texture(emissive_socket)
+        if emissive_tex:
+            textures["Emissive Texture"] = emissive_tex
+
+        sss_socket = translator.execute("get_bsdf_socket", bsdf, "subsurface_radius")
+        sss_tex = trace_texture(sss_socket)
+        if sss_tex:
+            textures["Subsurface Texture"] = sss_tex
+
+    # 2. Fallback heuristic scanner for exotic custom shader networks
+    non_base_suffixes = ["_n", "_normal", "_m", "_s", "_specular", "_param", "_mrao", "_ao", "_em", "_emissive", "_rgn"]
+    for node in nodes:
+        if node.type == 'TEX_IMAGE' and node.image:
+            img_name = node.image.name.split(".")[0]
+            img_name_lower = img_name.lower()
+            
+            if "Base Texture" not in textures:
+                if any(img_name_lower.endswith(s) for s in ["_b", "_d", "_albedo", "_basecolor"]) or not any(img_name_lower.endswith(s) for s in non_base_suffixes):
+                    textures["Base Texture"] = img_name
+            if "Normal Map" not in textures and any(img_name_lower.endswith(s) for s in ["_n", "_normal"]):
+                textures["Normal Map"] = img_name
+            if "MetallicRoughnessOcclusionSpecularTexture" not in textures and any(img_name_lower.endswith(s) for s in ["_m", "_s", "_specular", "_param", "_mrao"]):
+                textures["MetallicRoughnessOcclusionSpecularTexture"] = img_name
+            if "Emissive Texture" not in textures and any(img_name_lower.endswith(s) for s in ["_em", "_emissive"]):
+                textures["Emissive Texture"] = img_name
+            if "Subsurface Texture" not in textures and any(img_name_lower.endswith(s) for s in ["_sss", "_subsurface"]):
+                textures["Subsurface Texture"] = img_name
+
+    return textures

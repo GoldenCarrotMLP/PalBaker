@@ -78,7 +78,6 @@ class BlenderTranslator:
         """Resolves the comma-separated list of active addons for command-line execution."""
         return self.execute("get_addons_list")
 
-    # FIXED: Updated signature to accept version_str parameters
     def get_download_url(self, version_str: str = "4.2") -> str:
         """Resolves the release download URL for the target Blender version."""
         return self.execute("get_download_url", version_str)
@@ -121,6 +120,14 @@ class BlenderTranslator:
     def export_fbx(self, fbx_path: str, armature_name: str = "Armature"):
         """Clears pose bone offsets and headlessly exports the FBX asset."""
         return self.execute("export_fbx", fbx_path, armature_name)
+
+    def get_bsdf_socket(self, bsdf_node, role: str):
+        """Resolves the exact BSDF input socket depending on active Blender version."""
+        return self.execute("get_bsdf_socket", bsdf_node, role)
+
+    def get_material_textures(self, mat_name: str) -> dict:
+        """Walks material nodes and extracts connected textures mapped to Unreal parameter names."""
+        return self.execute("get_material_textures", mat_name)
 
 # Expose global translator instance
 translator = BlenderTranslator()

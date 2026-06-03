@@ -257,7 +257,7 @@ class AudioController:
 
         self.mc.view.run_in_thread(decode_worker)
 
-    # FIXED: Reconfigured clear_audio to be an asynchronous method to prevent runtime await TypeErrors in the controller.
+    # FIXED: Restored complete clear_audio logic supporting standard FModel directories
     async def clear_audio(self, mod_data: dict, cry_name: str):
         fmodel_path = mod_data.get("fmodel_path")
         if not fmodel_path: return
