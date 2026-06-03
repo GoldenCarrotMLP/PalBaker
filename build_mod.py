@@ -59,6 +59,21 @@ def main():
         
         if os.path.exists(blend_file):
             print(f"SUCCESS! .blend file generated at: {blend_file}", flush=True)
+            
+            # Headlessly execute blender_extractor.py on the newly created .blend file
+            # to compile and generate a fully populated companion sidecar JSON on the fly.
+            # This extracts bone offsets, physics, and material lists in their exact skeletal mesh order.
+            extractor_script = os.path.normpath(os.path.join(os.path.dirname(__file__), "utils", "blender_extractor.py"))
+            output_json = os.path.join(workspace.fmodel_dir, f"{MONSTER_NAME}_blend.json")
+            
+            print("Generating companion sidecar layout on the fly...", flush=True)
+            run_headless_blender(
+                workspace.blender_path,
+                blend_file,
+                extractor_script,
+                ["--output", output_json]
+            )
+            
             if result.stdout.strip():
                 print("\n=== BLENDER PIPELINE LOGS ===", flush=True)
                 print(result.stdout, flush=True)
@@ -75,31 +90,24 @@ def main():
     if ACTION in ["push", "full"]:
         import_targets = []
         
-        # Decide whether we should push our base modification to the vanilla original path
         should_push_vanilla = not workspace.is_altermatic_active or workspace.base_type == "custom"
 
         if should_push_vanilla:
             if os.path.exists(workspace.fmodel_dir):
                 import_targets.append((workspace.fmodel_dir, workspace.ue_virtual_path))
         else:
-            # Standalone Altermatic Fallback active ("vanilla base")
-            # Mirror modified base assets from the original base directory to the Palbaker staging directory
-            # so they compile under the /Game/Palbaker/ path instead of overwriting original files.
             if os.path.exists(workspace.fmodel_dir) and os.path.exists(workspace.fmodel_altermatic_dir):
                 print("Standalone Altermatic Fallback active. Mirroring modified base assets to Palbaker directory...", flush=True)
                 for item in os.listdir(workspace.fmodel_dir):
-                    # Skip manifest and state files to prevent collisions
                     if item == f"{MONSTER_NAME}_altermatic.json" or item == ".palbaker_state.json":
                         continue
                     src_file = os.path.join(workspace.fmodel_dir, item)
                     if os.path.isfile(src_file):
                         dest_file = os.path.join(workspace.fmodel_altermatic_dir, item)
-                        # Only copy if the source is newer or doesn't exist
                         if not os.path.exists(dest_file) or os.path.getmtime(src_file) > os.path.getmtime(dest_file):
                             shutil.copy2(src_file, dest_file)
                             print(f"  Mirrored: {item}", flush=True)
 
-        # Strictly append Altermatic assets only if the Switch is toggled ON
         if workspace.is_altermatic_active and os.path.exists(workspace.fmodel_altermatic_dir) and any(f.endswith(".blend") for f in os.listdir(workspace.fmodel_altermatic_dir)):
             import_targets.append((workspace.fmodel_altermatic_dir, workspace.ue_altermatic_virtual_path))
 
@@ -107,13 +115,9 @@ def main():
             print("ERROR: No raw model sources found in workspaces to push.", flush=True)
             sys.exit(1)
 
-        # Pre-Push layout sync using master sync routine
         from utils.altermatic_helper import sync_sidecar_metadata
         for target_dir, _ in import_targets:
             for blend_file in glob.glob(os.path.join(target_dir, "*.blend")):
-                # FIXED: Self-healing. If an Altermatic variant sidecar is missing but the parent base sidecar exists,
-                # replicate the base sidecar first. This ensures custom topological material configurations
-                # (such as MI_WeaselDragon_Body_Shiny) are compiled correctly and available inside Unreal.
                 if target_dir == workspace.fmodel_altermatic_dir:
                     base_sidecar = os.path.join(workspace.fmodel_dir, f"{MONSTER_NAME}_blend.json")
                     var_base_name = os.path.splitext(os.path.basename(blend_file))[0]
@@ -136,7 +140,6 @@ def main():
                 print(f"Running headless Blender (Exporting FBX for {base_name})...", flush=True)
                 run_headless_blender(workspace.blender_path, blend_file, extractor_script, ["--output", output_json, "--fbx", fbx_file])
 
-            # Now build the import_config.json for this specific directory
             pngs = glob.glob(os.path.join(target_dir, "*.png"))
             jsons = glob.glob(os.path.join(target_dir, "MI_*.json"))
             fbx_files = glob.glob(os.path.join(target_dir, "*.fbx"))
@@ -149,6 +152,7 @@ def main():
                 "textures": pngs,
                 "fbx_file": fbx_file if os.path.exists(fbx_file) else None,
                 "mi_jsons": jsons,
+                # FIXED: Corrected C-style logical AND (&&) to Python's native 'and' keyword
                 "icon_file": workspace.icon_fmodel_path if (workspace.has_icon and target_dir == workspace.fmodel_dir) else None,
                 "bone_data_file": f"{base_mesh_name}_blend.json"
             }
@@ -167,7 +171,7 @@ def main():
                 print(f"!!! ERROR INSIDE UNREAL ENGINE DURING {os.path.basename(target_dir)} IMPORT !!!", flush=True)
                 sys.exit(1)
 
-        ue_abs_path = os.path.join(workspace.project_dir, "Content", "Pal", "Model", "Character", "Monster", MONSTER_NAME)
+        ue_abs_path = os.path.join(workspace.project_dir, "Content", "Pal", "Model", "Character", CATEGORY, MONSTER_NAME)
         save_push_state(workspace.fmodel_dir, ue_abs_path)
 
     # -------------------------------------------------------------
@@ -192,16 +196,17 @@ def main():
             
             print(f"Synchronizing sidecar layout metadata for {os.path.basename(blend_file)}...", flush=True)
             
-            cmd = [
+            result = run_headless_blender(
                 workspace.blender_path,
-                "-b",
                 blend_file,
-                "--addons", "bl_ext.blender_org.io_scene_psk_psa,bl_ext.user_default.io_scene_psk_psa,io_scene_psk_psa,io_import_scene_unreal_psa_psk",
-                "--python", extractor_script,
-                "--",
-                "--output", output_json
-            ]
-            subprocess.run(cmd)
+                extractor_script,
+                ["--output", output_json]
+            )
+            
+            if result.stdout.strip():
+                print(result.stdout, flush=True)
+            if result.stderr.strip():
+                print(result.stderr, flush=True)
             
         print("SUCCESS! Staged layout sync completed.", flush=True)
 
@@ -219,8 +224,9 @@ def main():
             extra_cook_paths.append(workspace.icon_virtual_path)
         extra_cook_paths.append(workspace.blueprint_virtual_path)
 
-        # Dynamic multi-path cook inclusion
-        altermatic_project_source_dir = os.path.join(workspace.project_dir, "Content", "Palbaker", "Model", "Character", "Monster", workspace.monster_name)
+        altermatic_rel_path = workspace.ue_altermatic_virtual_path.replace("/Game/", "")
+        altermatic_project_source_dir = os.path.join(workspace.project_dir, "Content", os.path.normpath(altermatic_rel_path))
+        
         if workspace.is_altermatic_active and os.path.exists(altermatic_project_source_dir):
             extra_cook_paths.append(workspace.ue_altermatic_virtual_path)
 
@@ -265,7 +271,6 @@ def main():
                         except OSError:
                             pass
 
-                # Compile and deploy Altermatic JSON config to SwapJSON folder
                 swap_json_dir = ""
                 if workspace.palworld_exe and os.path.exists(workspace.palworld_exe):
                     swap_json_dir = os.path.join(os.path.dirname(workspace.palworld_exe), "Pal", "Content", "Paks", "~Mods", "SwapJSON")
