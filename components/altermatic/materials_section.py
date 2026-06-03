@@ -27,17 +27,21 @@ class MaterialsSection:
 
     def get_slots_for_skeleton(self, character_id: str, source: str) -> list[str]:
         """Resolves material slots directly from the consolidated sidecar JSON on disk (0ms overhead)."""
-        root_dir = os.path.dirname(self.settings.get("uproject", ""))
-        
+        fmodel_root = self.settings.get("fmodel_output", "")
+        if not fmodel_root:
+            return self.DEFAULT_SLOTS_MAP.get(character_id, ["mi_body", "mi_eye"])
+            
+        # FIXED: Resolve sidecar path strictly from the FModel Output staging directory
+        # instead of the Unreal Engine project directory.
         if source == "base":
             sidecar_path = os.path.join(
-                root_dir, "Content", "Pal", "Model", "Character", "Monster", 
+                fmodel_root, "Exports", "Pal", "Content", "Pal", "Model", "Character", "Monster", 
                 character_id, f"{character_id}_blend.json"
             )
         else:
             sidecar_name = f"{os.path.splitext(source)[0]}_blend.json"
             sidecar_path = os.path.join(
-                root_dir, "Content", "Palbaker", "Model", "Character", "Monster", 
+                fmodel_root, "Exports", "Pal", "Content", "Palbaker", "Model", "Character", "Monster", 
                 character_id, sidecar_name
             )
 
@@ -49,8 +53,8 @@ class MaterialsSection:
                     mats = data.get("materials", {})
                     if mats:
                         return list(mats.keys())
-            except Exception:
-                pass
+            except Exception as e:
+                print(f"[PalBaker Debug] Failed to read sidecar at {sidecar_path}: {e}")
 
         # Fallback to local default mappings if sidecar doesn't exist yet
         return self.DEFAULT_SLOTS_MAP.get(character_id, ["mi_body", "mi_eye"])
@@ -113,17 +117,3 @@ class MaterialsSection:
                     dd
                 ], spacing=10)
             )
-
-    def get_values(self, category: str, character_id: str, source: str) -> list[dict]:
-        mat_replaces = []
-        slots = self.get_slots_for_skeleton(character_id, source)
-
-        for idx, dropdown in self.active_material_dropdowns.items():
-            if dropdown.value and dropdown.value != "default":
-                mat_path = f"/Game/Palbaker/Model/Character/{category}/{character_id}/{dropdown.value}"
-                mat_replaces.append({
-                    "Index": str(idx),
-                    "MatPath": mat_path,
-                    "SlotName": slots[idx]
-                })
-        return mat_replaces

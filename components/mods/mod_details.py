@@ -262,6 +262,18 @@ class ModDetails:
                         )
                     )
 
+                # FIXED: If the variant is a custom variant but has no active conditional badges,
+                # append a neutral "DEFAULT" badge to keep UI proportions uniform.
+                if not badge_controls:
+                    badge_controls.append(
+                        ft.Container(
+                            content=ft.Text("DEFAULT", size=7, weight=ft.FontWeight.BOLD),
+                            bgcolor=ft.Colors.GREY_800,
+                            padding=2,
+                            border_radius=2
+                        )
+                    )
+
             internal_column_controls: list[ft.Control] = [
                 ft.Text(display_label, size=11, weight=ft.FontWeight.BOLD, color=ft.Colors.CYAN_400, overflow=ft.TextOverflow.ELLIPSIS),
                 ft.Row(badge_controls, spacing=2, tight=True),
@@ -277,6 +289,7 @@ class ModDetails:
                     bgcolor=ft.Colors.WHITE10,
                     border_radius=6,
                     padding=8,
+                    height=52,  # FIXED: Forced uniform vertical height
                     ink=True,
                     on_click=self.make_edit_handler(idx),
                     tooltip=f"Configure {v['label']}"
