@@ -3,6 +3,7 @@ import os
 import sys
 import glob
 import json
+import subprocess
 from utils.builder.workspace import ModWorkspace
 from utils.builder.config_helper import restore_palbaker_backup, GameIniCookContext
 from utils.builder.blender_helper import run_headless_blender
@@ -10,7 +11,6 @@ from utils.builder.unreal_helper import run_remote_import
 from utils.builder.cooker_helper import clean_cook_environment, resolve_packaging_manifest, run_and_stream, pack_cooked_assets
 from utils.state import save_push_state
 
-# Dynamic stream check to prevent static type stub AttributeAccess errors in Pylance
 if sys.platform == "win32" and hasattr(sys.stdout, "reconfigure"):
     getattr(sys.stdout, "reconfigure")(encoding='utf-8')
 
@@ -27,7 +27,6 @@ def main():
     with open(SETTINGS_FILE, "r") as f:
         settings = json.load(f)
 
-    # 1. Resolve all path context via the workspace resolver
     workspace = ModWorkspace(MONSTER_NAME, CATEGORY, settings)
 
     # -------------------------------------------------------------
@@ -73,58 +72,110 @@ def main():
     # PHASE 1: IMPORT (Push to Unreal)
     # -------------------------------------------------------------
     if ACTION in ["push", "full"]:
-        if not os.path.exists(workspace.fmodel_dir):
-            print(f"ERROR: Cannot push. FModel directory not found at {workspace.fmodel_dir}")
+        import_targets = []
+        if os.path.exists(workspace.fmodel_dir):
+            import_targets.append((workspace.fmodel_dir, workspace.ue_virtual_path))
+            
+        # Strictly append Altermatic assets only if the Switch is toggled ON
+        if workspace.is_altermatic_active and os.path.exists(workspace.fmodel_altermatic_dir) and any(f.endswith(".blend") for f in os.listdir(workspace.fmodel_altermatic_dir)):
+            import_targets.append((workspace.fmodel_altermatic_dir, workspace.ue_altermatic_virtual_path))
+
+        if not import_targets:
+            print("ERROR: No raw model sources found in workspaces to push.", flush=True)
             sys.exit(1)
 
-        blend_files = glob.glob(os.path.join(workspace.fmodel_dir, "*.blend"))
-        fbx_file = ""
-        if blend_files:
-            blend_file = blend_files[0]
-            fbx_file = os.path.join(workspace.fmodel_dir, f"{MONSTER_NAME}.fbx")
-            
-            extractor_script = os.path.join(os.path.dirname(__file__), "utils", "blender_extractor.py")
-            output_json = os.path.join(workspace.fmodel_dir, "bone_data.json")
-            
-            print("Running headless Blender (Extracting Rigging & Exporting FBX)...", flush=True)
-            run_headless_blender(workspace.blender_path, blend_file, extractor_script, ["--output", output_json, "--fbx", fbx_file])
+        # Pre-Push layout sync using master sync routine
+        from utils.altermatic_helper import sync_sidecar_metadata
+        for target_dir, _ in import_targets:
+            for blend_file in glob.glob(os.path.join(target_dir, "*.blend")):
+                print(f"Pre-import synchronizing layout metadata for {os.path.basename(blend_file)}...", flush=True)
+                sync_sidecar_metadata(workspace.blender_path, blend_file)
 
-        pngs = glob.glob(os.path.join(workspace.fmodel_dir, "*.png"))
-        jsons = glob.glob(os.path.join(workspace.fmodel_dir, "MI_*.json"))
-        
-        config = {
-            "ue_target_path": workspace.ue_virtual_path,
-            "textures": pngs,
-            "fbx_file": fbx_file if os.path.exists(fbx_file) else None,
-            "mi_jsons": jsons,
-            "icon_file": workspace.icon_fmodel_path if workspace.has_icon else None
-        }
-        config_path = os.path.join(workspace.fmodel_dir, "import_config.json")
-        with open(config_path, "w") as f:
-            json.dump(config, f)
+        for target_dir, virtual_path in import_targets:
+            blend_files = glob.glob(os.path.join(target_dir, "*.blend"))
+            for blend_file in blend_files:
+                base_name = os.path.splitext(os.path.basename(blend_file))[0]
+                fbx_file = os.path.join(target_dir, f"{base_name}.fbx")
+                output_json = os.path.join(target_dir, f"{base_name}_blend.json")
+                
+                extractor_script = os.path.join(os.path.dirname(__file__), "utils", "blender_extractor.py")
+                print(f"Running headless Blender (Exporting FBX for {base_name})...", flush=True)
+                run_headless_blender(workspace.blender_path, blend_file, extractor_script, ["--output", output_json, "--fbx", fbx_file])
 
-        print("Connecting to Open Unreal Engine...", flush=True)
-        ue_import_script = os.path.join(os.path.dirname(__file__), "ue_import.py")
-        success, log_msg = run_remote_import(workspace.ue_root, workspace.target_project_name, workspace.fmodel_dir, ue_import_script)
-        
-        if log_msg.strip():
-            print(log_msg, flush=True)
+            # Now build the import_config.json for this specific directory
+            pngs = glob.glob(os.path.join(target_dir, "*.png"))
+            jsons = glob.glob(os.path.join(target_dir, "MI_*.json"))
+            fbx_files = glob.glob(os.path.join(target_dir, "*.fbx"))
             
-        if not success:
-            print("!!! ERROR INSIDE UNREAL ENGINE !!!", flush=True)
-            sys.exit(1)
+            fbx_file = fbx_files[0] if fbx_files else ""
+            base_mesh_name = os.path.splitext(os.path.basename(fbx_file))[0] if fbx_file else MONSTER_NAME
 
-        ue_abs_path = os.path.join(workspace.project_dir, "Content", "Pal", "Model", "Character", CATEGORY, MONSTER_NAME)
+            config = {
+                "ue_target_path": virtual_path,
+                "textures": pngs,
+                "fbx_file": fbx_file if os.path.exists(fbx_file) else None,
+                "mi_jsons": jsons,
+                "icon_file": workspace.icon_fmodel_path if (workspace.has_icon and target_dir == workspace.fmodel_dir) else None,
+                "bone_data_file": f"{base_mesh_name}_blend.json"
+            }
+            config_path = os.path.join(target_dir, "import_config.json")
+            with open(config_path, "w") as f:
+                json.dump(config, f)
+
+            print(f"Connecting to Open Unreal Engine (Target: {os.path.basename(target_dir)})...", flush=True)
+            ue_import_script = os.path.join(os.path.dirname(__file__), "ue_import.py")
+            success, log_msg = run_remote_import(workspace.ue_root, workspace.target_project_name, target_dir, ue_import_script)
+            
+            if log_msg.strip():
+                print(log_msg, flush=True)
+                
+            if not success:
+                print(f"!!! ERROR INSIDE UNREAL ENGINE DURING {os.path.basename(target_dir)} IMPORT !!!", flush=True)
+                sys.exit(1)
+
+        ue_abs_path = os.path.join(workspace.project_dir, "Content", "Pal", "Model", "Character", "Monster", MONSTER_NAME)
         save_push_state(workspace.fmodel_dir, ue_abs_path)
+
+    # -------------------------------------------------------------
+    # PHASE 1.5: REFRESH BLEND (Sync layouts on the spot)
+    # -------------------------------------------------------------
+    if ACTION == "refresh_blend":
+        blend_files = []
+        if os.path.exists(workspace.fmodel_dir):
+            blend_files.extend(glob.glob(os.path.join(workspace.fmodel_dir, "*.blend")))
+        if workspace.is_altermatic_active and os.path.exists(workspace.fmodel_altermatic_dir):
+            blend_files.extend(glob.glob(os.path.join(workspace.fmodel_altermatic_dir, "*.blend")))
+
+        if not blend_files:
+            print("ERROR: No .blend files found in workspace to refresh.", flush=True)
+            sys.exit(1)
+
+        extractor_script = os.path.normpath(os.path.join(os.path.dirname(__file__), "utils", "blender_extractor.py"))
+        for blend_file in blend_files:
+            parent_dir = os.path.dirname(blend_file)
+            base_name = os.path.splitext(os.path.basename(blend_file))[0]
+            output_json = os.path.normpath(os.path.join(parent_dir, f"{base_name}_blend.json"))
+            
+            print(f"Synchronizing sidecar layout metadata for {os.path.basename(blend_file)}...", flush=True)
+            
+            cmd = [
+                workspace.blender_path,
+                "-b",
+                blend_file,
+                "--addons", "bl_ext.blender_org.io_scene_psk_psa,bl_ext.user_default.io_scene_psk_psa,io_scene_psk_psa,io_import_scene_unreal_psa_psk",
+                "--python", extractor_script,
+                "--",
+                "--output", output_json
+            ]
+            subprocess.run(cmd)
+            
+        print("SUCCESS! Staged layout sync completed.", flush=True)
 
     # -------------------------------------------------------------
     # PHASE 2: COOK & PACK
     # -------------------------------------------------------------
     if ACTION in ["cook", "full"]:
-        # Resolve automatic self-healing before compiling
         restore_palbaker_backup(workspace.uproject_path)
-
-        # 2. Cleanup the old build caches
         clean_cook_environment(workspace)
 
         extra_cook_paths = []
@@ -134,7 +185,11 @@ def main():
             extra_cook_paths.append(workspace.icon_virtual_path)
         extra_cook_paths.append(workspace.blueprint_virtual_path)
 
-        # 3. Use the Context Manager to handle DefaultGame.ini backup & safety automatically
+        # Dynamic multi-path cook inclusion
+        altermatic_project_source_dir = os.path.join(workspace.project_dir, "Content", "Palbaker", "Model", "Character", "Monster", workspace.monster_name)
+        if workspace.is_altermatic_active and os.path.exists(altermatic_project_source_dir):
+            extra_cook_paths.append(workspace.ue_altermatic_virtual_path)
+
         with GameIniCookContext(workspace, extra_paths=extra_cook_paths):
             print("Cooking Target Folders...", flush=True)
             had_cook_issues = run_and_stream([
@@ -142,7 +197,7 @@ def main():
                 workspace.uproject_path, 
                 "-run=cook", 
                 "-targetplatform=Windows", 
-                #"-unversioned", 
+                "-unversioned", 
                 "-NoUI", 
                 "-Map=/Engine/Maps/Entry"
             ])
@@ -151,10 +206,8 @@ def main():
             print(f"Preparing Pak (Target: {os.path.basename(final_pak_path)})...", flush=True)
             response_file = os.path.join(workspace.output_dir, "response.txt")
 
-            # 4. Resolve the complete packaging list (including custom audio overrides)
             folders_to_pack = resolve_packaging_manifest(workspace, workspace.has_anims)
 
-            # 5. Pack the archive
             print("Building final PAK...", flush=True)
             files_found = pack_cooked_assets(
                 workspace.unrealpak_path, 
@@ -167,6 +220,7 @@ def main():
             if files_found == 0:
                 print("ERROR: No files found to pack. Cook process might have failed.", flush=True)
                 sys.exit(1)
+                
             if not had_cook_issues:
                 print(f"SUCCESS! Pak created at: {final_pak_path} ({files_found} files)", flush=True)
                 for suffix in ["_err_P.pak", "_err_p.pak"]:
@@ -174,9 +228,18 @@ def main():
                     if os.path.exists(err_pak):
                         try:
                             os.remove(err_pak)
-                            print(f"Cleaned up legacy error pak: {os.path.basename(err_pak)}", flush=True)
-                        except OSError as e:
-                            print(f"Warning: Failed to delete legacy error pak {err_pak}: {e}", flush=True)
+                        except OSError:
+                            pass
+
+                # Compile and deploy Altermatic JSON config to SwapJSON folder
+                swap_json_dir = ""
+                if workspace.palworld_exe and os.path.exists(workspace.palworld_exe):
+                    swap_json_dir = os.path.join(os.path.dirname(workspace.palworld_exe), "Pal", "Content", "Paks", "~Mods", "SwapJSON")
+                
+                if workspace.is_altermatic_active and swap_json_dir and os.path.exists(workspace.fmodel_altermatic_dir):
+                    from utils.altermatic_helper import compile_unified_altermatic_json
+                    success, msg = compile_unified_altermatic_json(workspace.monster_name, workspace.fmodel_altermatic_dir, swap_json_dir)
+                    print(msg, flush=True)
 
 if __name__ == "__main__":
     main()

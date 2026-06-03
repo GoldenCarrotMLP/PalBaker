@@ -20,8 +20,6 @@ def import_icon(icon_file, ue_icon_path):
     tasks.append(task)
     asset_tools.import_asset_tasks(tasks)
     
-    # Icons require strict UI texture group and compression configurations
-    # otherwise they will be blurred or improperly sized by Unreal's mipmap generation
     imported_asset = unreal.EditorAssetLibrary.load_asset(f"{ue_icon_path}/{os.path.splitext(os.path.basename(icon_file))[0]}")
     if imported_asset:
         imported_asset.set_editor_property('compression_settings', unreal.TextureCompressionSettings.TC_EDITOR_ICON)
@@ -29,13 +27,13 @@ def import_icon(icon_file, ue_icon_path):
         unreal.EditorAssetLibrary.save_loaded_asset(imported_asset)
 
 
-
 def clear_cache(ue_path, fbx_file, folder_name):
     if fbx_file and os.path.exists(fbx_file):
         fbx_base_name = os.path.splitext(os.path.basename(fbx_file))[0]
         paths_to_delete = [
             f"{ue_path}/SK_{fbx_base_name}",
-            f"{ue_path}/SK_{fbx_base_name}_Skeleton",  # Clean up any orphaned intermediate skeletons
+            f"{ue_path}/SK_{folder_name}",  # Clean up canonical name cache as well
+            f"{ue_path}/SK_{fbx_base_name}_Skeleton",
             f"{ue_path}/PA_{folder_name}_PhysicsAsset",
             f"/Game/Pal/Model/Character/Skeleton/{folder_name}/SK_{folder_name}_Skeleton",
             f"/Game/Pal/Model/Character/Skeleton/{folder_name}/{folder_name}_BP"
@@ -43,6 +41,7 @@ def clear_cache(ue_path, fbx_file, folder_name):
         for path in paths_to_delete:
             if unreal.EditorAssetLibrary.does_asset_exist(path):
                 unreal.EditorAssetLibrary.delete_asset(path)
+
 
 def import_assets(ue_path, textures, fbx_file, folder_name):
     asset_tools = unreal.AssetToolsHelpers.get_asset_tools()
@@ -66,7 +65,15 @@ def import_assets(ue_path, textures, fbx_file, folder_name):
     target_phys_path = ""
     if fbx_file and os.path.exists(fbx_file):
         fbx_filename = os.path.basename(fbx_file)
-        fbx_import_name = f"SK_{os.path.splitext(fbx_filename)[0]}"
+        
+        # --- Canonical Overwrite Renamer ---
+        # If we are importing into the game's native directory, force rename to SK_{PalName}
+        is_vanilla_replace = "Palbaker" not in ue_path
+        if is_vanilla_replace:
+            fbx_import_name = f"SK_{folder_name}"
+        else:
+            fbx_import_name = f"SK_{os.path.splitext(fbx_filename)[0]}"
+            
         target_asset_path = f"{ue_path}/{fbx_import_name}"
         
         print(f"Importing skeletal mesh: {fbx_filename} as {fbx_import_name}")
@@ -86,7 +93,6 @@ def import_assets(ue_path, textures, fbx_file, folder_name):
         options.set_editor_property('import_textures', False)
         options.set_editor_property('create_physics_asset', True)
         
-        # FIX: Force strict skeletal import execution (Disables automatic similar skeleton sharing)
         options.set_editor_property('automated_import_should_detect_type', False)
         
         skel_data = unreal.FbxSkeletalMeshImportData()
@@ -102,7 +108,6 @@ def import_assets(ue_path, textures, fbx_file, folder_name):
         fbx_tasks.append(fbx_task)
         asset_tools.import_asset_tasks(fbx_tasks)
 
-        # FIX: Find the generated skeleton via Asset Registry scan (resilient against suffix naming variations)
         target_skeleton_dir = f"/Game/Pal/Model/Character/Skeleton/{folder_name}"
         target_skeleton_path = f"{target_skeleton_dir}/SK_{folder_name}_Skeleton"
         
@@ -116,7 +121,6 @@ def import_assets(ue_path, textures, fbx_file, folder_name):
                 auto_skeleton_path = str(asset.package_name)
                 break
                 
-        # Heuristic fallback if asset registry scan was deferred
         if not auto_skeleton_path:
             auto_skeleton_path = f"{ue_path}/{fbx_import_name}_Skeleton"
 

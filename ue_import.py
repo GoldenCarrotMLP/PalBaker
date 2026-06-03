@@ -1,15 +1,13 @@
+# ue_import.py
 import sys
 import os
 import json
 import unreal
 
-# Inject the local module path into the Unreal Python environment
 palbaker_root = globals().get('PALBAKER_ROOT', '')
 if palbaker_root and palbaker_root not in sys.path:
     sys.path.append(palbaker_root)
 
-# FIXED: Force-delete from sys.modules to completely bypass the python "from-import" caching bug.
-# This guarantees that the new 4-argument function signature is bound correctly.
 for k in list(sys.modules.keys()):
     if k.startswith("unreal_scripts"):
         del sys.modules[k]
@@ -38,15 +36,17 @@ def run_pipeline():
         from unreal_scripts.importer import import_icon
         import_icon(icon_file, "/Game/Pal/Texture/PalIcon/Normal")
 
-    # 2. Build material instances dynamically (Passes the correct json_path parameters)
-    json_path = os.path.join(working_dir, "bone_data.json")
-    mi_assets = build_materials(ue_path, json_path, config["textures"], target_asset_path)
+    # 2. Build material instances dynamically (Reading the dynamic sidecar JSON file)
+    bone_data_file = config.get("bone_data_file", "bone_data.json")
+    sidecar_json_path = os.path.join(working_dir, bone_data_file)
+    
+    mi_assets = build_materials(ue_path, sidecar_json_path, config["textures"], target_asset_path)
     
     # 3. Bind everything together
     bind_materials_to_mesh(target_asset_path, target_phys_path, mi_assets)
     
     # 4. Generate & apply rigging
-    apply_rigging(working_dir, ue_path, folder_name, target_asset_path)
+    apply_rigging(working_dir, ue_path, folder_name, target_asset_path, bone_data_file)
 
     print("Flushing all generated assets to disk...")
     unreal.EditorLoadingAndSavingUtils.save_dirty_packages(save_map_packages=False, save_content_packages=True)

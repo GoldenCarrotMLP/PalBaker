@@ -41,7 +41,9 @@ def safe_update(control):
         pass
 
 class ModItem:
-    def __init__(self, mod_data: dict, on_action_click, on_cancel_click, on_pick_icon, on_pick_audio, on_play_audio, on_clear_audio, is_building: bool, show_mapped: bool):
+    def __init__(self, mod_data: dict, on_action_click, on_cancel_click, on_pick_icon, on_pick_audio, on_play_audio, on_clear_audio,
+                 on_toggle_altermatic, on_add_variant, on_edit_variant, on_delete_variant,
+                 is_building: bool, show_mapped: bool):
         self.mod_data = mod_data
         self.on_action_click = on_action_click
         self.on_cancel_click = on_cancel_click
@@ -49,6 +51,13 @@ class ModItem:
         self.on_pick_audio = on_pick_audio
         self.on_play_audio = on_play_audio
         self.on_clear_audio = on_clear_audio
+        
+        # Altermatic custom callbacks
+        self.on_toggle_altermatic = on_toggle_altermatic
+        self.on_add_variant = on_add_variant
+        self.on_edit_variant = on_edit_variant
+        self.on_delete_variant = on_delete_variant
+        
         self.is_building = is_building
         self.show_mapped = show_mapped
 
@@ -83,6 +92,8 @@ class ModItem:
                 tooltip_msg = "Warning: Files have been manually modified inside Unreal Engine since your last Push!"
             elif text == "SRC CHANGED":
                 tooltip_msg = "Source files (Blender/textures) have been edited since your last Push! It is recommended to run 'Push & Cook & Pack'."
+            elif text == "ALTERMATIC":
+                tooltip_msg = "Altermatic dynamic variants are active for this Pal."
             else:
                 tooltip_msg = ""
 
@@ -154,7 +165,11 @@ class ModItem:
             on_pick_icon=self.on_pick_icon,
             on_pick_audio=self.on_pick_audio,
             on_play_audio=self.on_play_audio,
-            on_clear_audio=self.on_clear_audio
+            on_clear_audio=self.on_clear_audio,
+            on_toggle_altermatic=self.on_toggle_altermatic,
+            on_add_variant=self.on_add_variant,
+            on_edit_variant=self.on_edit_variant,
+            on_delete_variant=self.on_delete_variant
         )
         self.details_container = ft.Container(content=self.details.view, visible=False)
 
@@ -166,7 +181,6 @@ class ModItem:
             animate=ft.Animation(500, ft.AnimationCurve.EASE_OUT) 
         )
 
-        # The actual Flet control tree is stored under this .view property
         self.view = ft.ContextMenu(
             content=self.container,
             secondary_items=[
@@ -302,7 +316,7 @@ class ModItem:
             self.import_current_step += 1
             progress = 0.15 + (0.30 * (self.import_current_step / max(1, self.import_total_steps)))
             self.progress_bar.value = min(0.45, progress)
-            self.status_text.value = f"[2/4] Importing Assets into Unreal ({self.import_current_step}/{self.import_total_steps})..."
+            self.status_text.value = f"[2/4] Importing Assets into Unreal ({self.import_current_step}/{self.import_total_steps})...."
             
         elif "Cooking Target Folders" in line:
             self.progress_bar.value = 0.45
