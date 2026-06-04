@@ -17,7 +17,7 @@ KNOWN_HASHES = {
     "12592a086dbe5bcf2724c5c3ec7d4d16772f07bebaa0d5184801ccc12a6c43af": "Latest-Experimental"
 }
 
-def get_binaries_dir(palworld_exe: str) -> str:
+def get_binaries_dir(palworld_exe: str) -> str :
     """Resolves the Win64 binary directory from the game executable path."""
     if not palworld_exe or not os.path.exists(palworld_exe):
         return ""
@@ -55,10 +55,10 @@ def get_ue4ss_status(palworld_exe: str) -> dict:
         
     dwmapi = os.path.join(bin_dir, "dwmapi.dll")
     
-    # Allow for both flat directory structure and the old ue4ss/ nested structure
-    ue4ss_dll_root = os.path.join(bin_dir, "UE4SS.dll")
-    ue4ss_dll_sub = os.path.join(bin_dir, "ue4ss", "UE4SS.dll")
-    ue4ss_dll = ue4ss_dll_root if os.path.exists(ue4ss_dll_root) else ue4ss_dll_sub
+    # FIXED: Strictly look inside the nested ue4ss / UE4SS subfolder for core dll loader
+    ue4ss_dll_sub_lower = os.path.join(bin_dir, "ue4ss", "UE4SS.dll")
+    ue4ss_dll_sub_upper = os.path.join(bin_dir, "UE4SS", "UE4SS.dll")
+    ue4ss_dll = ue4ss_dll_sub_lower if os.path.exists(ue4ss_dll_sub_lower) else ue4ss_dll_sub_upper
     
     installed = os.path.exists(dwmapi) and os.path.exists(ue4ss_dll)
     if not installed:
@@ -80,7 +80,7 @@ def get_ue4ss_status(palworld_exe: str) -> dict:
         except Exception:
             pass
 
-    # Self-healing: Identify unmanaged manual installations matching pre-registered hashes
+    # Identify unmanaged manual installations matching pre-registered hashes
     if not expected_hash:
         if current_hash in KNOWN_HASHES:
             branch = KNOWN_HASHES[current_hash]
@@ -100,7 +100,7 @@ def get_ue4ss_status(palworld_exe: str) -> dict:
     return {"status": "Installed", "branch": branch, "corrupted": corrupted}
 
 def download_and_extract_ue4ss(palworld_exe: str, branch: str, log_callback) -> bool:
-    """Downloads the zip, extracts it to Win64, hashes the UE4SS.dll, and writes the deployment sidecar."""
+    """Downloads the zip, extracts it natively to Win64/ue4ss/ preserving structures, and registers hashes."""
     bin_dir = get_binaries_dir(palworld_exe)
     if not bin_dir:
         log_callback("Error: Invalid Palworld executable path.", True)
@@ -121,7 +121,7 @@ def download_and_extract_ue4ss(palworld_exe: str, branch: str, log_callback) -> 
         with urllib.request.urlopen(req, context=ctx) as response, open(zip_path, 'wb') as out_file:
             shutil.copyfileobj(response, out_file)
             
-        log_callback("Extracting UE4SS...", False)
+        log_callback("Extracting UE4SS natively...", False)
         extract_tmp = os.path.join(temp_dir, f"ue4ss_{branch}_extracted")
         if os.path.exists(extract_tmp):
             shutil.rmtree(extract_tmp)
@@ -130,35 +130,45 @@ def download_and_extract_ue4ss(palworld_exe: str, branch: str, log_callback) -> 
         with zipfile.ZipFile(zip_path, 'r') as zip_ref:
             zip_ref.extractall(extract_tmp)
             
-        # Detect where 'dwmapi.dll' or 'UE4SS.dll' actually lives to bypass random root folders inside the zips
-        actual_root = extract_tmp
-        for root, dirs, files in os.walk(extract_tmp):
-            if any(f.lower() == "dwmapi.dll" for f in files) or any(f.lower() == "ue4ss.dll" for f in files):
-                actual_root = root
-                break
-                
-        # Copy contents directly to the Win64 bin_dir
-        for item in os.listdir(actual_root):
-            s = os.path.join(actual_root, item)
-            d = os.path.join(bin_dir, item)
-            if os.path.isdir(s):
-                # Copy folders (like Mods/) while preserving existing contents
-                shutil.copytree(s, d, dirs_exist_ok=True)
-            else:
-                shutil.copy2(s, d)
-                
-        # Hash UE4SS.dll and save it
-        ue4ss_dll_root = os.path.join(bin_dir, "UE4SS.dll")
-        ue4ss_dll_sub = os.path.join(bin_dir, "ue4ss", "UE4SS.dll")
-        ue4ss_dll = ue4ss_dll_root if os.path.exists(ue4ss_dll_root) else ue4ss_dll_sub
+        # Target folder inside the Binaries directory
+        target_ue4ss_dir = os.path.join(bin_dir, "ue4ss")
+        os.makedirs(target_ue4ss_dir, exist_ok=True)
+
+        # FIXED: Robust, non-flattened extraction.
+        # Cases:
+        # A) Zip already has 'ue4ss' subfolder (Okaetsu's package style)
+        # B) Zip has flat root files (Standard experimental package style)
+        has_subfolder = os.path.exists(os.path.join(extract_tmp, "ue4ss"))
         
+        if has_subfolder:
+            # Case A: Deploy dwmapi.dll to Win64 root, and copy the ue4ss folder as-is
+            dwmapi_src = os.path.join(extract_tmp, "dwmapi.dll")
+            if os.path.exists(dwmapi_src):
+                shutil.copy2(dwmapi_src, os.path.join(bin_dir, "dwmapi.dll"))
+                
+            shutil.copytree(os.path.join(extract_tmp, "ue4ss"), target_ue4ss_dir, dirs_exist_ok=True)
+        else:
+            # Case B: Standard flat zip. We copy dwmapi.dll to root, and route all other assets into ue4ss/
+            for item in os.listdir(extract_tmp):
+                src_item = os.path.join(extract_tmp, item)
+                if item.lower() == "dwmapi.dll":
+                    shutil.copy2(src_item, os.path.join(bin_dir, "dwmapi.dll"))
+                else:
+                    dest_item = os.path.join(target_ue4ss_dir, item)
+                    if os.path.isdir(src_item):
+                        shutil.copytree(src_item, dest_item, dirs_exist_ok=True)
+                    else:
+                        shutil.copy2(src_item, dest_item)
+
+        # Hash UE4SS.dll to track and register branch status
+        ue4ss_dll = os.path.join(target_ue4ss_dir, "UE4SS.dll")
         dll_hash = hash_file(ue4ss_dll)
         
         info_file = os.path.join(bin_dir, ".palbaker_ue4ss.json")
         with open(info_file, "w") as f:
             json.dump({"branch": branch, "dll_hash": dll_hash}, f)
             
-        log_callback("UE4SS installation complete!", False)
+        log_callback("UE4SS installation completed successfully!", False)
         
         # Cleanup
         shutil.rmtree(extract_tmp, ignore_errors=True)
@@ -171,32 +181,51 @@ def download_and_extract_ue4ss(palworld_exe: str, branch: str, log_callback) -> 
         return False
 
 def uninstall_ue4ss(palworld_exe: str, log_callback) -> bool:
-    """Removes dwmapi.dll, UE4SS.dll, and associated config files strictly without wiping user Mods."""
+    """Removes dwmapi.dll and core UE4SS assets strictly without deleting the user's Mods directory."""
     bin_dir = get_binaries_dir(palworld_exe)
     if not bin_dir:
         log_callback("Error: Invalid Palworld executable path.", True)
         return False
         
     try:
-        files_to_remove = [
-            "dwmapi.dll",
-            "UE4SS.dll",
-            "UE4SS-settings.ini",
-            "MemberVariableLayout.ini",
-            "VTableLayout.ini",
-            ".palbaker_ue4ss.json",
-            "UE4SS.log"
-        ]
-        
-        for f in files_to_remove:
-            f_path = os.path.join(bin_dir, f)
-            if os.path.exists(f_path):
-                os.remove(f_path)
-                
-        # Also clean up the isolated ue4ss subfolder if it exists (legacy branch installs)
+        # Delete root proxy loader
+        dwmapi_path = os.path.join(bin_dir, "dwmapi.dll")
+        if os.path.exists(dwmapi_path):
+            os.remove(dwmapi_path)
+
+        # Delete local state tracker
+        info_file = os.path.join(bin_dir, ".palbaker_ue4ss.json")
+        if os.path.exists(info_file):
+            os.remove(info_file)
+            
+        # FIXED: Clean up only core loader binaries, keeping the Mods directory safe
         ue4ss_dir = os.path.join(bin_dir, "ue4ss")
         if os.path.exists(ue4ss_dir):
-            shutil.rmtree(ue4ss_dir, ignore_errors=True)
+            core_files_to_remove = [
+                "UE4SS.dll",
+                "UE4SS-settings.ini",
+                "MemberVariableLayout.ini",
+                "VTableLayout.ini",
+                "UE4SS.log",
+                "README.md"
+            ]
+            for f in core_files_to_remove:
+                f_path = os.path.join(ue4ss_dir, f)
+                if os.path.exists(f_path):
+                    os.remove(f_path)
+            
+            # Clean up signatures folder if present
+            sigs_dir = os.path.join(ue4ss_dir, "UE4SS_Signatures")
+            if os.path.exists(sigs_dir):
+                shutil.rmtree(sigs_dir, ignore_errors=True)
+                
+            # If the ue4ss folder is completely empty except for Mods, we leave it.
+            # Otherwise, if Mods is empty, we cleanly remove it.
+            mods_dir = os.path.join(ue4ss_dir, "Mods")
+            if os.path.exists(mods_dir) and not os.listdir(mods_dir):
+                shutil.rmtree(ue4ss_dir, ignore_errors=True)
+            elif not os.path.exists(mods_dir) and not os.listdir(ue4ss_dir):
+                shutil.rmtree(ue4ss_dir, ignore_errors=True)
             
         log_callback("UE4SS successfully uninstalled (Mods folder preserved).", False)
         return True

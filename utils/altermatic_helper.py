@@ -4,6 +4,7 @@ import json
 import re
 import subprocess
 
+# Optimized Python command injected into headless Blender to extract material slots and shape keys
 BLENDER_EXTRACTOR_SCRIPT = (
     "import bpy, json; "
     "mesh_objs = [obj for obj in bpy.data.objects if obj.type == 'MESH']; "
@@ -14,35 +15,22 @@ BLENDER_EXTRACTOR_SCRIPT = (
 
 def get_virtual_path_for_file(absolute_path: str) -> str:
     """
-    Robust relative-path calculator. Traverses the directory tree structurally 
-    to prevent string-split collisions if a user names their root folder "Pal/Content".
+    Dumb relative-path calculator. Resolves any physical path starting under
+    Pal/Content/ to its corresponding Unreal virtual /Game/ path automatically.
     """
     clean_path = absolute_path.replace("\\", "/")
-    parts = clean_path.split("/")
-    
-    target_idx = -1
-    # Look for the strict FModel structure: Exports -> Pal -> Content
-    for i in range(len(parts) - 2):
-        if parts[i].lower() == "exports" and parts[i+1].lower() == "pal" and parts[i+2].lower() == "content":
-            target_idx = i + 2
-            break
-            
-    # Fallback to standard Content detection
-    if target_idx == -1:
-        for i in range(len(parts) - 1, -1, -1):
-            if parts[i].lower() == "content":
-                target_idx = i
-                break
-
-    if target_idx != -1 and target_idx + 1 < len(parts):
-        relative_part = "/".join(parts[target_idx+1:])
+    marker = "Pal/Content/"
+    if marker in clean_path:
+        relative_part = clean_path.split(marker, 1)[1]
         folder_part = "/".join(relative_part.split("/")[:-1]).replace(" ", "_")
         return f"/Game/{folder_part}"
-        
     return ""
 
 
 def get_blend_files_for_context(fmodel_altermatic_dir: str, fmodel_dir: str = "") -> list[str]:
+    """
+    Scans strictly the target mod's vanilla and altermatic directories for existing .blend files.
+    """
     blend_files = []
     if fmodel_dir and os.path.exists(fmodel_dir):
         for f in os.listdir(fmodel_dir):
@@ -58,6 +46,10 @@ def get_blend_files_for_context(fmodel_altermatic_dir: str, fmodel_dir: str = ""
 
 
 def get_available_materials_for_context(fmodel_root: str, fmodel_altermatic_dir: str, character_id: str, category: str = "Monster") -> list[str]:
+    """
+    Dynamically scans your workspace directories and parses all sidecars 
+    to discover every compiled material available inside your ModKit.
+    """
     materials = []
     paths_to_check = []
 
@@ -332,14 +324,24 @@ def compile_unified_altermatic_json(monster_name: str, altermatic_staging_dir: s
 
 
 def load_traits_database() -> dict:
+    """
+    Self-healing lookup pipeline. Loads the dynamically generated passive skills cache dictionary first.
+    If it is missing, gracefully falls back to the original traits_db.json.
+    """
     root_dir = os.path.dirname(os.path.dirname(os.path.abspath(__file__)))
-    target_path = os.path.join(root_dir, "traits_db.json")
+    target_path = os.path.normpath(os.path.join(root_dir, "deps", "passive_skills_cache.json"))
     
+    if not os.path.exists(target_path):
+        # Fallback to traits_db.json
+        fallback_path = os.path.normpath(os.path.join(root_dir, "traits_db.json"))
+        if os.path.exists(fallback_path):
+            target_path = fallback_path
+            
     if not os.path.exists(target_path):
         return {}
     try:
         with open(target_path, "r", encoding="utf-8") as f:
             return json.load(f)
     except Exception as e:
-        print(f"Warning: Failed to load traits_db.json: {e}")
+        print(f"Warning: Failed to load traits database: {e}")
         return {}
