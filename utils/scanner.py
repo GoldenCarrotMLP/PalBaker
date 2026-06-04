@@ -6,18 +6,33 @@ from .names import get_localized_name
 from .audio_helper import get_pal_sound_metadata
 
 def scan_character_folders(base_path: str) -> dict:
-    """Recursively finds all leaf directories containing .blend, .uasset, or .json files."""
+    """Recursively finds all leaf directories containing .blend, .uasset, .psk, or .json files."""
     discovered = {}
     if not base_path or not os.path.exists(base_path):
         return discovered
         
     for root, dirs, files in os.walk(base_path):
-        dirs[:] = [d for d in dirs if not d.startswith('.')]
-        has_assets = any(f.endswith(('.blend', '.uasset', '.json', '.fbx')) for f in files)
+        # Prune hidden directories and strictly ignore auxiliary structural branches
+        # so we don't accidentally map a 'Skeleton' or 'PalActorBP' leaf folder instead of the main one.
+        dirs[:] = [d for d in dirs if not d.startswith('.') and d not in ["Skeleton", "PalActorBP", "Animation"]]
+        
+        # Included .psk and .png to ensure FModel source folders are reliably detected
+        has_assets = any(f.endswith(('.blend', '.uasset', '.json', '.fbx', '.psk', '.png')) for f in files)
         if has_assets:
             folder_name = os.path.basename(root)
-            if folder_name not in ["Character", "Skeleton", "PalActorBP", "Normal", "WwiseAudio", "Media", "sources"]:
-                discovered[folder_name] = os.path.abspath(root)
+            # Guard against mapping structural parent folders
+            if folder_name not in ["Character", "Monster", "NPC", "Player", "Palmi", "Normal", "WwiseAudio", "Media", "sources"]:
+                
+                # Collision Resolution:
+                # If multiple folders share the same name (e.g. somehow survived pruning),
+                # always prioritize the one containing the primary source files.
+                if folder_name in discovered:
+                    has_primary_new = any(f.endswith(('.psk', '.blend', '.png')) for f in files)
+                    if has_primary_new:
+                        discovered[folder_name] = os.path.abspath(root)
+                else:
+                    discovered[folder_name] = os.path.abspath(root)
+                    
     return discovered
 
 def get_mod_info(settings: dict):
