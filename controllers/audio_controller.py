@@ -3,7 +3,7 @@ import os
 import sys
 import shutil
 import subprocess
-import flet as ft
+from utils.extractor_helper import extract_single_file
 
 class AudioController:
     def __init__(self, master_controller):
@@ -12,7 +12,6 @@ class AudioController:
         self.view = master_controller.view
 
     async def apply_custom_audio(self, mod_data: dict, cry_name: str, src_path: str):
-        """Stands up an isolated thread to convert audio to .wem instantly upon file upload."""
         def conversion_worker():
             try:
                 fmodel_path = mod_data.get("fmodel_path")
@@ -32,11 +31,9 @@ class AudioController:
                         try: os.remove(old_file)
                         except OSError: pass
                 
-                # Copy source to local FModel staging directory
                 dest_path = os.path.join(sources_dir, f"{cry_name}{ext}")
                 shutil.copy2(src_path, dest_path)
                 
-                # Discover Media ID target from internal DB
                 sound_meta = mod_data.get("sound_metadata", {}).get(cry_name, {})
                 media_id = sound_meta.get("media_id")
                 if not media_id:
@@ -62,7 +59,6 @@ class AudioController:
                 if not wwise_console or not wproj_path:
                     return False, "Wwise environment not found in deps/wwise/. Cannot compile."
                     
-                # WWISE BYPASS: Convert MP3/OGG to a temporary WAV before feeding Wwise
                 wwise_target_file = dest_path
                 vgmstream_cli = os.path.join(repo_root, "deps", "vgmstream", "vgmstream-cli.exe")
                 if not os.path.exists(vgmstream_cli):
@@ -93,7 +89,6 @@ class AudioController:
                     shutil.rmtree(output_test_dir, ignore_errors=True)
                 os.makedirs(output_test_dir, exist_ok=True)
                 
-                # Write XML source mapping
                 xml_content = f'<?xml version="1.0" encoding="utf-8"?>\n<ExternalSourcesList SchemaVersion="1">\n    <Source Path="{wwise_target_file.replace(os.sep, "/")}" Conversion="Default Conversion Settings" />\n</ExternalSourcesList>'
                 with open(wsources_path, "w", encoding="utf-8") as f:
                     f.write(xml_content)
@@ -124,7 +119,6 @@ class AudioController:
                 try: os.remove(wsources_path)
                 except OSError: pass
                 
-                # Cleanup the temp WAV if we generated one
                 if wwise_target_file != dest_path and os.path.exists(wwise_target_file):
                     try: os.remove(wwise_target_file)
                     except OSError: pass
@@ -144,7 +138,6 @@ class AudioController:
         else:
             self.view.write_log(msg, "error")
             
-        # Target the scan strictly to this specific mod
         self.mc.refresh_mods(scan_disk=True, target_mod=mod_data["name"])
 
     def play_wav_file(self, wav_path: str):
@@ -225,9 +218,6 @@ class AudioController:
         if not fmodel_root: return
 
         wem_abs_path = os.path.normpath(os.path.join(fmodel_root, "Exports", wem_rel))
-        if not os.path.exists(wem_abs_path):
-            self.view.write_log(f"Original game .wem asset not found inside FModel output: {os.path.basename(wem_abs_path)}", "error")
-            return
 
         if not os.path.exists(vgmstream_cli):
             self.view.write_log("Could not locate 'vgmstream-cli.exe' inside 'deps/vgmstream/'. Preview unavailable.", "error")
@@ -236,58 +226,80 @@ class AudioController:
         os.makedirs(audio_dir, exist_ok=True)
         temp_wav = os.path.join(audio_dir, ".temp_preview.wav")
 
-        self.view.write_log(f"Decoding original game audio for {mod_data['name']} ({cry_name})...", "standard")
-
+        # Extraction and playback offloaded to background thread
         def decode_worker():
             try:
+                # Dynamic check & delegate to the dedicated extractor helper
+                if not os.path.exists(wem_abs_path):
+                    self.view.write_log(f"Original game .wem asset missing. Extracting dynamically from Paks...", "stage")
+                    
+                    export_root = os.path.join(fmodel_root, "Exports")
+                    
+                    # Call the clean, abstracted extraction helper
+                    success = extract_single_file(self.settings, wem_rel, export_root)
+                    
+                    if not success or not os.path.exists(wem_abs_path):
+                        self.view.write_log(f"Extraction helper failed to extract {wem_rel}.", "error")
+                        return
+                    else:
+                        self.view.write_log(f"Successfully extracted: {wem_rel}", "success")
+
+                self.view.write_log(f"Decoding original game audio for {mod_data['name']} ({cry_name})...", "standard")
+
                 if os.path.exists(temp_wav):
                     try: os.remove(temp_wav)
                     except OSError: pass
 
-                cmd = [vgmstream_cli, "-o", temp_wav, wem_abs_path]
+                cmd_decode = [vgmstream_cli, "-o", temp_wav, wem_abs_path]
                 creation_flags = subprocess.CREATE_NO_WINDOW if os.name == 'nt' else 0
                 
-                subprocess.run(cmd, check=True, stdout=subprocess.DEVNULL, stderr=subprocess.DEVNULL, creationflags=creation_flags)
+                subprocess.run(cmd_decode, check=True, stdout=subprocess.DEVNULL, stderr=subprocess.DEVNULL, creationflags=creation_flags)
                 
                 if os.path.exists(temp_wav):
                     self.play_wav_file(temp_wav)
                 else:
                     self.view.write_log("vgmstream executed but failed to save temporary preview wav.", "error")
             except Exception as e:
-                self.view.write_log(f"vgmstream decoding failed: {e}", "error")
+                self.view.write_log(f"Audio extraction or decoding failed: {e}", "error")
 
         self.mc.view.run_in_thread(decode_worker)
 
-    # FIXED: Restored complete clear_audio logic supporting standard FModel directories
     async def clear_audio(self, mod_data: dict, cry_name: str):
-        fmodel_path = mod_data.get("fmodel_path")
-        if not fmodel_path: return
-
-        audio_dir = os.path.join(fmodel_path, ".palbaker_audio")
-        sources_dir = os.path.join(audio_dir, "sources")
-        wem_dir = os.path.join(audio_dir, "WwiseAudio", "Media")
-        removed = False
-        
-        if os.path.exists(sources_dir):
-            for ext in [".wav", ".mp3", ".ogg"]:
-                path = os.path.join(sources_dir, f"{cry_name}{ext}")
-                if os.path.exists(path):
+        def background_clear():
+            fmodel_path = mod_data.get("fmodel_path")
+            if not fmodel_path: return False
+            
+            audio_dir = os.path.join(fmodel_path, ".palbaker_audio")
+            sources_dir = os.path.join(audio_dir, "sources")
+            wem_dir = os.path.join(audio_dir, "WwiseAudio", "Media")
+            removed = False
+            
+            if os.path.exists(sources_dir):
+                for ext in [".wav", ".mp3", ".ogg"]:
+                    path = os.path.join(sources_dir, f"{cry_name}{ext}")
+                    if os.path.exists(path):
+                        try:
+                            os.remove(path)
+                            removed = True
+                        except Exception as e:
+                            self.view.write_log(f"ERROR: Failed to delete audio source: {e}", "error")
+            
+            media_id = mod_data.get("sound_metadata", {}).get(cry_name, {}).get("media_id")
+            if media_id and os.path.exists(wem_dir):
+                wem_path = os.path.join(wem_dir, f"{media_id}.wem")
+                if os.path.exists(wem_path):
                     try:
-                        os.remove(path)
+                        os.remove(wem_path)
                         removed = True
                     except Exception as e:
-                        self.view.write_log(f"ERROR: Failed to delete audio source: {e}", "error")
-        
-        media_id = mod_data.get("sound_metadata", {}).get(cry_name, {}).get("media_id")
-        if media_id and os.path.exists(wem_dir):
-            wem_path = os.path.join(wem_dir, f"{media_id}.wem")
-            if os.path.exists(wem_path):
-                try:
-                    os.remove(wem_path)
-                    removed = True
-                except OSError: pass
-                
-        if removed:
-            self.view.write_log(f"REVERTED: Removed custom override for {mod_data['name']} ({cry_name})", "standard")
-            # Target the scan strictly to this specific mod
-            self.mc.refresh_mods(scan_disk=True, target_mod=mod_data["name"])
+                        self.view.write_log(f"ERROR: Failed to delete compiled WEM file: {e}", "error")
+                        
+            return removed
+
+        def executor():
+            removed = background_clear()
+            if removed:
+                self.view.write_log(f"REVERTED: Removed custom override for {mod_data['name']} ({cry_name})", "standard")
+                self.mc.refresh_mods(scan_disk=True, target_mod=mod_data["name"])
+
+        self.mc.view.run_in_thread(executor)

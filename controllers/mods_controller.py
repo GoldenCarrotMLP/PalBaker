@@ -9,7 +9,6 @@ from utils.builder.pipeline_runner import run_pipeline_async
 from utils.builder.log_analyzer import LogAnalyzer
 from utils.plugins.decompiler import run_decompile_pipeline
 
-# Import our dedicated concerns
 from controllers.audio_controller import AudioController
 from controllers.altermatic import AltermaticController
 
@@ -28,16 +27,13 @@ class ModsController:
         self.selected_badges: set[str] = set()
         self.selected_statuses: set[str] = set()
 
-        # Delegate custom sub-systems cleanly to children
         self.audio = AudioController(self)
         self.altermatic = AltermaticController(self)
 
-        # Load traits database
         from utils.altermatic_helper import load_traits_database
         self.traits_db = load_traits_database()
 
     def get_category_from_path(self, path: str) -> str:
-        """Parses a physical file path to resolve the true character category (e.g. Monster, Pending Monster)."""
         if not path:
             return "Monster"
         parts = path.replace("\\", "/").split("/")
@@ -66,18 +62,15 @@ class ModsController:
         self.apply_filters()
 
     def refresh_mods(self, scan_disk: bool = True, target_mod: str = None):
-        """Rescans the directory for mods. If target_mod is supplied, performs an instant micro-update."""
         self.show_mapped = bool(self.settings.get("show_mapped", False))
 
         if scan_disk:
-            # Skip global loading spinners during targeted micro-updates
             if not target_mod:
                 self.view.set_refresh_state(loading=True)
                 
             def worker():
                 try:
                     if target_mod and len(self.raw_mods) > 0:
-                        # Fetch the targeted file directly inside O(1) bypassing os.walk
                         updated_mods = get_mod_info(self.settings, target_mod)
                         if updated_mods:
                             updated_mod = updated_mods[0]
@@ -88,10 +81,8 @@ class ModsController:
                             else:
                                 self.raw_mods.append(updated_mod)
                                 
-                            # Evict just this one card from the visual cache so it rebuilds its nested objects natively
                             self.view.evict_cache(target_mod)
                     else:
-                        # Full clean global initialization
                         self.raw_mods = get_mod_info(self.settings)
                         self.view.clear_ui_cache()
                 except Exception as e:
@@ -137,10 +128,8 @@ class ModsController:
         self.audio.mc.apply_custom_icon(mod_data, src_path)
 
     async def run_async_task_threadsafe(self, func, *args):
-        """Helper used to safely await asynchronous background threads."""
         return await asyncio.to_thread(func, *args)
 
-    # --- Dispatcher mappings to keep View/Card interfaces stable ---
     def toggle_altermatic(self, mod_data: dict, is_active: bool):
         self.altermatic.toggle_altermatic(mod_data, is_active)
 
@@ -160,7 +149,6 @@ class ModsController:
         self.altermatic.save_altermatic_variant_callback(index, variant_data)
 
     def run_refresh_pipeline_callback(self, monster_name: str):
-        """Dispatches a background compile pipeline to headlessly refresh all active .blend layouts."""
         mod_data = next((m for m in self.raw_mods if m["name"] == monster_name), None)
         if mod_data:
             self.execute_pipeline(mod_data, "refresh_blend")
@@ -174,11 +162,67 @@ class ModsController:
     async def play_audio(self, mod_data: dict, cry_name: str):
         await self.audio.play_audio(mod_data, cry_name)
 
-    # --- PIPELINE ORCHESTRATORS ---
+    def build_pal_database(self):
+        """Asynchronously extracts, transforms, and rebuilds the local pal_names_map.json."""
+        self.is_building = True
+        self.view.set_refresh_state(loading=True)
+        self.view.write_log("\n>>> EXTRACTING AND BUILDING PAL NAMES DATABASE FROM GAME PAKS", "stage")
+
+        async def build_task():
+            from utils.extractor_helper import build_pal_names_map
+            success, msg = await asyncio.to_thread(build_pal_names_map, self.settings)
+            
+            if success:
+                self.view.write_log(f"SUCCESS: {msg}", "success")
+                import utils.names
+                utils.names._names_cache.clear()
+            else:
+                self.view.write_log(f"FAILED to build database: {msg}", "error")
+
+            self.is_building = False
+            self.view.set_refresh_state(loading=False)
+            self.refresh_mods(scan_disk=True)
+
+        self.view.run_async_task(build_task)
+
+    def execute_extraction_pipeline(self, mod_data: dict):
+        """Dispatches an asynchronous, non-blocking pipeline task to extract raw game visual assets."""
+        self.is_building = True
+        self.active_mod_name = mod_data["name"]
+        self.refresh_mods(scan_disk=False)
+        self.view.write_log(f"\n>>> EXTRACTING MODEL & TEXTURES FOR: {mod_data['name']}", "stage")
+
+        async def extract_task():
+            import time
+            time.sleep(0.1) # Yield GIL so WebSocket UI can flush
+            from utils.extractor_helper import extract_pal_assets
+            
+            success, msg = await asyncio.to_thread(
+                extract_pal_assets,
+                self.settings,
+                mod_data["name"],
+                "Monster"  # Assumes standard monster class categories
+            )
+
+            if success:
+                self.view.write_log(f"SUCCESS: {msg}", "success")
+            else:
+                self.view.write_log(f"FAILED: {msg}", "error")
+
+            self.is_building = False
+            self.active_mod_name = ""
+            self.view.reset_card_state(mod_data["name"], success)
+            self.refresh_mods(scan_disk=False)
+            self.refresh_mods(scan_disk=True, target_mod=mod_data["name"])
+
+        self.view.run_async_task(extract_task)
+
     def handle_action(self, mod_data, action):
         if self.is_building: return
 
-        if action in ["push", "full"] and mod_data.get("ue_modified"):
+        if action == "extract_pal":
+            self.execute_extraction_pipeline(mod_data)
+        elif action in ["push", "full"] and mod_data.get("ue_modified"):
             self.view.prompt_overwrite_warning(mod_data, lambda: self.execute_pipeline(mod_data, action))
         elif action == "decompile":
             self.view.prompt_decompile_options(mod_data)
@@ -188,6 +232,7 @@ class ModsController:
             self.execute_pipeline(mod_data, action)
 
     def handle_cancel(self):
+        """Cross-platform safe termination mechanism preventing zombie processes."""
         if self.active_token and self.active_token.get("process"):
             self.view.write_log("\n[!] Force terminating the active pipeline...", "error")
             try:
@@ -195,7 +240,12 @@ class ModsController:
                 if os.name == 'nt':
                     subprocess.run(["taskkill", "/F", "/T", "/PID", str(proc.pid)], stdout=subprocess.DEVNULL, stderr=subprocess.DEVNULL)
                 else:
-                    proc.kill()
+                    import signal
+                    try:
+                        os.killpg(os.getpgid(proc.pid), signal.SIGKILL)
+                    except Exception as pg_err:
+                        print(f"Failed to kill process group: {pg_err}", flush=True)
+                        proc.kill()
             except Exception as e:
                 self.view.write_log(f"Error terminating process: {e}", "error")
 
@@ -208,7 +258,6 @@ class ModsController:
         async def decompile_task():
             fmodel_dir = mod_data["fmodel_path"]
             
-            # FIXED: Sanitized spaces for UE remote execution path handling
             category = self.get_category_from_path(fmodel_dir)
             category_sanitized = category.replace(" ", "_")
             ue_virtual_path = f"/Game/Pal/Model/Character/{category_sanitized}/{mod_data['name']}"
@@ -319,7 +368,6 @@ class ModsController:
             f_path = mod_data.get("fmodel_path") or mod_data.get("fmodel_altermatic_path") or mod_data.get("ue_path")
             category = self.get_category_from_path(f_path)
 
-            # FIXED: Sanitized spaces for UE remote execution path handling
             category_sanitized = category.replace(" ", "_")
             ue_virtual_path = f"/Game/Pal/Model/Character/{category_sanitized}/{mod_data['name']}"
             python_cmd = f'import unreal; unreal.EditorUtilityLibrary.sync_browser_to_folders(["{ue_virtual_path}"])'
@@ -345,20 +393,3 @@ class ModsController:
             self.refresh_mods(scan_disk=False)
             
         self.view.run_async_task(browse_task)
-
-
-def get_blend_files_for_context(category: str, character_id: str) -> list[str]:
-    """Scans the local staging workspace directory for .blend files dynamically."""
-    from utils.config import load_settings
-    settings = load_settings()
-    fmodel_root = settings.get("fmodel_output", "")
-    if not fmodel_root:
-        return []
-    
-    target_dir = os.path.join(fmodel_root, "Exports", "Pal", "Content", "Palbaker", "Model", "Character", category, character_id)
-    blend_files = []
-    if os.path.exists(target_dir):
-        for f in os.listdir(target_dir):
-            if f.endswith(".blend") and not f.startswith(f"{character_id}_Default"):
-                blend_files.append(f)
-    return blend_files

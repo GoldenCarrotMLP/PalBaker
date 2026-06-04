@@ -7,7 +7,8 @@ from components.mods.mod_card import ModItem
 from components.mods.dialogs import (
     create_overwrite_warning_dialog,
     create_decompile_options_dialog,
-    create_troubleshooting_advisor_dialog
+    create_troubleshooting_advisor_dialog,
+    create_build_database_dialog
 )
 from components.mods.altermatic_dialog import AltermaticEditDialog, AltermaticAddDialog, AltermaticDeleteDialog
 
@@ -22,9 +23,8 @@ class ModsView:
         self.log_view = ft.ListView(expand=True, spacing=2, auto_scroll=True)
         
         self.cached_components = {}
-        self.expanded_states = {}  # Tracks the open/closed state of dropdowns across rescans
+        self.expanded_states = {}  
 
-        # Non-visual file picker services
         self.icon_picker = ft.FilePicker()
         self.main_page.services.append(self.icon_picker)
         
@@ -104,7 +104,6 @@ class ModsView:
             ]
         )
 
-        # Instantiate Altermatic visual modal dialog components natively on layout initialization
         self.altermatic_edit_dialog = AltermaticEditDialog(
             self.main_page, 
             self.settings, 
@@ -229,6 +228,13 @@ class ModsView:
 
     def prompt_troubleshooting_advisor(self, summary):
         dlg = create_troubleshooting_advisor_dialog(summary, lambda e: self.pop_dialog())
+        self.show_dialog(dlg)
+
+    def prompt_build_database(self):
+        dlg = create_build_database_dialog(
+            lambda e: (self.pop_dialog(), self.controller.build_pal_database()),
+            lambda e: self.pop_dialog()
+        )
         self.show_dialog(dlg)
 
     def set_refresh_state(self, loading: bool):

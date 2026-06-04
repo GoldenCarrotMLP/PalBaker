@@ -4,7 +4,6 @@ import json
 import re
 import subprocess
 
-# Optimized Python command injected into headless Blender to extract material slots and shape keys
 BLENDER_EXTRACTOR_SCRIPT = (
     "import bpy, json; "
     "mesh_objs = [obj for obj in bpy.data.objects if obj.type == 'MESH']; "
@@ -15,22 +14,35 @@ BLENDER_EXTRACTOR_SCRIPT = (
 
 def get_virtual_path_for_file(absolute_path: str) -> str:
     """
-    Dumb relative-path calculator. Resolves any physical path starting under
-    Pal/Content/ to its corresponding Unreal virtual /Game/ path automatically.
+    Robust relative-path calculator. Traverses the directory tree structurally 
+    to prevent string-split collisions if a user names their root folder "Pal/Content".
     """
     clean_path = absolute_path.replace("\\", "/")
-    marker = "Pal/Content/"
-    if marker in clean_path:
-        relative_part = clean_path.split(marker, 1)[1]
+    parts = clean_path.split("/")
+    
+    target_idx = -1
+    # Look for the strict FModel structure: Exports -> Pal -> Content
+    for i in range(len(parts) - 2):
+        if parts[i].lower() == "exports" and parts[i+1].lower() == "pal" and parts[i+2].lower() == "content":
+            target_idx = i + 2
+            break
+            
+    # Fallback to standard Content detection
+    if target_idx == -1:
+        for i in range(len(parts) - 1, -1, -1):
+            if parts[i].lower() == "content":
+                target_idx = i
+                break
+
+    if target_idx != -1 and target_idx + 1 < len(parts):
+        relative_part = "/".join(parts[target_idx+1:])
         folder_part = "/".join(relative_part.split("/")[:-1]).replace(" ", "_")
         return f"/Game/{folder_part}"
+        
     return ""
 
 
 def get_blend_files_for_context(fmodel_altermatic_dir: str, fmodel_dir: str = "") -> list[str]:
-    """
-    Scans strictly the target mod's vanilla and altermatic directories for existing .blend files.
-    """
     blend_files = []
     if fmodel_dir and os.path.exists(fmodel_dir):
         for f in os.listdir(fmodel_dir):
@@ -46,10 +58,6 @@ def get_blend_files_for_context(fmodel_altermatic_dir: str, fmodel_dir: str = ""
 
 
 def get_available_materials_for_context(fmodel_root: str, fmodel_altermatic_dir: str, character_id: str, category: str = "Monster") -> list[str]:
-    """
-    Dynamically scans your workspace directories and parses all sidecars 
-    to discover every compiled material available inside your ModKit.
-    """
     materials = []
     paths_to_check = []
 
@@ -72,8 +80,10 @@ def get_available_materials_for_context(fmodel_root: str, fmodel_altermatic_dir:
                         for mat_name in mats.keys():
                             if mat_name and mat_name not in materials:
                                 materials.append(mat_name)
-                except Exception:
-                    pass
+                except json.JSONDecodeError as e:
+                    print(f"Warning: Corrupted sidecar JSON {sidecar_path}: {e}")
+                except Exception as e:
+                    print(f"Warning: Failed to read sidecar {sidecar_path}: {e}")
 
     if not materials:
         materials = [
@@ -113,8 +123,8 @@ def extract_blend_metadata(blender_path: str, blend_file_path: str) -> dict:
         match = re.search(r"ALTERMATIC_METADATA_START(.*?)ALTERMATIC_METADATA_END", result.stdout)
         if match:
             return json.loads(match.group(1))
-    except Exception:
-        pass
+    except Exception as e:
+        print(f"Error extracting metadata from Blender: {e}")
 
     return {"slots": [], "morphs": []}
 
@@ -165,8 +175,10 @@ def sync_sidecar_metadata(blender_path: str, blend_file_path: str) -> dict:
         try:
             with open(sidecar_path, "r", encoding="utf-8") as f:
                 existing_data = json.load(f)
-        except Exception:
-            pass
+        except json.JSONDecodeError as e:
+            print(f"ERROR: Sidecar JSON corrupted at {sidecar_path}: {e}")
+        except Exception as e:
+            print(f"Warning: Could not read {sidecar_path}: {e}")
 
     fresh_metadata = extract_blend_metadata(blender_path, blend_file_path)
     synced_data = delta_merge_sidecar(
@@ -178,8 +190,10 @@ def sync_sidecar_metadata(blender_path: str, blend_file_path: str) -> dict:
     try:
         with open(sidecar_path, "w", encoding="utf-8") as f:
             json.dump(synced_data, f, indent=4)
-    except Exception:
-        pass
+    except PermissionError as e:
+        print(f"ERROR: Permission denied writing sidecar. {e}")
+    except Exception as e:
+        print(f"ERROR: Failed to save sidecar {sidecar_path}: {e}")
 
     return synced_data
 
@@ -326,5 +340,6 @@ def load_traits_database() -> dict:
     try:
         with open(target_path, "r", encoding="utf-8") as f:
             return json.load(f)
-    except Exception:
+    except Exception as e:
+        print(f"Warning: Failed to load traits_db.json: {e}")
         return {}

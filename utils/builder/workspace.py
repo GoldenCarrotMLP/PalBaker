@@ -4,16 +4,29 @@ import json
 
 def get_virtual_path_for_file(absolute_path: str) -> str:
     """
-    Dumb relative-path calculator. Resolves any physical path starting under
-    Pal/Content/ to its corresponding Unreal virtual /Game/ path automatically.
+    Robust relative-path calculator. Traverses the directory tree structurally 
+    to prevent string-split collisions if a user names their root folder "Pal/Content".
     """
     clean_path = absolute_path.replace("\\", "/")
-    marker = "Pal/Content/"
-    if marker in clean_path:
-        relative_part = clean_path.split(marker, 1)[1]
-        # Sanitize spaces to underscores to match Unreal Engine's internal import rules
+    parts = clean_path.split("/")
+    
+    target_idx = -1
+    for i in range(len(parts) - 2):
+        if parts[i].lower() == "exports" and parts[i+1].lower() == "pal" and parts[i+2].lower() == "content":
+            target_idx = i + 2
+            break
+            
+    if target_idx == -1:
+        for i in range(len(parts) - 1, -1, -1):
+            if parts[i].lower() == "content":
+                target_idx = i
+                break
+
+    if target_idx != -1 and target_idx + 1 < len(parts):
+        relative_part = "/".join(parts[target_idx+1:])
         folder_part = "/".join(relative_part.split("/")[:-1]).replace(" ", "_")
         return f"/Game/{folder_part}"
+        
     return ""
 
 class ModWorkspace:
@@ -37,7 +50,7 @@ class ModWorkspace:
         self.ue_cmd_path = os.path.join(self.ue_root, "Engine", "Binaries", "Win64", "UnrealEditor-Cmd.exe") if self.ue_root else ""
         self.unrealpak_path = os.path.join(self.ue_root, "Engine", "Binaries", "Win64", "UnrealPak.exe") if self.ue_root else ""
 
-        # Staging Source Directories (Physical paths keep their spaces)
+        # Staging Source Directories
         self.fmodel_dir = os.path.join(self.fmodel_root, "Exports", "Pal", "Content", "Pal", "Model", "Character", category, monster_name) if self.fmodel_root else ""
         self.fmodel_altermatic_dir = os.path.join(self.fmodel_root, "Exports", "Pal", "Content", "Palbaker", "Model", "Character", category, monster_name) if self.fmodel_root else ""
         
@@ -67,7 +80,7 @@ class ModWorkspace:
         self.icon_fmodel_path = os.path.join(self.fmodel_root, "Exports", "Pal", "Content", "Pal", "Texture", "PalIcon", "Normal", f"T_{monster_name}_icon_normal.png") if self.fmodel_root else ""
         self.has_icon = os.path.exists(self.icon_fmodel_path) if self.icon_fmodel_path else False
 
-        # Dumb/Resolved Virtual Paths (FIXED: Sanitized spaces to underscores for Unreal)
+        # Dumb/Resolved Virtual Paths
         category_sanitized = category.replace(" ", "_")
         self.ue_virtual_path = f"/Game/Pal/Model/Character/{category_sanitized}/{monster_name}"
         self.ue_altermatic_virtual_path = f"/Game/Palbaker/Model/Character/{category_sanitized}/{monster_name}"

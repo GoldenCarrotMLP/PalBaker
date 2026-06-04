@@ -1,11 +1,11 @@
-# manager.py (Top Imports)
+# manager.py
 import flet as ft
 from utils.config import load_settings, save_settings
 from utils.autofill_helper import detect_unreal_engine, detect_palworld_exe, find_blender_versions
-from views.settings_view import SettingsView  # UPDATED: Import from views
-from views.mods_view import ModsView          # UPDATED: Import from views
+from views.settings_view import SettingsView  
+from views.mods_view import ModsView          
 from utils.builder.config_helper import restore_palbaker_backup
-import flet as ft
+import os
 
 def main(page: ft.Page):
     page.title = "Palworld Baker Mod Manager"
@@ -17,7 +17,7 @@ def main(page: ft.Page):
     # Load state
     settings = load_settings()
 
-    # FIX: Automatically restore any stranded backups immediately on UI launch
+    # Automatically restore any stranded backups immediately on UI launch
     uproject_path = settings.get("uproject")
     if isinstance(uproject_path, str):
         restore_palbaker_backup(uproject_path)
@@ -71,8 +71,6 @@ def main(page: ft.Page):
         save_settings(settings)
         settings_view.update_settings(settings)
 
-    # FIX: Automatically restore any stranded backups immediately on UI launch
-
     # Flet 0.85+ Tabs Architecture
     tab_bar = ft.TabBar(
         tabs=[
@@ -84,8 +82,8 @@ def main(page: ft.Page):
     tab_view = ft.TabBarView(
         expand=True,
         controls=[
-            mods_view.view,       # Mount the layout columns here
-            settings_view.view,   # Mount the layout columns here
+            mods_view.view,       
+            settings_view.view,   
         ]
     )
 
@@ -112,7 +110,7 @@ def main(page: ft.Page):
             print(f"User picked Blender path: '{selected}'")
             settings["blender"] = selected
             save_settings(settings)
-            settings_view.update_settings(settings) # Added this
+            settings_view.update_settings(settings) 
             dlg.open = False
             page.update()
             page.overlay.append(ft.SnackBar(ft.Text(f"Blender set to: {selected}")))
@@ -128,6 +126,11 @@ def main(page: ft.Page):
         page.show_dialog(dlg)
 
     mods_view.refresh_mods()
+
+    # Dynamic startup hook: Verify local Pal names database mapping file
+    map_path = os.path.join(os.path.dirname(__file__), "pal_names_map.json")
+    if not os.path.exists(map_path):
+        mods_view.prompt_build_database()
 
 if __name__ == "__main__":
     ft.run(main)

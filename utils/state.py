@@ -24,12 +24,10 @@ def get_max_source_mtime(directory):
     
     for root, dirs, files in os.walk(directory):
         # In-place modify dirs to prune/ignore hidden directories (starting with .)
-        # This keeps .palbaker_audio from being scanned as a mesh/texture modifier.
         dirs[:] = [d for d in dirs if not d.startswith('.')]
         
         for file in files:
             if file.endswith(source_extensions) and not file.startswith('.'):
-                # Ignore config and state files
                 if file in ["import_config.json", ".palbaker_state.json", "response.txt"]:
                     continue
                 file_path = os.path.join(root, file)
@@ -45,11 +43,14 @@ def save_push_state(fmodel_dir, ue_dir):
     source_mtime = get_max_source_mtime(fmodel_dir)
     state_file = os.path.join(fmodel_dir, ".palbaker_state.json")
     
-    with open(state_file, "w") as f:
-        json.dump({
-            "last_ue_mtime": ue_mtime,
-            "last_source_mtime": source_mtime
-        }, f)
+    try:
+        with open(state_file, "w") as f:
+            json.dump({
+                "last_ue_mtime": ue_mtime,
+                "last_source_mtime": source_mtime
+            }, f)
+    except Exception as e:
+        print(f"Warning: Failed to save push state to {state_file}: {e}")
 
 def is_ue_modified(fmodel_dir, ue_dir):
     """Returns a list of specific UE assets modified since the last Push."""
@@ -60,7 +61,6 @@ def is_ue_modified(fmodel_dir, ue_dir):
     current_ue_mtime = get_max_mtime(ue_dir, ".uasset")
     current_source_mtime = get_max_source_mtime(fmodel_dir)
     
-    # Initialize the state file on first run to prevent false positives
     if not os.path.exists(state_file):
         if current_ue_mtime > 0.0 or current_source_mtime > 0.0:
             save_push_state(fmodel_dir, ue_dir)
@@ -78,8 +78,12 @@ def is_ue_modified(fmodel_dir, ue_dir):
                 modified_files.append(os.path.basename(file))
                 
         return modified_files
-    except:
-        return ["<State file corrupted or missing>"]
+    except json.JSONDecodeError as e:
+        print(f"State file corrupted ({state_file}): {e}. Assuming un-modified.")
+        return []
+    except Exception as e:
+        print(f"Error reading state file ({state_file}): {e}")
+        return []
 
 def is_source_modified(fmodel_dir):
     """Returns True if FModel source files have changed since the last Push."""
@@ -97,5 +101,9 @@ def is_source_modified(fmodel_dir):
             
         current_source_mtime = get_max_source_mtime(fmodel_dir)
         return current_source_mtime > saved_mtime
-    except:
+    except json.JSONDecodeError as e:
+        print(f"State file corrupted ({state_file}): {e}. Assuming un-modified.")
+        return False
+    except Exception as e:
+        print(f"Error reading state file ({state_file}): {e}")
         return False

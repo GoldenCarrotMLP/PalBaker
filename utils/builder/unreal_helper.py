@@ -2,8 +2,6 @@ import sys
 import os
 import time
 
-# utils/builder/unreal_helper.py (Add to the end of the file)
-
 def run_remote_command(ue_root: str, project_name: str, cmd: str) -> tuple[bool, str]:
     """
     Establishes a remote execution connection with the running Unreal Editor 
@@ -19,9 +17,18 @@ def run_remote_command(ue_root: str, project_name: str, cmd: str) -> tuple[bool,
 
     remote_exec = remote_execution.RemoteExecution()
     remote_exec.start()
-    time.sleep(1.0)
     
-    node = next((n for n in remote_exec.remote_nodes if n.get('project_name', '').lower() == project_name.lower()), None)
+    # Non-blocking polling loop to connect to Unreal Node instantly
+    node = None
+    timeout = 10.0
+    elapsed = 0.0
+    while elapsed < timeout:
+        node = next((n for n in remote_exec.remote_nodes if n.get('project_name', '').lower() == project_name.lower()), None)
+        if node:
+            break
+        time.sleep(0.5)
+        elapsed += 0.5
+
     if not node:
         remote_exec.stop()
         return False, "Unreal Editor is not running. Please open your project first."
@@ -47,6 +54,7 @@ def run_remote_command(ue_root: str, project_name: str, cmd: str) -> tuple[bool,
         return success, result_msg
     else:
         return False, "No response received from Unreal remote execution."
+
 def focus_unreal_window(project_name: str):
     """
     Finds the active Unreal Editor window matching the target project name 
@@ -68,7 +76,6 @@ def focus_unreal_window(project_name: str):
                 buff = ctypes.create_unicode_buffer(length + 1)
                 user32.GetWindowTextW(hwnd, buff, length + 1)
                 title = buff.value
-                # Match both the specific project name and Unreal Editor signature
                 if "unreal editor" in title.lower() and project_name.lower() in title.lower():
                     hwnds.append(hwnd)
         return True
@@ -80,9 +87,7 @@ def focus_unreal_window(project_name: str):
         return
 
     for hwnd in hwnds:
-        # Restore window if minimized (SW_RESTORE = 9)
         user32.ShowWindow(hwnd, 9)
-        # Set foreground focus
         user32.SetForegroundWindow(hwnd)
         break
 
@@ -99,9 +104,18 @@ def run_remote_import(ue_root: str, project_name: str, fmodel_dir: str, ue_scrip
 
     remote_exec = remote_execution.RemoteExecution()
     remote_exec.start()
-    time.sleep(2.0)
     
-    node = next((n for n in remote_exec.remote_nodes if n.get('project_name', '').lower() == project_name.lower()), None)
+    # Non-blocking polling loop
+    node = None
+    timeout = 10.0
+    elapsed = 0.0
+    while elapsed < timeout:
+        node = next((n for n in remote_exec.remote_nodes if n.get('project_name', '').lower() == project_name.lower()), None)
+        if node:
+            break
+        time.sleep(0.5)
+        elapsed += 0.5
+
     if not node:
         remote_exec.stop()
         return False, "Unreal Editor is not running. Please open your project first."
