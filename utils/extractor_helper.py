@@ -82,6 +82,7 @@ def build_pal_names_map(settings: dict) -> tuple[bool, str]:
     """
     Extracts the latest English localization table from the game paks,
     translates the serialized structure, and builds the local pal_names_map.json.
+    Also extracts all vanilla Pal icons from the archives to dynamically populate the UI.
     """
     repo_root = os.path.dirname(os.path.dirname(os.path.abspath(__file__)))
     target_map_path = os.path.join(repo_root, "pal_names_map.json")
@@ -154,7 +155,34 @@ def build_pal_names_map(settings: dict) -> tuple[bool, str]:
             
         # Cleanup temp directory
         shutil.rmtree(temp_out, ignore_errors=True)
-        return True, "Pal Names Map built successfully."
+        
+        # --- EXTRACT ALL VANILLA PAL ICONS ---
+        fmodel_base = settings.get("fmodel_output", "")
+        if fmodel_base:
+            icon_relative_dir = "Pal/Content/Pal/Texture/PalIcon/Normal"
+            icon_export_root = os.path.join(fmodel_base, "Exports")
+            
+            print("[Extractor] Extracting game Pal Icons...", flush=True)
+            success_icons, msg_icons = extract_game_files(
+                settings,
+                [f"{icon_relative_dir}/*"],
+                icon_export_root,
+                format_type="auto"
+            )
+            if success_icons:
+                # Sanitize UE binary leftovers from the extracted icons folder
+                extracted_icon_dir = os.path.normpath(os.path.join(icon_export_root, icon_relative_dir))
+                if os.path.exists(extracted_icon_dir):
+                    redundant_extensions = (".uasset", ".uexp", ".ubulk")
+                    for root, _, files in os.walk(extracted_icon_dir):
+                        for file in files:
+                            if file.lower().endswith(redundant_extensions):
+                                try: os.remove(os.path.join(root, file))
+                                except OSError: pass
+            else:
+                print(f"[Extractor] Warning: Failed to extract vanilla Pal Icons: {msg_icons}", flush=True)
+
+        return True, "Pal Names Map built and vanilla Pal Icons extracted successfully."
         
     except Exception as e:
         shutil.rmtree(temp_out, ignore_errors=True)

@@ -17,8 +17,9 @@ class SettingsView:
         # Link the Controller
         self.controller = SettingsController(self, settings, on_save_callback)
 
+        # RENAME label from "FModel Output Folder" to "Workspace Folder"
         self.fmodel_picker = PathPicker(
-            label="FModel Output Folder", 
+            label="Workspace Folder", 
             value=str(settings.get("fmodel_output", "")), 
             icon=ft.Icons.FOLDER_OPEN,
             on_browse_click=lambda e: self.main_page.run_task(self.controller.pick_directory, self.fmodel_picker, self.dir_picker)

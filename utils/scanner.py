@@ -173,13 +173,30 @@ def get_mod_info(settings: dict, target_mod: str = None):
                 }
                 altermatic_variants.insert(0, base_variant)
 
-        icon_path = ""
+        # --- SEPARATED CUSTOM VS VANILLA ICON CHECK ---
+        custom_icon_path = os.path.join(fmodel_path, f"T_{name}_icon_normal.png") if has_fmodel else ""
+        has_custom_icon = os.path.exists(custom_icon_path) if custom_icon_path else False
+
+        vanilla_icon_path = ""
         if fmodel_base:
-            icon_path = os.path.join(fmodel_base, "Exports", "Pal", "Content", "Pal", "Texture", "PalIcon", "Normal", f"T_{name}_icon_normal.png")
-            
-        has_icon = os.path.exists(icon_path) if icon_path else False
-        data["icon_path"] = icon_path
-        data["has_icon"] = has_icon
+            vanilla_icon_path = os.path.normpath(os.path.join(
+                fmodel_base, "Exports", "Pal", "Content", "Pal", "Texture", "PalIcon", "Normal", f"T_{name}_icon_normal.png"
+            ))
+        has_vanilla_icon = os.path.exists(vanilla_icon_path) if vanilla_icon_path else False
+
+        if has_custom_icon:
+            data["icon_path"] = custom_icon_path
+            data["has_icon"] = True
+            data["is_custom_icon"] = True
+        elif has_vanilla_icon:
+            data["icon_path"] = vanilla_icon_path
+            data["has_icon"] = True
+            data["is_custom_icon"] = False
+        else:
+            data["icon_path"] = ""
+            data["has_icon"] = False
+            data["is_custom_icon"] = False
+
         data["is_altermatic_active"] = is_altermatic_active
         data["altermatic_config_path"] = altermatic_config_path
         data["altermatic_variants"] = altermatic_variants

@@ -7,6 +7,7 @@ from components.altermatic.traits_section import TraitsSection
 from components.altermatic.materials_section import MaterialsSection
 from components.altermatic.morphs_section import MorphsSection
 
+# --- Version-Safe Dialog Handlers ---
 def show_dialog_safe(page: ft.Page, dialog: ft.AlertDialog):
     if getattr(dialog, "open", False):
         return
@@ -166,7 +167,9 @@ class AltermaticEditDialog:
         if not source: return
 
         fmodel_root = self.settings.get("fmodel_output", "")
-        if not fmodel_root: return
+        if not fmodel_root:
+            print("Altermatic Mod Builder: Workspace Folder is not configured in settings.", flush=True)
+            return
         
         if source == "base":
             blend_path = os.path.normpath(os.path.join(

@@ -77,7 +77,8 @@ class ModWorkspace:
         self.is_altermatic_active = is_altermatic_active
         self.base_type = base_type
 
-        self.icon_fmodel_path = os.path.join(self.fmodel_root, "Exports", "Pal", "Content", "Pal", "Texture", "PalIcon", "Normal", f"T_{monster_name}_icon_normal.png") if self.fmodel_root else ""
+        # FIXED: Look strictly inside the Pal's local directory for custom mod icons
+        self.icon_fmodel_path = os.path.normpath(os.path.join(self.fmodel_dir, f"T_{monster_name}_icon_normal.png")) if self.fmodel_dir else ""
         self.has_icon = os.path.exists(self.icon_fmodel_path) if self.icon_fmodel_path else False
 
         # Dumb/Resolved Virtual Paths

@@ -23,7 +23,7 @@ class ModsController:
         
         self.raw_mods: list[dict] = []
         self.search_query = ""
-        self.show_mapped = False
+        self.show_unextracted = False  # Proposal C Toggle State
         self.selected_badges: set[str] = set()
         self.selected_statuses: set[str] = set()
 
@@ -45,6 +45,11 @@ class ModsController:
 
     def update_search(self, query: str):
         self.search_query = query
+        self.apply_filters()
+
+    def toggle_unextracted(self, value: bool):
+        """Toggles the dynamic filter representing Proposal C."""
+        self.show_unextracted = value
         self.apply_filters()
 
     def update_badge_filter(self, badge: str, selected: bool):
@@ -99,11 +104,15 @@ class ModsController:
     def apply_filters(self):
         fmodel_dir = str(self.settings.get("fmodel_output", ""))
         if not fmodel_dir or not os.path.exists(fmodel_dir):
-            self.view.render_error("Set a valid FModel Output Folder in Settings.")
+            self.view.render_error("Set a valid Workspace Folder in Settings.")
             return
 
         filtered_mods = []
         for mod in self.raw_mods:
+            # PROPOSAL C: Filter out unextracted Pals unless explicitly toggled ON
+            if not self.show_unextracted and mod["pak_status"] == "Unextracted":
+                continue
+
             search_lower = self.search_query.lower()
             name_match = (search_lower in mod["name"].lower()) or (search_lower in mod["localized_name"].lower())
             if not name_match: continue
@@ -125,7 +134,17 @@ class ModsController:
             self.view.render_mods(filtered_mods, self.is_building, self.active_mod_name)
 
     def apply_custom_icon(self, mod_data: dict, src_path: str):
-        self.audio.mc.apply_custom_icon(mod_data, src_path)
+        """Copies the custom uploaded PNG icon file strictly inside the mod's local workspace folder."""
+        fmodel_path = mod_data.get("fmodel_path")
+        if fmodel_path:
+            target_path = os.path.normpath(os.path.join(fmodel_path, f"T_{mod_data['name']}_icon_normal.png"))
+            try:
+                os.makedirs(fmodel_path, exist_ok=True)
+                shutil.copy2(src_path, target_path)
+                self.view.write_log(f"SUCCESS: Set custom icon for {mod_data['name']}.", "success")
+                self.refresh_mods(scan_disk=True, target_mod=mod_data["name"])
+            except Exception as e:
+                self.view.write_log(f"ERROR: Failed to apply custom icon: {e}", "error")
 
     async def run_async_task_threadsafe(self, func, *args):
         return await asyncio.to_thread(func, *args)

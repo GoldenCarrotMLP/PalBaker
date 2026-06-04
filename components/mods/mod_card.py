@@ -15,7 +15,7 @@ def open_folder(path: str):
         if os.name == 'nt':
             os.startfile(path)
         elif sys.platform == 'darwin':
-            subprocess.Popen(['open', path])
+            subprocess.Popen(['open'], stdout=subprocess.DEVNULL, stderr=subprocess.DEVNULL)
         else:
             subprocess.Popen(['xdg-open', path])
 
@@ -90,7 +90,7 @@ class ModItem:
             elif text == "SOURCE":
                 tooltip_msg = "Blender (.blend) source file detected. Mod is actively being worked on."
             elif text == "UE ASSETS":
-                tooltip_msg = "Unreal Engine binaries (.uasset) found in the ModKit project."
+                tooltip_msg = "Warning: Files have been manually modified inside Unreal Engine since your last Push!"
             elif text == "MODIFIED":
                 tooltip_msg = "Warning: Files have been manually modified inside Unreal Engine since your last Push!"
             elif text == "SRC CHANGED":
@@ -138,9 +138,29 @@ class ModItem:
             ]
         )
 
+        # --- DYNAMIC AVATAR RESOLUTION ---
+        # Display the custom/extracted Pal icon directly on the main card list-view row.
+        # If none exist, gracefully fall back to a proportional folder container.
+        if mod_data.get("has_icon") and mod_data.get("icon_path"):
+            self.avatar = ft.Container(
+                content=ft.Image(src=mod_data["icon_path"], width=32, height=32, fit=ft.BoxFit.CONTAIN),
+                width=32,
+                height=32,
+                border_radius=6,
+                border=ft.Border.all(1, ft.Colors.WHITE10),
+                bgcolor=ft.Colors.WHITE10
+            )
+        else:
+            self.avatar = ft.Container(
+                content=ft.Icon(ft.Icons.FOLDER, color=ft.Colors.BLUE_200, size=20),
+                width=32,
+                height=32,
+                alignment=ft.Alignment.CENTER  # FIXED: Replaced lowercase alias with class-constant
+            )
+
         row_controls: list[ft.Control] = [
             self.chevron,
-            ft.Icon(ft.Icons.FOLDER, color=ft.Colors.BLUE_200),
+            self.avatar,  
             self.name_text,
             ft.Row(badge_controls, spacing=5),
             ft.Container(expand=True),

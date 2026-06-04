@@ -31,12 +31,18 @@ class ModsView:
         self.audio_picker = ft.FilePicker()
         self.main_page.services.append(self.audio_picker)
 
-        self.active_icon_mod_data = None
         self.search_bar = ft.TextField(
             label="Search by internal or actual name...",
             expand=True,
             on_change=lambda e: self.controller.update_search(self.search_bar.value),
             prefix_icon=ft.Icons.SEARCH
+        )
+        
+        # PROPOSAL C: Unextracted game catalog filtration switch
+        self.show_unextracted_switch = ft.Switch(
+            label="Show Unextracted Pals",
+            value=False,
+            on_change=lambda e: self.controller.toggle_unextracted(self.show_unextracted_switch.value)
         )
         
         self.badge_chips = ft.Row([
@@ -91,7 +97,7 @@ class ModsView:
         self.view = ft.Column(
             expand=True,
             controls=[
-                ft.Row([self.search_bar, self.refresh_spinner, self.refresh_button]),
+                ft.Row([self.search_bar, self.show_unextracted_switch, self.refresh_spinner, self.refresh_button]),
                 self.badge_chips,
                 self.status_chips,
                 self.mods_list_container,
@@ -104,6 +110,7 @@ class ModsView:
             ]
         )
 
+        # Instantiate Altermatic visual modal dialog components natively on layout initialization
         self.altermatic_edit_dialog = AltermaticEditDialog(
             self.main_page, 
             self.settings, 
