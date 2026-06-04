@@ -99,6 +99,11 @@ class GeneralSection:
             self.is_rare_checkbox.value = bool(variant_data.get("IsRarePal", False))
             self.skin_name_input.value = variant_data.get("SkinName", "")
 
+        # FIXED: Grey out the Blender tools if the canonical base is selected to prevent crashes
+        is_base_source = (self.skeleton_source_dropdown.value == "base")
+        self.open_blend_button.disabled = is_base_source
+        self.refresh_layout_button.disabled = is_base_source
+
     def get_values(self) -> dict:
         return {
             "label": self.label_input.value.strip() if self.label_input.value else "",

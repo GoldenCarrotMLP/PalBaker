@@ -144,7 +144,8 @@ class AudioController:
         else:
             self.view.write_log(msg, "error")
             
-        self.mc.refresh_mods(scan_disk=True)
+        # Target the scan strictly to this specific mod
+        self.mc.refresh_mods(scan_disk=True, target_mod=mod_data["name"])
 
     def play_wav_file(self, wav_path: str):
         if not os.path.exists(wav_path):
@@ -288,4 +289,5 @@ class AudioController:
                 
         if removed:
             self.view.write_log(f"REVERTED: Removed custom override for {mod_data['name']} ({cry_name})", "standard")
-            self.mc.refresh_mods(scan_disk=True)
+            # Target the scan strictly to this specific mod
+            self.mc.refresh_mods(scan_disk=True, target_mod=mod_data["name"])

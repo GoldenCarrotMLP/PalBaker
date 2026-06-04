@@ -5,12 +5,26 @@ from .state import is_ue_modified, is_source_modified
 from .names import get_localized_name
 from .audio_helper import get_pal_sound_metadata
 
-def scan_character_folders(base_path: str) -> dict:
+def scan_character_folders(base_path: str, target_folder: str = None) -> dict:
     """Recursively finds all leaf directories containing .blend, .uasset, .psk, or .json files."""
     discovered = {}
     if not base_path or not os.path.exists(base_path):
         return discovered
         
+    # OPTIMIZED TARGETED SCAN: 
+    # Bypasses the expensive recursive os.walk entirely if we are only refreshing one Mod.
+    if target_folder:
+        categories = ["Monster", "Pending Monster", "Player", "NPC", "Palmi", "Normal", "RaidMonster", "RaidBoss"]
+        for cat in categories:
+            test_path = os.path.join(base_path, cat, target_folder)
+            if os.path.exists(test_path):
+                has_assets = any(f.endswith(('.blend', '.uasset', '.json', '.fbx', '.psk', '.png')) for f in os.listdir(test_path))
+                if has_assets:
+                    discovered[target_folder] = os.path.abspath(test_path)
+                    return discovered
+        return discovered # Exit early if not found
+        
+    # FULL SCAN (Runs on app launch or manual refresh click)
     for root, dirs, files in os.walk(base_path):
         # Prune hidden directories and strictly ignore auxiliary structural branches
         # so we don't accidentally map a 'Skeleton' or 'PalActorBP' leaf folder instead of the main one.
@@ -35,7 +49,7 @@ def scan_character_folders(base_path: str) -> dict:
                     
     return discovered
 
-def get_mod_info(settings: dict):
+def get_mod_info(settings: dict, target_mod: str = None):
     fmodel_base = settings.get("fmodel_output", "")
     uproject = settings.get("uproject", "")
     palworld_exe = settings.get("palworld_exe", "")
@@ -47,9 +61,9 @@ def get_mod_info(settings: dict):
     fmodel_monsters = os.path.join(fmodel_base, "Exports", "Pal", "Content", "Pal", "Model", "Character") if fmodel_base else ""
     fmodel_altermatic = os.path.join(fmodel_base, "Exports", "Pal", "Content", "Palbaker", "Model", "Character") if fmodel_base else ""
 
-    discovered_fmodel = scan_character_folders(fmodel_monsters)
-    discovered_altermatic = scan_character_folders(fmodel_altermatic)
-    discovered_ue = scan_character_folders(ue_base)
+    discovered_fmodel = scan_character_folders(fmodel_monsters, target_mod)
+    discovered_altermatic = scan_character_folders(fmodel_altermatic, target_mod)
+    discovered_ue = scan_character_folders(ue_base, target_mod)
 
     monsters = {}
     all_names = set(list(discovered_fmodel.keys()) + list(discovered_altermatic.keys()) + list(discovered_ue.keys()))
