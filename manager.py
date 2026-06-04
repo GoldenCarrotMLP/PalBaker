@@ -4,6 +4,7 @@ from utils.config import load_settings, save_settings
 from utils.autofill_helper import detect_unreal_engine, detect_palworld_exe, find_blender_versions
 from views.settings_view import SettingsView  
 from views.mods_view import ModsView          
+from views.creator_view import CreatorView 
 from utils.builder.config_helper import restore_palbaker_backup
 import os
 
@@ -22,9 +23,19 @@ def main(page: ft.Page):
     if isinstance(uproject_path, str):
         restore_palbaker_backup(uproject_path)
 
-    # Mount decoupled UI controllers
+    # Mount decoupled UI views
     mods_view = ModsView(page, settings)
-    settings_view = SettingsView(page, settings, on_save_callback=mods_view.refresh_mods)
+    creator_view = CreatorView(page, settings) 
+    settings_view = SettingsView(
+        page, 
+        settings, 
+        on_save_callback=mods_view.refresh_mods,
+        on_rebuild_db_callback=mods_view.prompt_build_database # Linked manual trigger
+    )
+
+    # Proxy views to main page object for thread-safe cross-tab event logging
+    page.mods_view = mods_view
+    page.creator_view = creator_view
 
     # Autofill settings if empty
     changed = False
@@ -71,10 +82,11 @@ def main(page: ft.Page):
         save_settings(settings)
         settings_view.update_settings(settings)
 
-    # Flet 0.85+ Tabs Architecture
+    # Reconfigured Tab bar length to 3 to register the new Tab index
     tab_bar = ft.TabBar(
         tabs=[
             ft.Tab(label="Manager", icon=ft.Icons.WIDGETS),
+            ft.Tab(label="Pal Creator", icon=ft.Icons.CREATE),
             ft.Tab(label="Settings", icon=ft.Icons.SETTINGS),
         ]
     )
@@ -83,12 +95,13 @@ def main(page: ft.Page):
         expand=True,
         controls=[
             mods_view.view,       
+            creator_view.view, 
             settings_view.view,   
         ]
     )
 
     tabs_controller = ft.Tabs(
-        length=2,
+        length=3, 
         selected_index=0,
         expand=True,
         content=ft.Column(
@@ -125,11 +138,20 @@ def main(page: ft.Page):
         )
         page.show_dialog(dlg)
 
+    # Initial runs
     mods_view.refresh_mods()
+    creator_view.refresh_pals() 
 
-    # Dynamic startup hook: Verify local Pal names database mapping file
+    # --- UPGRADED CONSOLIDATED STARTUP VERIFICATION HOOK ---
+    # Scans for the absolute physical existence of all six mapping, database, and learnset caches.
     map_path = os.path.join(os.path.dirname(__file__), "pal_names_map.json")
-    if not os.path.exists(map_path):
+    skills_cache = os.path.join(os.path.dirname(__file__), "deps", "active_skills_cache.json")
+    passives_cache = os.path.join(os.path.dirname(__file__), "deps", "passive_skills_cache.json")
+    partner_cache = os.path.join(os.path.dirname(__file__), "deps", "partner_skills_cache.json")
+    params_cache = os.path.join(os.path.dirname(__file__), "deps", "monster_parameter_cache.json")
+    learnset_cache = os.path.join(os.path.dirname(__file__), "deps", "waza_master_level_cache.json")
+
+    if not all(os.path.exists(p) for p in [map_path, skills_cache, passives_cache, partner_cache, params_cache, learnset_cache]):
         mods_view.prompt_build_database()
 
 if __name__ == "__main__":

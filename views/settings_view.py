@@ -4,9 +4,10 @@ from components.common.path_picker import PathPicker
 from controllers.settings_controller import SettingsController
 
 class SettingsView:
-    def __init__(self, page: ft.Page, settings: dict, on_save_callback):
+    def __init__(self, page: ft.Page, settings: dict, on_save_callback, on_rebuild_db_callback):
         self.main_page = page
         self.settings = settings
+        self.on_rebuild_db_callback = on_rebuild_db_callback
         
         # FIXED: Initialize shared pickers once to prevent dynamic TimeoutExceptions
         self.dir_picker = ft.FilePicker()
@@ -80,6 +81,18 @@ class SettingsView:
             self.uninstall_btn
         ], wrap=True)
 
+        # --- PALSCHEMA INTEGRATION UI ---
+        # Added a clean native UI state section for PalSchema mod management
+        self.palschema_status_text = ft.Text("Checking PalSchema status...", size=14)
+        
+        self.install_palschema_btn = ft.ElevatedButton("Install PalSchema", on_click=lambda e: self.controller.manage_palschema("Install"))
+        self.uninstall_palschema_btn = ft.ElevatedButton("Uninstall PalSchema", on_click=lambda e: self.controller.manage_palschema("Uninstall"), style=ft.ButtonStyle(color=ft.Colors.RED))
+        
+        self.palschema_buttons_row = ft.Row([
+            self.install_palschema_btn,
+            self.uninstall_palschema_btn
+        ], wrap=True)
+
         self.view = ft.Column(
             scroll=ft.ScrollMode.AUTO,
             spacing=20,
@@ -95,15 +108,27 @@ class SettingsView:
                 self.ue4ss_status_text,
                 self.ue4ss_buttons_row,
                 ft.Divider(),
+                ft.Text("PalSchema Integration", size=20, weight=ft.FontWeight.BOLD),
+                self.palschema_status_text,
+                self.palschema_buttons_row,
+                ft.Divider(),
                 ft.Text("Preferences", size=20, weight=ft.FontWeight.BOLD),
                 self.show_mapped_switch,
                 ft.Divider(),
-                ft.ElevatedButton("Save and Reload Mod List", icon=ft.Icons.SAVE, on_click=self._on_save, height=50)
+                ft.Row([
+                    ft.ElevatedButton("Save and Reload Mod List", icon=ft.Icons.SAVE, on_click=self._on_save, height=50, expand=True),
+                    ft.ElevatedButton("Rebuild Game Database", icon=ft.Icons.STORAGE_ROUNDED, on_click=self._on_rebuild_db, height=50, style=ft.ButtonStyle(color=ft.Colors.CYAN_400))
+                ], spacing=10)
             ]
         )
         
         # Run standard startup scan
         self.controller.refresh_ue4ss_status()
+
+    def _on_rebuild_db(self, e):
+        """Dispatches the linked database rebuild warning trigger."""
+        if self.on_rebuild_db_callback:
+            self.on_rebuild_db_callback()
 
     def update_ue4ss_ui(self, status: dict):
         """Map contextual actions correctly and shift font colors based on hash validation."""
@@ -149,6 +174,36 @@ class SettingsView:
             
         self.ue4ss_status_text.value = text
         self.ue4ss_status_text.color = color
+        
+        try:
+            self.main_page.update()
+        except Exception:
+            pass
+
+    def update_palschema_ui(self, status: dict):
+        """Renders the visual state of PalSchema dynamically in real-time."""
+        s = status["status"]
+        color = ft.Colors.WHITE
+        
+        self.install_palschema_btn.disabled = False
+        self.uninstall_palschema_btn.disabled = False
+        
+        if s == "Installed":
+            text = "Status: Installed"
+            color = ft.Colors.GREEN_400
+            self.install_palschema_btn.disabled = True
+            self.uninstall_palschema_btn.visible = True
+        elif s == "Not Installed":
+            text = "Status: Not Installed"
+            color = ft.Colors.ORANGE_400
+            self.uninstall_palschema_btn.visible = False
+        else:
+            text = f"Status: {s}"
+            self.install_palschema_btn.disabled = True
+            self.uninstall_palschema_btn.disabled = True
+            
+        self.palschema_status_text.value = text
+        self.palschema_status_text.color = color
         
         try:
             self.main_page.update()

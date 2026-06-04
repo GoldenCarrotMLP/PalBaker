@@ -60,11 +60,23 @@ def get_mod_info(settings: dict, target_mod: str = None):
     # Merge physical folders and master database names
     all_names = set(list(discovered_fmodel.keys()) + list(discovered_altermatic.keys()) + list(discovered_ue.keys()))
     
+    # Scan for custom Pals created via the Creator tab
+    creator_dir = os.path.normpath(os.path.join(fmodel_base, "Exports", "Pal", "Content", "Palbaker", "Creator")) if fmodel_base else ""
+    custom_pals = []
+    if creator_dir and os.path.exists(creator_dir):
+        try:
+            custom_pals = [f.split("_creator.json")[0] for f in os.listdir(creator_dir) if f.endswith("_creator.json")]
+        except Exception:
+            pass
+
     if target_mod:
         if target_mod in names_map:
             all_names.add(target_mod)
+        if target_mod in custom_pals:
+            all_names.add(target_mod)
     else:
         all_names.update(names_map.keys())
+        all_names.update(custom_pals)
 
     monsters = {}
     for name in all_names:

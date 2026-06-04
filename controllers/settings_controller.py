@@ -1,6 +1,7 @@
 # controllers/settings_controller.py
 import flet as ft
 import threading
+import asyncio
 from utils.config import save_settings
 from utils.builder.config_helper import restore_palbaker_backup
 from utils.plugin_manager import (
@@ -26,7 +27,7 @@ class SettingsController:
 
     async def pick_file(self, target_picker_component, picker, allowed_extensions=None):
         """Asynchronously triggers file selection."""
-        result = await picker.pick_files(allow_multiple=False, allowed_extensions=allowed_extensions)
+        result = await picker.pick_files(allow_multiple=False, errors_allowed=False, allowed_extensions=allowed_extensions)
         if result and len(result) > 0 and result[0].path:
             target_picker_component.set_value(str(result[0].path))
             
@@ -34,13 +35,18 @@ class SettingsController:
                 self.refresh_ue4ss_status(str(result[0].path))
 
     def refresh_ue4ss_status(self, exe_path: str = None):
-        """Fetches the state from disk and forwards it to the UI view."""
+        """Fetches the loader and PalSchema states from disk and forwards them to the UI view."""
         if exe_path is None:
             exe_path = self.view.palworld_exe_picker.get_value()
             
         from utils.ue4ss_helper import get_ue4ss_status
-        status = get_ue4ss_status(exe_path)
-        self.view.update_ue4ss_ui(status)
+        status_ue4ss = get_ue4ss_status(exe_path)
+        self.view.update_ue4ss_ui(status_ue4ss)
+        
+        # Verify PalSchema status dynamically
+        from utils.palschema_helper import get_palschema_status
+        status_palschema = get_palschema_status(exe_path)
+        self.view.update_palschema_ui(status_palschema)
         
     def manage_ue4ss(self, action: str):
         """Offloads task to the async engine runner."""
@@ -58,7 +64,6 @@ class SettingsController:
         if branch == "Unknown" or branch == "None":
             branch = "Palworld-Experimental"
             
-        import asyncio
         if action == "Install Palworld":
             await asyncio.to_thread(download_and_extract_ue4ss, exe_path, "Palworld-Experimental", log_callback)
         elif action == "Install Latest":
@@ -66,8 +71,29 @@ class SettingsController:
         elif action == "Repair":
             await asyncio.to_thread(download_and_extract_ue4ss, exe_path, branch, log_callback)
         elif action == "Uninstall":
+            # Also uninstall PalSchema to prevent unreferenced mod directory locks
+            from utils.palschema_helper import uninstall_palschema
+            await asyncio.to_thread(uninstall_palschema, exe_path, lambda m, e: None)
             await asyncio.to_thread(uninstall_ue4ss, exe_path, log_callback)
             
+        self.refresh_ue4ss_status(exe_path)
+
+    def manage_palschema(self, action: str):
+        """Offloads PalSchema operations asynchronously to prevent UI thread lock."""
+        self.view.main_page.run_task(self._manage_palschema_async, action)
+
+    async def _manage_palschema_async(self, action: str):
+        exe_path = self.view.palworld_exe_picker.get_value()
+        from utils.palschema_helper import download_and_extract_palschema, uninstall_palschema
+
+        def log_callback(msg, is_error):
+            self.view.show_snackbar(msg, ft.Colors.RED_400 if is_error else ft.Colors.GREEN_400)
+
+        if action == "Install":
+            await asyncio.to_thread(download_and_extract_palschema, exe_path, log_callback)
+        elif action == "Uninstall":
+            await asyncio.to_thread(uninstall_palschema, exe_path, log_callback)
+
         self.refresh_ue4ss_status(exe_path)
 
     def save_clicked(self, current_paths: dict, show_mapped: bool):
