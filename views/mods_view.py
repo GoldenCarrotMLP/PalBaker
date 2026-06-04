@@ -20,7 +20,9 @@ class ModsView:
 
         self.mods_list = ft.ListView(expand=True, spacing=10)
         self.log_view = ft.ListView(expand=True, spacing=2, auto_scroll=True)
+        
         self.cached_components = {}
+        self.expanded_states = {}  # Tracks the open/closed state of dropdowns across rescans
 
         # Non-visual file picker services
         self.icon_picker = ft.FilePicker()
@@ -136,6 +138,12 @@ class ModsView:
         self.main_page.run_task(func, *args)
 
     def clear_ui_cache(self):
+        """Saves the current expanded states and clears the UI components cache."""
+        for name, item in self.cached_components.items():
+            if item.details_visible:
+                self.expanded_states[name] = True
+            else:
+                self.expanded_states.pop(name, None)
         self.cached_components.clear()
 
     def render_mods(self, mods_data: list[dict], global_building: bool, active_mod_name: str):
@@ -165,6 +173,13 @@ class ModsView:
                     is_building=global_building,
                     show_mapped=self.controller.show_mapped
                 )
+                
+                # Restore the expanded state if it was open before the cache was cleared
+                if self.expanded_states.get(name, False):
+                    item.details_visible = True
+                    item.details_container.visible = True
+                    item.chevron.icon = ft.Icons.KEYBOARD_ARROW_UP
+
                 item.set_state(global_building, is_active_target=(name == active_mod_name))
                 self.cached_components[name] = item
                 

@@ -29,7 +29,46 @@ class SettingsController:
         result = await picker.pick_files(allow_multiple=False, allowed_extensions=allowed_extensions)
         if result and len(result) > 0 and result[0].path:
             target_picker_component.set_value(str(result[0].path))
+            
+            if target_picker_component == self.view.palworld_exe_picker:
+                self.refresh_ue4ss_status(str(result[0].path))
 
+    def refresh_ue4ss_status(self, exe_path: str = None):
+        """Fetches the state from disk and forwards it to the UI view."""
+        if exe_path is None:
+            exe_path = self.view.palworld_exe_picker.get_value()
+            
+        from utils.ue4ss_helper import get_ue4ss_status
+        status = get_ue4ss_status(exe_path)
+        self.view.update_ue4ss_ui(status)
+        
+    def manage_ue4ss(self, action: str):
+        """Offloads task to the async engine runner."""
+        self.view.main_page.run_task(self._manage_ue4ss_async, action)
+        
+    async def _manage_ue4ss_async(self, action: str):
+        exe_path = self.view.palworld_exe_picker.get_value()
+        from utils.ue4ss_helper import download_and_extract_ue4ss, uninstall_ue4ss, get_ue4ss_status
+        
+        def log_callback(msg, is_error):
+            self.view.show_snackbar(msg, ft.Colors.RED_400 if is_error else ft.Colors.GREEN_400)
+            
+        status = get_ue4ss_status(exe_path)
+        branch = status.get("branch", "Palworld-Experimental")
+        if branch == "Unknown" or branch == "None":
+            branch = "Palworld-Experimental"
+            
+        import asyncio
+        if action == "Install Palworld":
+            await asyncio.to_thread(download_and_extract_ue4ss, exe_path, "Palworld-Experimental", log_callback)
+        elif action == "Install Latest":
+            await asyncio.to_thread(download_and_extract_ue4ss, exe_path, "Latest-Experimental", log_callback)
+        elif action == "Repair":
+            await asyncio.to_thread(download_and_extract_ue4ss, exe_path, branch, log_callback)
+        elif action == "Uninstall":
+            await asyncio.to_thread(uninstall_ue4ss, exe_path, log_callback)
+            
+        self.refresh_ue4ss_status(exe_path)
 
     def save_clicked(self, current_paths: dict, show_mapped: bool):
         self.settings.update(current_paths)
