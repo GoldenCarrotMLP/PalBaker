@@ -11,7 +11,7 @@ from utils.plugins.decompiler import run_decompile_pipeline
 
 # Import our dedicated concerns
 from controllers.audio_controller import AudioController
-from controllers.altermatic_controller import AltermaticController
+from controllers.altermatic import AltermaticController
 
 class ModsController:
     def __init__(self, view, settings: dict):
@@ -65,20 +65,42 @@ class ModsController:
             self.selected_statuses.discard(status)
         self.apply_filters()
 
-    def refresh_mods(self, scan_disk: bool = True):
+    def refresh_mods(self, scan_disk: bool = True, target_mod: str = None):
+        """Rescans the directory for mods. If target_mod is supplied, performs an instant micro-update."""
         self.show_mapped = bool(self.settings.get("show_mapped", False))
 
         if scan_disk:
-            self.view.set_refresh_state(loading=True)
+            # Skip global loading spinners during targeted micro-updates
+            if not target_mod:
+                self.view.set_refresh_state(loading=True)
+                
             def worker():
                 try:
-                    self.raw_mods = get_mod_info(self.settings)
-                    self.view.clear_ui_cache()
+                    if target_mod and len(self.raw_mods) > 0:
+                        # Fetch the targeted file directly inside O(1) bypassing os.walk
+                        updated_mods = get_mod_info(self.settings, target_mod)
+                        if updated_mods:
+                            updated_mod = updated_mods[0]
+                            for i, m in enumerate(self.raw_mods):
+                                if m["name"] == target_mod:
+                                    self.raw_mods[i] = updated_mod
+                                    break
+                            else:
+                                self.raw_mods.append(updated_mod)
+                                
+                            # Evict just this one card from the visual cache so it rebuilds its nested objects natively
+                            self.view.evict_cache(target_mod)
+                    else:
+                        # Full clean global initialization
+                        self.raw_mods = get_mod_info(self.settings)
+                        self.view.clear_ui_cache()
                 except Exception as e:
                     print(f"[PalBaker] Disk scan encountered an error: {e}", flush=True)
                 finally:
-                    self.view.set_refresh_state(loading=False)
+                    if not target_mod:
+                        self.view.set_refresh_state(loading=False)
                     self.apply_filters()
+                    
             self.view.run_in_thread(worker)
         else:
             self.apply_filters()
@@ -203,6 +225,7 @@ class ModsController:
                 overwrite=overwrite
             )
             
+            from utils.builder.log_analyzer import LogAnalyzer
             analyzer = LogAnalyzer()
             for line in msg.splitlines():
                 analyzed_text, category_log, is_error = analyzer.analyze_line(line)
@@ -227,7 +250,7 @@ class ModsController:
                 self.view.prompt_troubleshooting_advisor(summary)
                 
             self.refresh_mods(scan_disk=False)
-            self.refresh_mods(scan_disk=True)
+            self.refresh_mods(scan_disk=True, target_mod=mod_data["name"])
             
         self.view.run_async_task(decompile_task)
 
@@ -276,7 +299,7 @@ class ModsController:
                     self.view.prompt_troubleshooting_advisor(summary)
                     
                 self.refresh_mods(scan_disk=False)
-                self.refresh_mods(scan_disk=True)
+                self.refresh_mods(scan_disk=True, target_mod=mod_data["name"])
 
             f_path = mod_data.get("fmodel_path") or mod_data.get("fmodel_altermatic_path") or mod_data.get("ue_path")
             category = self.get_category_from_path(f_path)

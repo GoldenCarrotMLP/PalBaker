@@ -9,7 +9,7 @@ from components.mods.dialogs import (
     create_decompile_options_dialog,
     create_troubleshooting_advisor_dialog
 )
-from components.mods.altermatic_dialog import AltermaticDialog
+from components.mods.altermatic_dialog import AltermaticEditDialog, AltermaticAddDialog, AltermaticDeleteDialog
 
 class ModsView:
     def __init__(self, page: ft.Page, settings: dict):
@@ -104,8 +104,8 @@ class ModsView:
             ]
         )
 
-        # Instantiate Altermatic visual modal dialog cleanly using the traits database and dispatcher
-        self.altermatic_dialog = AltermaticDialog(
+        # Instantiate Altermatic visual modal dialog components natively on layout initialization
+        self.altermatic_edit_dialog = AltermaticEditDialog(
             self.main_page, 
             self.settings, 
             self.controller.traits_db, 
@@ -113,6 +113,8 @@ class ModsView:
             on_refresh_callback=self.controller.run_refresh_pipeline_callback,
             on_delete_callback=self.controller.delete_altermatic_variant_by_index
         )
+        self.altermatic_add_dialog = AltermaticAddDialog(self.main_page)
+        self.altermatic_delete_dialog = AltermaticDeleteDialog(self.main_page)
 
     def on_divider_drag(self, e: ft.DragUpdateEvent):
         delta = 0.0
@@ -138,13 +140,20 @@ class ModsView:
         self.main_page.run_task(func, *args)
 
     def clear_ui_cache(self):
-        """Saves the current expanded states and clears the UI components cache."""
         for name, item in self.cached_components.items():
             if item.details_visible:
                 self.expanded_states[name] = True
             else:
                 self.expanded_states.pop(name, None)
         self.cached_components.clear()
+
+    def evict_cache(self, mod_name: str):
+        if mod_name in self.cached_components:
+            item = self.cached_components.pop(mod_name)
+            if item.details_visible:
+                self.expanded_states[mod_name] = True
+            else:
+                self.expanded_states.pop(mod_name, None)
 
     def render_mods(self, mods_data: list[dict], global_building: bool, active_mod_name: str):
         self.mods_list.controls.clear()
@@ -165,7 +174,6 @@ class ModsView:
                     on_pick_audio=self.trigger_audio_picker,
                     on_play_audio=self.controller.play_audio,
                     on_clear_audio=self.controller.clear_audio,
-                    # Altermatic UI forward bindings
                     on_toggle_altermatic=self.controller.toggle_altermatic,
                     on_add_variant=self.controller.add_altermatic_variant,
                     on_edit_variant=self.controller.edit_altermatic_variant,
@@ -174,7 +182,6 @@ class ModsView:
                     show_mapped=self.controller.show_mapped
                 )
                 
-                # Restore the expanded state if it was open before the cache was cleared
                 if self.expanded_states.get(name, False):
                     item.details_visible = True
                     item.details_container.visible = True
@@ -253,8 +260,6 @@ class ModsView:
         self.mods_list.controls.append(ft.Text(message, color=ft.Colors.RED_400))
         self.force_update()
 
-    # FIXED: Reconstructed to provide version-safe dialog operations across Flet versions
-    # preventing UI locks and permanently disabled buttons.
     def show_dialog(self, dlg: ft.AlertDialog):
         if hasattr(self.main_page, "show_dialog"):
             self.main_page.show_dialog(dlg)
@@ -285,7 +290,6 @@ class ModsView:
             self.main_page.update()
 
     def show_snackbar(self, message: str, color):
-        """Displays a temporary colored popup alert at the bottom of the screen."""
         self.main_page.overlay.append(ft.SnackBar(ft.Text(message, color=color), open=True))
         self.main_page.update()
 
