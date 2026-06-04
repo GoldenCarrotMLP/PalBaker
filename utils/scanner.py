@@ -2,7 +2,7 @@
 import os
 import json
 from .state import is_ue_modified, is_source_modified
-from .names import get_localized_name
+from .names import get_localized_name, load_names_map
 from .audio_helper import get_pal_sound_metadata
 
 def scan_character_folders(base_path: str, target_folder: str = None) -> dict:
@@ -11,8 +11,6 @@ def scan_character_folders(base_path: str, target_folder: str = None) -> dict:
     if not base_path or not os.path.exists(base_path):
         return discovered
         
-    # OPTIMIZED TARGETED SCAN: 
-    # Bypasses the expensive recursive os.walk entirely if we are only refreshing one Mod.
     if target_folder:
         categories = ["Monster", "Pending Monster", "Player", "NPC", "Palmi", "Normal", "RaidMonster", "RaidBoss"]
         for cat in categories:
@@ -22,24 +20,14 @@ def scan_character_folders(base_path: str, target_folder: str = None) -> dict:
                 if has_assets:
                     discovered[target_folder] = os.path.abspath(test_path)
                     return discovered
-        return discovered # Exit early if not found
+        return discovered 
         
-    # FULL SCAN (Runs on app launch or manual refresh click)
     for root, dirs, files in os.walk(base_path):
-        # Prune hidden directories and strictly ignore auxiliary structural branches
-        # so we don't accidentally map a 'Skeleton' or 'PalActorBP' leaf folder instead of the main one.
         dirs[:] = [d for d in dirs if not d.startswith('.') and d not in ["Skeleton", "PalActorBP", "Animation"]]
-        
-        # Included .psk and .png to ensure FModel source folders are reliably detected
         has_assets = any(f.endswith(('.blend', '.uasset', '.json', '.fbx', '.psk', '.png')) for f in files)
         if has_assets:
             folder_name = os.path.basename(root)
-            # Guard against mapping structural parent folders
             if folder_name not in ["Character", "Monster", "NPC", "Player", "Palmi", "Normal", "WwiseAudio", "Media", "sources"]:
-                
-                # Collision Resolution:
-                # If multiple folders share the same name (e.g. somehow survived pruning),
-                # always prioritize the one containing the primary source files.
                 if folder_name in discovered:
                     has_primary_new = any(f.endswith(('.psk', '.blend', '.png')) for f in files)
                     if has_primary_new:
@@ -58,16 +46,27 @@ def get_mod_info(settings: dict, target_mod: str = None):
     if uproject and os.path.exists(uproject):
         ue_base = os.path.join(os.path.dirname(uproject), "Content", "Pal", "Model", "Character")
 
-    fmodel_monsters = os.path.join(fmodel_base, "Exports", "Pal", "Content", "Pal", "Model", "Character") if fmodel_base else ""
+    fmodel_monsters = os.path.join(fmodel_base, "Exports", "Pal", "Content", "Pal", "Model", "Character", "Monster") if fmodel_base else ""
     fmodel_altermatic = os.path.join(fmodel_base, "Exports", "Pal", "Content", "Palbaker", "Model", "Character") if fmodel_base else ""
 
-    discovered_fmodel = scan_character_folders(fmodel_monsters, target_mod)
+    # Physical scans
+    f_root_scan = os.path.join(fmodel_base, "Exports", "Pal", "Content", "Pal", "Model", "Character") if fmodel_base else ""
+    discovered_fmodel = scan_character_folders(f_root_scan, target_mod)
     discovered_altermatic = scan_character_folders(fmodel_altermatic, target_mod)
     discovered_ue = scan_character_folders(ue_base, target_mod)
 
-    monsters = {}
+    names_map = load_names_map()
+    
+    # Merge physical folders and master database names
     all_names = set(list(discovered_fmodel.keys()) + list(discovered_altermatic.keys()) + list(discovered_ue.keys()))
+    
+    if target_mod:
+        if target_mod in names_map:
+            all_names.add(target_mod)
+    else:
+        all_names.update(names_map.keys())
 
+    monsters = {}
     for name in all_names:
         monsters[name] = {
             "name": name,
@@ -77,7 +76,6 @@ def get_mod_info(settings: dict, target_mod: str = None):
         }
 
     results = []
-
     swap_json_dir = ""
     if palworld_exe and os.path.exists(palworld_exe):
         swap_json_dir = os.path.join(os.path.dirname(palworld_exe), "Pal", "Content", "Paks", "~Mods", "SwapJSON")
@@ -88,7 +86,13 @@ def get_mod_info(settings: dict, target_mod: str = None):
         fmodel_altermatic_path = data["fmodel_altermatic_path"]
         ue_path = data["ue_path"]
         
-        has_fmodel = bool(fmodel_path)
+        has_fmodel = bool(fmodel_path) and os.path.exists(fmodel_path)
+        
+        # Calculate predicted fmodel path if it does not exist on disk yet
+        if not has_fmodel:
+            fmodel_path = os.path.normpath(os.path.join(fmodel_monsters, name))
+            data["fmodel_path"] = fmodel_path
+            
         has_blend = has_fmodel and any(f.endswith(".blend") for f in os.listdir(fmodel_path))
         has_ue = bool(ue_path) and any(f.endswith(".uasset") for f in os.listdir(ue_path))
         
@@ -105,8 +109,6 @@ def get_mod_info(settings: dict, target_mod: str = None):
             is_altermatic_active = True
 
         altermatic_variants = []
-        
-        # Read the active state strictly from your manifest JSON
         manifest_name = f"{name}_altermatic.json"
         manifest_path = os.path.join(fmodel_altermatic_path if fmodel_altermatic_path else fmodel_path, manifest_name)
         
@@ -122,7 +124,7 @@ def get_mod_info(settings: dict, target_mod: str = None):
                             v["label"] = k
                             v["CharacterID"] = name
                             v["is_base"] = (k == "base")
-                            v["has_base_blend"] = has_blend  # Pass blend existence flag safely
+                            v["has_base_blend"] = has_blend
                             altermatic_variants.append(v)
                     elif isinstance(variants_data, list):
                         for v in variants_data:
@@ -134,7 +136,6 @@ def get_mod_info(settings: dict, target_mod: str = None):
                 pass
 
         if is_altermatic_active:
-            # Setup canonical base entry if the active list is empty
             if not altermatic_variants:
                 base_variant = {
                     "label": "base",
@@ -148,7 +149,7 @@ def get_mod_info(settings: dict, target_mod: str = None):
                     "MatReplace": [],
                     "MorphTarget": [],
                     "is_base": True,
-                    "base_type": "vanilla",  # Defaults to non-destructive vanilla base fallback
+                    "base_type": "vanilla",
                     "has_base_blend": has_blend
                 }
                 altermatic_variants.append(base_variant)
@@ -202,66 +203,72 @@ def get_mod_info(settings: dict, target_mod: str = None):
         data["sound_metadata"] = sound_meta
 
         # Badges state indicators
-        if has_fmodel and not has_blend:
-            badges.append(("RAW", "#333333"))
-        if has_blend:
-            badges.append(("SOURCE", "#2196F3"))
-        if has_ue:
-            badges.append(("UE ASSETS", "#FF9800"))
-        if is_altermatic_active:
-            badges.append(("ALTERMATIC", "#008080"))
+        if not has_fmodel:
+            badges.append(("UNEXTRACTED", "#E53935"))
+        else:
+            if not has_blend:
+                badges.append(("RAW", "#333333"))
+            if has_blend:
+                badges.append(("SOURCE", "#2196F3"))
+            if has_ue:
+                badges.append(("UE ASSETS", "#FF9800"))
+            if is_altermatic_active:
+                badges.append(("ALTERMATIC", "#008080"))
 
-        source_modified = is_source_modified(fmodel_path) if (has_fmodel and has_blend) else False
-        if source_modified:
-            badges.append(("SRC CHANGED", "#0D47A1"))
+            source_modified = is_source_modified(fmodel_path) if has_blend else False
+            if source_modified:
+                badges.append(("SRC CHANGED", "#0D47A1"))
 
-        ue_modified_files = is_ue_modified(fmodel_path, ue_path) if (has_fmodel and has_ue) else []
-        ue_modified = len(ue_modified_files) > 0
-        if ue_modified:
-            badges.append(("MODIFIED", "#D32F2F"))
+            ue_modified_files = is_ue_modified(fmodel_path, ue_path) if has_ue else []
+            ue_modified = len(ue_modified_files) > 0
+            if ue_modified:
+                badges.append(("MODIFIED", "#D32F2F"))
 
         # Persistent status checks
         pak_status = "Unpacked"
-        pak_path = ""
-        pak_err_path = ""
-        
-        if palworld_exe and os.path.exists(palworld_exe):
-            pak_path = os.path.join(os.path.dirname(palworld_exe), "Pal", "Content", "Paks", "palBaker", f"{name}_P.pak")
-            pak_err_path = os.path.join(os.path.dirname(palworld_exe), "Pal", "Content", "Paks", "palBaker", f"{name}_err_P.pak")
+        if not has_fmodel:
+            pak_status = "Unextracted"
+        else:
+            pak_path = ""
+            pak_err_path = ""
+            if palworld_exe and os.path.exists(palworld_exe):
+                pak_path = os.path.join(os.path.dirname(palworld_exe), "Pal", "Content", "Paks", "palBaker", f"{name}_P.pak")
+                pak_err_path = os.path.join(os.path.dirname(palworld_exe), "Pal", "Content", "Paks", "palBaker", f"{name}_err_P.pak")
+                
+            has_pak = os.path.exists(pak_path)
+            has_pak_err = os.path.exists(pak_err_path)
+            active_pak_path = pak_path if has_pak else (pak_err_path if has_pak_err else "")
             
-        has_pak = os.path.exists(pak_path)
-        has_pak_err = os.path.exists(pak_err_path)
-        active_pak_path = pak_path if has_pak else (pak_err_path if has_pak_err else "")
-        
-        if active_pak_path:
-            pak_mtime = os.path.getmtime(active_pak_path)
-            outdated = False
-            
-            if has_fmodel:
+            if active_pak_path:
+                pak_mtime = os.path.getmtime(active_pak_path)
+                outdated = False
+                
                 for root, dirs, files in os.walk(fmodel_path):
                     dirs[:] = [d for d in dirs if not d.startswith('.')]
                     for f in files:
                         if f.endswith(('.blend', '.fbx', '.png', '.json')) and os.path.getmtime(os.path.join(root, f)) > pak_mtime:
                             outdated = True
-            if has_ue and not outdated:
-                for root, _, files in os.walk(ue_path):
-                    for f in files:
-                        if f.endswith('.uasset') and os.path.getmtime(os.path.join(root, f)) > pak_mtime:
-                            outdated = True
-                            
-            if outdated:
-                pak_status = "Outdated"
-            elif has_pak_err:
-                pak_status = "Packed with Errors"
+                if has_ue and not outdated:
+                    for root, _, files in os.walk(ue_path):
+                        for f in files:
+                            if f.endswith('.uasset') and os.path.getmtime(os.path.join(root, f)) > pak_mtime:
+                                outdated = True
+                                
+                if outdated:
+                    pak_status = "Outdated"
+                elif has_pak_err:
+                    pak_status = "Packed with Errors"
+                else:
+                    pak_status = "Packed"
             else:
-                pak_status = "Packed"
+                active_pak_path = ""
 
         data["badges"] = badges
         data["pak_status"] = pak_status
-        data["pak_path"] = active_pak_path
-        data["ue_modified"] = ue_modified
-        data["ue_modified_files"] = ue_modified_files
-        data["source_modified"] = source_modified
+        data["pak_path"] = active_pak_path if has_fmodel else ""
+        data["ue_modified"] = ue_modified if has_fmodel else False
+        data["ue_modified_files"] = ue_modified_files if has_fmodel else []
+        data["source_modified"] = source_modified if has_fmodel else False
         data["has_fmodel"] = has_fmodel
         data["has_blend"] = has_blend
         data["has_ue"] = has_ue

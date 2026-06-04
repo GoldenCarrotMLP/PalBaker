@@ -38,7 +38,6 @@ def create_decompile_options_dialog(on_missing_only, on_overwrite_all, on_cancel
 def create_troubleshooting_advisor_dialog(summary: dict, on_dismiss) -> ft.AlertDialog:
     status = summary.get("status", "")
     
-    # Configure context-aware header properties
     title_text = "Troubleshooting Advisor"
     title_color = ft.Colors.CYAN_400
     
@@ -58,11 +57,9 @@ def create_troubleshooting_advisor_dialog(summary: dict, on_dismiss) -> ft.Alert
     else:
         cards = []
         for rule in matched_rules:
-            # Build list of violating files
             assets_str = ""
             assets = rule.get("assets", [])
             if assets:
-                # Limit displayed assets to top 5 to prevent UI scroll overflow
                 displayed_assets = assets[:5]
                 if len(assets) > 5:
                     displayed_assets.append(f"...and {len(assets) - 5} more files.")
@@ -73,7 +70,6 @@ def create_troubleshooting_advisor_dialog(summary: dict, on_dismiss) -> ft.Alert
                 ft.Text(rule["solution"], size=12, color=ft.Colors.WHITE70)
             ]
             
-            # If violating files were parsed, append them as a monospace code block
             if assets_str:
                 card_content.append(
                     ft.Text(assets_str, size=11, color=ft.Colors.RED_300, font_family="Consolas")
@@ -98,4 +94,22 @@ def create_troubleshooting_advisor_dialog(summary: dict, on_dismiss) -> ft.Alert
         title=ft.Text(title_text, color=title_color),
         content=content,
         actions=[ft.TextButton("Dismiss", on_click=on_dismiss)]
+    )
+
+def create_build_database_dialog(on_confirm, on_cancel) -> ft.AlertDialog:
+    return ft.AlertDialog(
+        open=True,
+        modal=True,
+        title=ft.Text("Pal Names Database Missing"),
+        content=ft.Column([
+            ft.Text("The local Pal database mapping (pal_names_map.json) is missing.\n\n"
+                    "PalBaker can dynamically extract the latest English localization files directly "
+                    "from your game files using cue4parse and rebuild the local database.\n\n"
+                    "Would you like to build the database now?"),
+            ft.Text("Note: This requires a valid Palworld.exe path configured in Settings.", size=11, color=ft.Colors.WHITE54)
+        ], tight=True, spacing=10),
+        actions=[
+            ft.TextButton("Cancel", on_click=on_cancel),
+            ft.TextButton("Build Database", on_click=on_confirm, style=ft.ButtonStyle(color=ft.Colors.CYAN_400)),
+        ]
     )

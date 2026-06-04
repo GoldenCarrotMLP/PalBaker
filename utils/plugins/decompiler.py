@@ -8,7 +8,6 @@ def run_decompile_pipeline(ue_root: str, uproject_path: str, monster_name: str, 
     """Orchestrates the decompile process: remote UE export -> headless blender .blend generation."""
     project_name = os.path.splitext(os.path.basename(uproject_path))[0]
     
-    # 1. Connect to Unreal remotely and execute ue_export.py
     sys.path.append(os.path.join(ue_root, "Engine", "Plugins", "Experimental", "PythonScriptPlugin", "Content", "Python"))
     try:
         import remote_execution  # type: ignore
@@ -17,9 +16,17 @@ def run_decompile_pipeline(ue_root: str, uproject_path: str, monster_name: str, 
 
     remote_exec = remote_execution.RemoteExecution()
     remote_exec.start()
-    time.sleep(2.0)
     
-    node = next((n for n in remote_exec.remote_nodes if n.get('project_name', '').lower() == project_name.lower()), None)
+    node = None
+    timeout = 10.0
+    elapsed = 0.0
+    while elapsed < timeout:
+        node = next((n for n in remote_exec.remote_nodes if n.get('project_name', '').lower() == project_name.lower()), None)
+        if node:
+            break
+        time.sleep(0.5)
+        elapsed += 0.5
+        
     if not node:
         remote_exec.stop()
         return False, "Unreal Editor is not running. Please open your project first."
@@ -28,7 +35,6 @@ def run_decompile_pipeline(ue_root: str, uproject_path: str, monster_name: str, 
     
     ue_export_script = os.path.abspath(os.path.join(os.path.dirname(os.path.dirname(os.path.dirname(__file__))), "ue_export.py")).replace("\\", "/")
     
-    # Inject variables to configure export
     cmd = (
         f'TARGET_FOLDER = r"{fmodel_dir}"; '
         f'UE_PATH = r"{ue_virtual_path}"; '
@@ -43,7 +49,6 @@ def run_decompile_pipeline(ue_root: str, uproject_path: str, monster_name: str, 
     if response is not None and not response.get('success'):
         return False, f"Export failed inside Unreal: {response.get('result')}"
 
-    # 2. Reconstruct Blender .blend file
     fbx_files = glob.glob(os.path.join(fmodel_dir, "*.fbx"))
     if not fbx_files:
         return False, "No FBX assets were exported by Unreal. Decompile aborted."
@@ -68,7 +73,6 @@ def run_decompile_pipeline(ue_root: str, uproject_path: str, monster_name: str, 
     ]
     
     try:
-        # FIXED: Capture stdout and stderr to parse internal Blender python exceptions
         result = subprocess.run(
             cmd_args, 
             capture_output=True, 
@@ -77,11 +81,9 @@ def run_decompile_pipeline(ue_root: str, uproject_path: str, monster_name: str, 
             errors='replace'
         )
         
-        # Verify if the .blend file was actually generated
         if os.path.exists(blend_file):
             return True, "Sources successfully reconstructed from compiled project assets!"
         else:
-            # Extract and return the traceback from Blender's stdout/stderr
             error_details = result.stdout + "\n" + result.stderr
             return False, f"Blender executed but failed to save .blend file. Internal traceback:\n{error_details}"
     except Exception as e:

@@ -77,12 +77,15 @@ class ModItem:
         self.chevron = ft.IconButton(
             icon=ft.Icons.KEYBOARD_ARROW_DOWN,
             on_click=self.toggle_details,
-            icon_size=20
+            icon_size=20,
+            disabled=not mod_data["has_fmodel"]  # Block details on unextracted Pals
         )
 
         badge_controls = []
         for text, color_hex in mod_data["badges"]:
-            if text == "RAW":
+            if text == "UNEXTRACTED":
+                tooltip_msg = "This Pal mesh and texture database resides purely inside your game archives. Click Extract to build its workspace folders."
+            elif text == "RAW":
                 tooltip_msg = "FModel files extracted, but no Blender (.blend) file has been created yet."
             elif text == "SOURCE":
                 tooltip_msg = "Blender (.blend) source file detected. Mod is actively being worked on."
@@ -111,7 +114,8 @@ class ModItem:
             "Packed": ft.Colors.GREEN_400,
             "Packed with Errors": ft.Colors.YELLOW_400,
             "Outdated": ft.Colors.ORANGE_400,
-            "Unpacked": ft.Colors.RED_400
+            "Unpacked": ft.Colors.RED_400,
+            "Unextracted": ft.Colors.RED_400
         }
         status_color = status_colors.get(mod_data["pak_status"], ft.Colors.RED_400)
 
@@ -200,16 +204,20 @@ class ModItem:
         ) # type: ignore
 
     def toggle_details(self, e):
+        if not self.mod_data["has_fmodel"]:
+            return
+            
         self.details_visible = not self.details_visible
         self.details_container.visible = self.details_visible
         self.chevron.icon = ft.Icons.KEYBOARD_ARROW_UP if self.details_visible else ft.Icons.KEYBOARD_ARROW_DOWN
         safe_update(self.view)
 
     def handle_button_click(self, e):
-        """Intelligently routes the button click based on current state."""
         if self.is_building:
             if self.on_cancel_click:
                 self.on_cancel_click()
+        elif self.primary_action == "extract_pal":
+            self.on_action_click(self.mod_data, "extract_pal")
         elif self.primary_action == "create_blend":
             self.on_action_click(self.mod_data, "create_blend")
         elif self.primary_action == "open_folder":
@@ -219,7 +227,11 @@ class ModItem:
 
     def update_primary_button_config(self):
         """Determines the standard text and action for the button based on badges."""
-        if self.mod_data["has_ue"]:
+        if self.mod_data["pak_status"] == "Unextracted":
+            self.primary_text = "Extract Pal"
+            self.primary_action = "extract_pal"
+            self.primary_icon = ft.Icons.DOWNLOAD_ROUNDED
+        elif self.mod_data["has_ue"]:
             if self.mod_data.get("source_modified", False):
                 self.primary_text = "Push & Cook & Pack"
                 self.primary_action = "full"

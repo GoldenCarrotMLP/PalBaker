@@ -20,8 +20,10 @@ class ManifestManager:
                     if isinstance(manifest_data.get("variants"), list):
                         old_list = manifest_data["variants"]
                         manifest_data["variants"] = {item.get("label", "base"): item for item in old_list}
-            except Exception:
-                pass
+            except json.JSONDecodeError as e:
+                self.c.view.write_log(f"ERROR: Manifest JSON corrupted ({os.path.basename(manifest_path)}): {e}. Initializing fresh state.", "error")
+            except Exception as e:
+                self.c.view.write_log(f"Warning: Failed to read manifest ({os.path.basename(manifest_path)}): {e}", "warning")
         return manifest_data
 
     def save_manifest(self, manifest_path: str, manifest_data: dict) -> bool:
