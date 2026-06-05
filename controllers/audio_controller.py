@@ -3,7 +3,7 @@ import os
 import sys
 import shutil
 import subprocess
-from utils.extractor_helper import extract_single_file
+from utils.extractor import extract_single_file
 
 class AudioController:
     def __init__(self, master_controller):
@@ -226,18 +226,13 @@ class AudioController:
         os.makedirs(audio_dir, exist_ok=True)
         temp_wav = os.path.join(audio_dir, ".temp_preview.wav")
 
-        # Extraction and playback offloaded to background thread
         def decode_worker():
             try:
-                # Dynamic check & delegate to the dedicated extractor helper
                 if not os.path.exists(wem_abs_path):
                     self.view.write_log(f"Original game .wem asset missing. Extracting dynamically from Paks...", "stage")
-                    
                     export_root = os.path.join(fmodel_root, "Exports")
                     
-                    # Call the clean, abstracted extraction helper
                     success = extract_single_file(self.settings, wem_rel, export_root)
-                    
                     if not success or not os.path.exists(wem_abs_path):
                         self.view.write_log(f"Extraction helper failed to extract {wem_rel}.", "error")
                         return
@@ -252,7 +247,6 @@ class AudioController:
 
                 cmd_decode = [vgmstream_cli, "-o", temp_wav, wem_abs_path]
                 creation_flags = subprocess.CREATE_NO_WINDOW if os.name == 'nt' else 0
-                
                 subprocess.run(cmd_decode, check=True, stdout=subprocess.DEVNULL, stderr=subprocess.DEVNULL, creationflags=creation_flags)
                 
                 if os.path.exists(temp_wav):

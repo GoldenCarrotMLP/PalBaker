@@ -18,7 +18,6 @@ def main(page: ft.Page):
     # Load state
     settings = load_settings()
 
-    # Automatically restore any stranded backups immediately on UI launch
     uproject_path = settings.get("uproject")
     if isinstance(uproject_path, str):
         restore_palbaker_backup(uproject_path)
@@ -30,10 +29,9 @@ def main(page: ft.Page):
         page, 
         settings, 
         on_save_callback=mods_view.refresh_mods,
-        on_rebuild_db_callback=mods_view.prompt_build_database # Linked manual trigger
+        on_rebuild_db_callback=mods_view.prompt_build_database
     )
 
-    # Proxy views to main page object for thread-safe cross-tab event logging
     page.mods_view = mods_view
     page.creator_view = creator_view
 
@@ -47,10 +45,6 @@ def main(page: ft.Page):
             print(f"Auto-detected Unreal Engine location as: '{detected_ue}'")
             settings["ue_root"] = detected_ue
             changed = True
-        else:
-            print("Could not auto-detect Unreal Engine location.")
-    else:
-        print(f"Unreal Engine location already defined as: '{settings.get('ue_root')}' - skipping autofill.")
     
     # Palworld
     if not settings.get("palworld_exe"):
@@ -59,30 +53,20 @@ def main(page: ft.Page):
             print(f"Auto-detected Palworld.exe location as: '{detected_pal}'")
             settings["palworld_exe"] = detected_pal
             changed = True
-        else:
-            print("Could not auto-detect Palworld.exe location.")
-    else:
-        print(f"Palworld.exe location already defined as: '{settings.get('palworld_exe')}' - skipping autofill.")
             
     # Blender Autofill
     blender_versions = find_blender_versions()
     blender_path = settings.get("blender")
     if blender_path and blender_path != "blender":
-        print(f"Blender location already defined as: '{blender_path}' - skipping autofill.")
+        pass
     elif len(blender_versions) == 1:
-        print(f"Auto-detected single Blender installation: '{blender_versions[0]}'")
         settings["blender"] = blender_versions[0]
         changed = True
-    elif len(blender_versions) > 1:
-        print(f"Auto-detected multiple Blender paths: {blender_versions}")
-    else:
-        print("Could not auto-detect any Blender installations.")
     
     if changed:
         save_settings(settings)
         settings_view.update_settings(settings)
 
-    # Reconfigured Tab bar length to 3 to register the new Tab index
     tab_bar = ft.TabBar(
         tabs=[
             ft.Tab(label="Manager", icon=ft.Icons.WIDGETS),
@@ -120,7 +104,6 @@ def main(page: ft.Page):
     if len(blender_versions) > 1 and (not blender_path or blender_path == "blender"):
         def on_blender_selected(e):
             selected = e.control.data
-            print(f"User picked Blender path: '{selected}'")
             settings["blender"] = selected
             save_settings(settings)
             settings_view.update_settings(settings) 
@@ -138,20 +121,21 @@ def main(page: ft.Page):
         )
         page.show_dialog(dlg)
 
-    # Initial runs
     mods_view.refresh_mods()
     creator_view.refresh_pals() 
 
     # --- UPGRADED CONSOLIDATED STARTUP VERIFICATION HOOK ---
-    # Scans for the absolute physical existence of all six mapping, database, and learnset caches.
+    # Tracks both wild spawner lookup caches on launch to trigger dynamic rebuilds.
     map_path = os.path.join(os.path.dirname(__file__), "pal_names_map.json")
     skills_cache = os.path.join(os.path.dirname(__file__), "deps", "active_skills_cache.json")
     passives_cache = os.path.join(os.path.dirname(__file__), "deps", "passive_skills_cache.json")
     partner_cache = os.path.join(os.path.dirname(__file__), "deps", "partner_skills_cache.json")
     params_cache = os.path.join(os.path.dirname(__file__), "deps", "monster_parameter_cache.json")
     learnset_cache = os.path.join(os.path.dirname(__file__), "deps", "waza_master_level_cache.json")
+    spawners_cache = os.path.join(os.path.dirname(__file__), "deps", "monster_spawners_cache.json")
+    default_map_cache = os.path.join(os.path.dirname(__file__), "deps", "monster_spawners_default_map.json")
 
-    if not all(os.path.exists(p) for p in [map_path, skills_cache, passives_cache, partner_cache, params_cache, learnset_cache]):
+    if not all(os.path.exists(p) for p in [map_path, skills_cache, passives_cache, partner_cache, params_cache, learnset_cache, spawners_cache, default_map_cache]):
         mods_view.prompt_build_database()
 
 if __name__ == "__main__":

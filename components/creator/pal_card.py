@@ -4,7 +4,7 @@ import os
 from .learnset_editor import LearnsetEditor
 
 class PalCreatorCard:
-    def __init__(self, page: ft.Page, pal_data: dict, settings: dict, active_skills: dict, passive_skills: dict, partner_skills: dict, coop_passives: dict, is_expanded: bool, on_toggle, on_save, on_delete, show_search_dialog_callback):
+    def __init__(self, page: ft.Page, pal_data: dict, settings: dict, active_skills: dict, passive_skills: dict, partner_skills: dict, coop_passives: dict, monster_spawners: dict, is_expanded: bool, on_toggle, on_save, on_delete, show_search_dialog_callback):
         self.page = page
         self.p = pal_data
         self.settings = settings
@@ -12,6 +12,7 @@ class PalCreatorCard:
         self.passive_skills = passive_skills
         self.partner_skills = partner_skills
         self.coop_passives = coop_passives
+        self.monster_spawners = monster_spawners
         self.is_expanded = is_expanded
         self.on_toggle = on_toggle
         self.on_save = on_save
@@ -185,6 +186,59 @@ class PalCreatorCard:
             bgcolor=ft.Colors.BLACK
         )
 
+        # --- OVERWORLD WILD SPAWNER PANEL ---
+        enable_spawns_checkbox = ft.Checkbox(
+            label="Enable Overworld Wild Spawning", 
+            value=p.get("EnableSpawns", True)
+        )
+        
+        # Dynamic Spawner Selector
+        selected_spawner = [p.get("SpawnLocationID", "1_1_plain_begginer")]
+        friendly_spawner = next((lbl for lbl, val in self.monster_spawners.items() if val == selected_spawner[0]), selected_spawner[0])
+        spawner_btn_text = ft.Text(f"Spawner Pool: {friendly_spawner}")
+        spawner_btn = ft.OutlinedButton(
+            content=spawner_btn_text,
+            expand=True,
+            on_click=lambda e: self.show_search_dialog(
+                "Select Spawner Location",
+                self.monster_spawners,
+                lambda val, lbl: (setattr(spawner_btn_text, "value", f"Spawner Pool: {lbl}"), selected_spawner.__setitem__(0, val), self.page.update())
+            )
+        )
+
+        spawn_min_lvl = ft.TextField(
+            label="Min Wild Level", 
+            value=str(p.get("SpawnMinLevel", 2)), 
+            expand=True
+        )
+        spawn_max_lvl = ft.TextField(
+            label="Max Wild Level", 
+            value=str(p.get("SpawnMaxLevel", 5)), 
+            expand=True
+        )
+        spawn_min_group = ft.TextField(
+            label="Min Group Size", 
+            value=str(p.get("SpawnMinGroup", 1)), 
+            expand=True
+        )
+        spawn_max_group = ft.TextField(
+            label="Max Group Size", 
+            value=str(p.get("SpawnMaxGroup", 3)), 
+            expand=True
+        )
+
+        spawner_panel = ft.Container(
+            content=ft.Column([
+                ft.Text("Overworld Wild Spawner Configurations", size=12, weight=ft.FontWeight.BOLD, color=ft.Colors.CYAN_400),
+                ft.Row([enable_spawns_checkbox, spawner_btn], spacing=10),
+                ft.Row([spawn_min_lvl, spawn_max_lvl, spawn_min_group, spawn_max_group], spacing=10)
+            ], spacing=10),
+            padding=10,
+            border=ft.Border.all(1, ft.Colors.WHITE10),
+            border_radius=6,
+            bgcolor=ft.Colors.BLACK
+        )
+
         # 5. Level-up Learnset Editor Sub-Component
         self.learnset_editor = LearnsetEditor(
             self.page,
@@ -229,7 +283,14 @@ class PalCreatorCard:
                 "PartnerSkill": selected_partner[0],
                 "Learnset": self.learnset_editor.get_values(),
                 "SaddleItem": saddle_input.value.strip() if saddle_input.value else "None",
-                "CoopPassives": selected_coop_passives if (selected_coop_passives and selected_coop_passives[0] != "None") else []
+                "CoopPassives": selected_coop_passives if (selected_coop_passives and selected_coop_passives[0] != "None") else [],
+                # Spawner Configuration Payload fields mapping
+                "EnableSpawns": enable_spawns_checkbox.value,
+                "SpawnLocationID": selected_spawner[0],
+                "SpawnMinLevel": int(spawn_min_lvl.value.strip() or "2"),
+                "SpawnMaxLevel": int(spawn_max_lvl.value.strip() or "5"),
+                "SpawnMinGroup": int(spawn_min_group.value.strip() or "1"),
+                "SpawnMaxGroup": int(spawn_max_group.value.strip() or "3")
             }
             self.on_save(self.pal_id, save_payload)
 
@@ -244,6 +305,7 @@ class PalCreatorCard:
             ft.Row([skills_btn, passives_btn, partner_btn], spacing=10),
             desc_input,
             coop_panel,
+            spawner_panel,
             self.learnset_editor.view,
             adv_btn,
             advanced_cols,
@@ -256,3 +318,9 @@ class PalCreatorCard:
         target_col.visible = not target_col.visible
         toggle_btn.icon = ft.Icons.KEYBOARD_ARROW_UP_ROUNDED if target_col.visible else ft.Icons.KEYBOARD_ARROW_DOWN_ROUNDED
         self.page.update()
+
+    def force_update(self):
+        try:
+            self.view.update()
+        except Exception:
+            pass

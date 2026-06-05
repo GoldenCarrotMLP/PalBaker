@@ -2,7 +2,7 @@
 import flet as ft
 import os
 
-from controllers.mods_controller import ModsController
+from controllers.mods import ModsController
 from components.mods.mod_card import ModItem
 from components.mods.dialogs import (
     create_overwrite_warning_dialog,
@@ -10,7 +10,7 @@ from components.mods.dialogs import (
     create_troubleshooting_advisor_dialog,
     create_build_database_dialog
 )
-from components.mods.altermatic_dialog import AltermaticEditDialog, AltermaticAddDialog, AltermaticDeleteDialog
+from components.altermatic.dialogs import AltermaticEditDialog, AltermaticAddDialog, AltermaticDeleteDialog
 
 class ModsView:
     def __init__(self, page: ft.Page, settings: dict):
@@ -38,7 +38,6 @@ class ModsView:
             prefix_icon=ft.Icons.SEARCH
         )
         
-        # PROPOSAL C: Unextracted game catalog filtration switch
         self.show_unextracted_switch = ft.Switch(
             label="Show Unextracted Pals",
             value=False,
@@ -67,7 +66,6 @@ class ModsView:
             tooltip="Rescan disk for mods",
             on_click=lambda e: self.controller.refresh_mods(scan_disk=True)
         )
-        self.refresh_button.disabled = False
         self.refresh_spinner = ft.ProgressRing(width=16, height=16, stroke_width=2, visible=False)
 
         self.console_height = int(settings.get("console_height", 200))
@@ -110,7 +108,6 @@ class ModsView:
             ]
         )
 
-        # Instantiate Altermatic visual modal dialog components natively on layout initialization
         self.altermatic_edit_dialog = AltermaticEditDialog(
             self.main_page, 
             self.settings, 
@@ -197,6 +194,11 @@ class ModsView:
                 self.cached_components[name] = item
                 
             self.mods_list.controls.append(item.view)
+            
+        try:
+            self.mods_list.update()
+        except Exception:
+            pass
         self.force_update()
 
     async def trigger_icon_picker(self, mod_data):
@@ -266,6 +268,10 @@ class ModsView:
     def render_empty(self):
         self.mods_list.controls.clear()
         self.mods_list.controls.append(ft.Text("No mods match active filters.", color=ft.Colors.YELLOW_400))
+        try:
+            self.mods_list.update()
+        except Exception:
+            pass
         self.force_update()
 
     def render_error(self, message: str):

@@ -1,7 +1,7 @@
 # views/creator_view.py
 import flet as ft
 import os
-from controllers.creator_controller import CreatorController
+from controllers.creator import CreatorController
 from components.creator.pal_card import PalCreatorCard
 from components.creator.add_dialog import AddPalDialog
 from components.creator.search_selector import SearchSelectorDialog
@@ -77,7 +77,8 @@ class CreatorView:
                 active_skills=self.controller.active_skills_cache,
                 passive_skills=self.controller.passive_skills_cache,
                 partner_skills=self.controller.partner_skills_cache,
-                coop_passives=self.controller.coop_passives_cache, # Passed the dedicated cache dictionary
+                coop_passives=self.controller.coop_passives_cache,
+                monster_spawners=self.controller.monster_spawners_cache, # Passed spawners directory
                 is_expanded=self.editing_states.get(p["CharacterID"], False),
                 on_toggle=self.toggle_card_editor,
                 on_save=self.handle_save_pal_confirm,

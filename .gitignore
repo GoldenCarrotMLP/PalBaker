@@ -52,3 +52,6 @@ deps/monster_parameter_cache.json
 deps/passive_skills_cache.json
 deps/waza_master_level_cache.json
 deps/partner_skills_cache.json
+deps/monster_spawners_cache.json
+deps/monster_spawners_default_map.json
+pal_names_map.json

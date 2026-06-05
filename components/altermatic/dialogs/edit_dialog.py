@@ -1,59 +1,13 @@
-# components/mods/altermatic_dialog.py
+# components/altermatic/dialogs/edit_dialog.py
 import flet as ft
 import os
 import subprocess
+import json
+from .utils import show_dialog_safe, close_dialog_safe
 from components.altermatic.general_section import GeneralSection
 from components.altermatic.traits_section import TraitsSection
 from components.altermatic.materials_section import MaterialsSection
 from components.altermatic.morphs_section import MorphsSection
-
-# --- Version-Safe Dialog Handlers ---
-def show_dialog_safe(page: ft.Page, dialog: ft.AlertDialog):
-    if getattr(dialog, "open", False):
-        return
-        
-    dialog.open = True
-    # Reset title color if it was made transparent by the closing hack
-    if hasattr(dialog, "title") and isinstance(dialog.title, ft.Text):
-        dialog.title.color = None
-        
-    try:
-        if hasattr(page, "show_dialog"):
-            page.show_dialog(dialog)
-        elif hasattr(page, "open"):
-            page.open(dialog)
-        else:
-            page.dialog = dialog
-            page.update()
-    except RuntimeError as e:
-        if "already opened" not in str(e).lower():
-            raise
-
-def close_dialog_safe(page: ft.Page, dialog: ft.AlertDialog):
-    dialog.open = False
-    
-    # THE HACK: Mutate a dummy visual property to guarantee Flet's diff engine triggers a redraw
-    if hasattr(dialog, "title") and isinstance(dialog.title, ft.Text):
-        dialog.title.color = ft.Colors.TRANSPARENT
-        
-    try:
-        dialog.update()
-    except Exception:
-        pass
-
-    try:
-        if hasattr(page, "close"):
-            page.close(dialog)
-        elif hasattr(page, "pop_dialog"):
-            page.pop_dialog()
-    except Exception:
-        pass
-        
-    try:
-        page.update()
-    except Exception:
-        pass
-
 
 class AltermaticEditDialog:
     def __init__(self, page: ft.Page, settings: dict, traits_db: dict, on_save_callback, on_refresh_callback, on_delete_callback):
@@ -114,7 +68,6 @@ class AltermaticEditDialog:
         self.is_base = variant_data.get("is_base", False)
         self.current_category = category  
         
-        # Reset visual states
         self.apply_btn.text = "Apply Changes"
         self.delete_btn.text = "Delete"
         self.apply_btn.disabled = False
@@ -128,7 +81,6 @@ class AltermaticEditDialog:
         self.morphs_section.populate(character_id, selected_source, variant_data.get("MorphTarget", []), self.is_base)
 
         self.delete_btn.visible = not self.is_base
-
         self.advanced_toggle_button.visible = not self.is_base
         self.advanced_options_column.visible = False
         self.advanced_toggle_button.icon = ft.Icons.KEYBOARD_ARROW_DOWN_ROUNDED
@@ -168,7 +120,6 @@ class AltermaticEditDialog:
 
         fmodel_root = self.settings.get("fmodel_output", "")
         if not fmodel_root:
-            print("Altermatic Mod Builder: Workspace Folder is not configured in settings.", flush=True)
             return
         
         if source == "base":
@@ -185,7 +136,7 @@ class AltermaticEditDialog:
         blender_exe = self.settings.get("blender")
         if os.path.exists(blend_path) and blender_exe and os.path.exists(blender_exe):
             try: subprocess.Popen([blender_exe, blend_path])
-            except Exception as err: print(f"Failed to launch Blender: {err}", flush=True)
+            except Exception: pass
 
     def handle_refresh_layout_click(self, e):
         close_dialog_safe(self.page, self.dialog)
@@ -208,7 +159,6 @@ class AltermaticEditDialog:
         if not general_values["label"] or not general_values["SkeletonSource"]:
             return
 
-        # UI Hack: Mutate state to force Flet diff redraw instantly
         self.apply_btn.disabled = True
         self.apply_btn.text = "Saving..."
         self.delete_btn.disabled = True
@@ -249,121 +199,5 @@ class AltermaticEditDialog:
             "is_base": self.is_base
         }
 
-        # Lock UI, close immediately, dispatch to background
         close_dialog_safe(self.page, self.dialog)
         self.on_save_callback(self.editing_index, variant_data)
-
-
-class AltermaticAddDialog:
-    def __init__(self, page: ft.Page):
-        self.page = page
-        self.on_confirm = None
-        
-        self.label_input = ft.TextField(label="New Variant Name/Label", hint_text="e.g., SFW_Bikini_T-Shirt")
-        self.custom_mesh_switch = ft.Switch(label="Create a custom .blend file for this variant?", value=True)
-        self.clone_source_dropdown = ft.Dropdown(label="Clone Skeleton Template From", value="base", visible=True)
-        
-        self.custom_mesh_switch.on_change = self.handle_switch_change
-        
-        self.cancel_btn = ft.TextButton("Cancel", on_click=self.close_dialog)
-        self.create_btn = ft.TextButton("Create", on_click=self.execute_create)
-        
-        self.dialog = ft.AlertDialog(
-            modal=True,
-            title=ft.Text("Add New Variant"),
-            actions=[self.cancel_btn, self.create_btn],
-            content=ft.Column([
-                self.label_input,
-                self.custom_mesh_switch,
-                self.clone_source_dropdown
-            ], tight=True, spacing=15)
-        )
-
-    def handle_switch_change(self, e):
-        self.clone_source_dropdown.visible = self.custom_mesh_switch.value
-        try: self.dialog.update()
-        except Exception: pass
-
-    def show(self, character_id: str, blend_files: list[str], on_confirm_callback):
-        self.on_confirm = on_confirm_callback
-        self.dialog.title = ft.Text(f"Add New {character_id} Variant")
-        
-        self.label_input.value = ""
-        self.custom_mesh_switch.value = True
-        self.clone_source_dropdown.visible = True
-        
-        dropdown_options = [ft.dropdown.Option("base", "base (Vanilla Canonical Mesh)")]
-        for f in blend_files:
-            clean_lbl = f
-            prefix = f"{character_id}_"
-            if clean_lbl.startswith(prefix):
-                clean_lbl = clean_lbl[len(prefix):]
-            dropdown_options.append(ft.dropdown.Option(f, f"Variant: {clean_lbl}"))
-            
-        self.clone_source_dropdown.options = dropdown_options
-        self.clone_source_dropdown.value = "base"
-        
-        self.create_btn.text = "Create"
-        self.create_btn.disabled = False
-        
-        show_dialog_safe(self.page, self.dialog)
-
-    def close_dialog(self, e=None):
-        close_dialog_safe(self.page, self.dialog)
-
-    def execute_create(self, e):
-        label_val = self.label_input.value.strip() if self.label_input.value else ""
-        if not label_val:
-            self.page.overlay.append(ft.SnackBar(ft.Text("Variant Label is required.", color=ft.Colors.RED_400), open=True))
-            self.page.update()
-            return
-            
-        # UI Hack: Mutate state to force Flet diff redraw instantly
-        self.create_btn.disabled = True
-        self.create_btn.text = "Creating..."
-        try: self.dialog.update()
-        except Exception: pass
-        
-        close_dialog_safe(self.page, self.dialog)
-        
-        if self.on_confirm:
-            self.on_confirm(label_val, self.custom_mesh_switch.value, self.clone_source_dropdown.value)
-
-
-class AltermaticDeleteDialog:
-    def __init__(self, page: ft.Page):
-        self.page = page
-        self.on_confirm = None
-        self.cancel_btn = ft.TextButton("Cancel", on_click=self.close_dialog)
-        self.delete_btn = ft.TextButton("Delete", on_click=self.execute_delete, style=ft.ButtonStyle(color=ft.Colors.RED))
-        
-        self.content_text = ft.Text("")
-        
-        self.dialog = ft.AlertDialog(
-            modal=True,
-            title=ft.Text("Confirm Deletion"),
-            content=self.content_text,
-            actions=[self.cancel_btn, self.delete_btn]
-        )
-
-    def show(self, message: str, on_confirm_callback):
-        self.on_confirm = on_confirm_callback
-        self.content_text.value = message
-        self.delete_btn.text = "Delete"
-        self.delete_btn.disabled = False
-        show_dialog_safe(self.page, self.dialog)
-
-    def close_dialog(self, e=None):
-        close_dialog_safe(self.page, self.dialog)
-
-    def execute_delete(self, e):
-        # UI Hack: Mutate state to force Flet diff redraw instantly
-        self.delete_btn.disabled = True
-        self.delete_btn.text = "Closing..."
-        try: self.dialog.update()
-        except Exception: pass
-        
-        close_dialog_safe(self.page, self.dialog)
-        
-        if self.on_confirm:
-            self.on_confirm()
