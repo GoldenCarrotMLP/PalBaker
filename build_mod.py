@@ -12,112 +12,10 @@ from utils.builder.blender_helper import run_headless_blender
 from utils.builder.unreal_helper import run_remote_import
 from utils.builder.cooker_helper import clean_cook_environment, resolve_packaging_manifest, run_and_stream, pack_cooked_assets
 from utils.state import save_push_state
+from utils.blueprint_patcher import patch_actor_blueprint
 
 if sys.platform == "win32" and hasattr(sys.stdout, "reconfigure"):
     getattr(sys.stdout, "reconfigure")(encoding='utf-8')
-
-def generate_cooked_actor_blueprint(settings: dict, pal_id: str, template_id: str, project_dir: str, project_name: str) -> bool:
-    """
-    Dynamically extracts, clones, and compiles the parent actor blueprint
-    directly into your project's Saved/Cooked directory before packaging.
-    Allows variable-length string modifications without binary corruption.
-    """
-    custom_folder_name = pal_id
-    custom_asset_name = f"BP_{pal_id}"
-    
-    # 1. Resolve UAssetGUI executable path
-    repo_root = os.path.dirname(os.path.abspath(__file__))
-    uasset_gui_exe = os.path.normpath(os.path.join(repo_root, "deps", "UAssetGUI.exe"))
-    
-    if not os.path.exists(uasset_gui_exe):
-        print(f"[Blueprint Patch] Error: UAssetGUI.exe not found at {uasset_gui_exe}", flush=True)
-        return False
-
-    # 2. Extract the original parent uasset and uexp
-    relative_uasset = f"Pal/Content/Pal/Blueprint/Character/Monster/PalActorBP/{template_id}/BP_{template_id}.uasset"
-    relative_uexp = f"Pal/Content/Pal/Blueprint/Character/Monster/PalActorBP/{template_id}/BP_{template_id}.uexp"
-    
-    from utils.extractor.core import extract_game_files
-    temp_dir = os.path.join(repo_root, "temp_bp_extract")
-    shutil.rmtree(temp_dir, ignore_errors=True)
-    os.makedirs(temp_dir, exist_ok=True)
-    
-    success, msg = extract_game_files(settings, [relative_uasset, relative_uexp], temp_dir, format_type="raw")
-    if not success:
-        print(f"[Blueprint Patch] Failed to extract parent blueprint for {template_id}: {msg}", flush=True)
-        return False
-        
-    src_uasset = os.path.join(temp_dir, f"Pal/Content/Pal/Blueprint/Character/Monster/PalActorBP/{template_id}/BP_{template_id}.uasset")
-    src_uexp = os.path.join(temp_dir, f"Pal/Content/Pal/Blueprint/Character/Monster/PalActorBP/{template_id}/BP_{template_id}.uexp")
-    
-    if not os.path.exists(src_uasset) or not os.path.exists(src_uexp):
-        print(f"[Blueprint Patch] Extracted blueprint files not found for {template_id}.", flush=True)
-        shutil.rmtree(temp_dir, ignore_errors=True)
-        return False
-
-    # 3. Export .uasset to temporary JSON using UAssetGUI CLI
-    temp_json_path = os.path.join(temp_dir, "temp_blueprint.json")
-    cmd_export = [uasset_gui_exe, "tojson", src_uasset, temp_json_path, "VER_UE5_1"]
-    
-    try:
-        creation_flags = subprocess.CREATE_NO_WINDOW if os.name == 'nt' else 0
-        subprocess.run(cmd_export, check=True, creationflags=creation_flags)
-    except Exception as e:
-        print(f"[Blueprint Patch] UAssetGUI failed to export JSON: {e}", flush=True)
-        shutil.rmtree(temp_dir, ignore_errors=True)
-        return False
-
-    # 4. Parse the JSON and perform variable-length string modifications
-    try:
-        with open(temp_json_path, "r", encoding="utf-8") as f:
-            json_str = f.read()
-
-        # Define replacements (no length matching required!)
-        replacements = {
-            # Package and class names
-            f"/Game/Pal/Blueprint/Character/Monster/PalActorBP/{template_id}/BP_{template_id}": f"/Game/Pal/Blueprint/Character/Monster/PalActorBP/{custom_folder_name}/{custom_asset_name}",
-            f"Pal/Content/Pal/Blueprint/Character/Monster/PalActorBP/{template_id}/BP_{template_id}": f"Pal/Content/Pal/Blueprint/Character/Monster/PalActorBP/{custom_folder_name}/{custom_asset_name}",
-            f"Default__BP_{template_id}_C": f"Default__{custom_asset_name}_C",
-            f"BP_{template_id}.BP_{template_id}_C": f"{custom_asset_name}.{custom_asset_name}_C",
-            
-            # Hardcoded Skeletal Mesh redirects (replaces WeaselDragon with your custom mesh path)
-            f"/Game/Pal/Model/Character/Monster/WeaselDragon/SK_WeaselDragon": f"/Game/Pal/Model/Character/Monster/{custom_folder_name}/SK_{custom_folder_name}",
-            f"Pal/Content/Pal/Model/Character/Monster/WeaselDragon/SK_WeaselDragon": f"Pal/Content/Pal/Model/Character/Monster/{custom_folder_name}/SK_{custom_folder_name}"
-        }
-
-        # Standard string replacements
-        for old, new in replacements.items():
-            json_str = json_str.replace(old, new)
-
-        # Smart regex-based replacement to change BP_{template_id}_C -> BP_{custom_id}_C, 
-        # while protecting any instances containing 'ABP_' from being modified
-        class_pattern = re.compile(rf"(?<!A)BP_{template_id}_C")
-        json_str = class_pattern.sub(f"{custom_asset_name}_C", json_str)
-
-        with open(temp_json_path, "w", encoding="utf-8") as f:
-            f.write(json_str)
-    except Exception as e:
-        print(f"[Blueprint Patch] Failed to patch blueprint JSON: {e}", flush=True)
-        shutil.rmtree(temp_dir, ignore_errors=True)
-        return False
-
-    # 5. Import the modified JSON back into cooked assets using UAssetGUI CLI
-    cooked_dir = os.path.join(project_dir, "Saved", "Cooked", "Windows", project_name, "Content", "Pal", "Blueprint", "Character", "Monster", "PalActorBP", custom_folder_name)
-    os.makedirs(cooked_dir, exist_ok=True)
-    
-    cooked_uasset = os.path.join(cooked_dir, f"{custom_asset_name}.uasset")
-    
-    cmd_import = [uasset_gui_exe, "fromjson", temp_json_path, cooked_uasset]
-    try:
-        subprocess.run(cmd_import, check=True, creationflags=creation_flags)
-    except Exception as e:
-        print(f"[Blueprint Patch] UAssetGUI failed to serialize assets: {e}", flush=True)
-        shutil.rmtree(temp_dir, ignore_errors=True)
-        return False
-
-    shutil.rmtree(temp_dir, ignore_errors=True)
-    print(f"[Blueprint Patch] Dynamically generated standalone cooked blueprint at: {cooked_uasset}", flush=True)
-    return True
 
 def main():
     if len(sys.argv) < 4:
@@ -352,16 +250,9 @@ def main():
     # PHASE 3: PACK (Package only)
     # -------------------------------------------------------------
     if ACTION in ["cook", "full", "pack_only"]:
-        # Auto-generate standalone custom Pal blueprints on the fly right before packaging! [6]
         if workspace.is_custom_pal:
             print(f"Custom Pal detected. Auto-generating patched standalone cooked blueprint...", flush=True)
-            generate_cooked_actor_blueprint(
-                settings, 
-                workspace.monster_name, 
-                workspace.template_id, 
-                workspace.project_dir, 
-                workspace.target_project_name
-            )
+            patch_actor_blueprint(settings, workspace.monster_name, workspace.template_id)
 
         final_pak_path = workspace.output_pak_clean
         print(f"Preparing Pak (Target: {os.path.basename(final_pak_path)})...", flush=True)

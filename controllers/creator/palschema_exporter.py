@@ -4,6 +4,7 @@ import json
 import shutil
 import subprocess
 import re
+from utils.blueprint_patcher import patch_actor_blueprint
 
 class PalSchemaExporter:
     def __init__(self, controller):
@@ -50,123 +51,16 @@ class PalSchemaExporter:
 
     def generate_custom_actor_blueprint(self, p: dict) -> bool:
         """
-        Dynamically extracts, clones, and compiles the parent actor blueprint
-        to create a standalone child blueprint using UAssetGUI CLI.
-        Allows variable-length string modifications without binary corruption.
+        Proxies standalone blueprint compilation cleanly to the centralized
+        shared patching engine and binds console logging to the Flet output window.
         """
         pal_id = p["CharacterID"]
-        template_id = p["TemplateID"]  # e.g., "WeaselDragon"
+        template_id = p["TemplateID"]
         
-        # Clean standalone folder and asset names (no more padding!)
-        custom_folder_name = pal_id
-        custom_asset_name = f"BP_{pal_id}"
-        
-        # 1. Resolve UAssetGUI executable path (pointing directly to deps/UAssetGUI.exe)
-        repo_root = os.path.dirname(os.path.dirname(os.path.dirname(os.path.abspath(__file__))))
-        uasset_gui_exe = os.path.normpath(os.path.join(repo_root, "deps", "UAssetGUI.exe"))
-        
-        if not os.path.exists(uasset_gui_exe):
-            self.c.view.write_log(f"Error: UAssetGUI.exe not found at {uasset_gui_exe}. Place it there to compile blueprints.", "error")
-            return False
+        def log_bridge(msg, category):
+            self.c.view.write_log(msg, category)
 
-        # 2. Extract the original parent uasset and uexp
-        relative_uasset = f"Pal/Content/Pal/Blueprint/Character/Monster/PalActorBP/{template_id}/BP_{template_id}.uasset"
-        relative_uexp = f"Pal/Content/Pal/Blueprint/Character/Monster/PalActorBP/{template_id}/BP_{template_id}.uexp"
-        
-        from utils.extractor.core import extract_game_files
-        temp_dir = os.path.join(repo_root, "temp_bp_extract")
-        shutil.rmtree(temp_dir, ignore_errors=True)
-        os.makedirs(temp_dir, exist_ok=True)
-        
-        success, msg = extract_game_files(self.c.settings, [relative_uasset, relative_uexp], temp_dir, format_type="raw")
-        if not success:
-            self.c.view.write_log(f"Failed to extract parent blueprint for {template_id}: {msg}", "error")
-            return False
-            
-        src_uasset = os.path.join(temp_dir, f"Pal/Content/Pal/Blueprint/Character/Monster/PalActorBP/{template_id}/BP_{template_id}.uasset")
-        src_uexp = os.path.join(temp_dir, f"Pal/Content/Pal/Blueprint/Character/Monster/PalActorBP/{template_id}/BP_{template_id}.uexp")
-        
-        if not os.path.exists(src_uasset) or not os.path.exists(src_uexp):
-            self.c.view.write_log(f"Extracted blueprint files not found for {template_id}.", "error")
-            shutil.rmtree(temp_dir, ignore_errors=True)
-            return False
-
-        # 3. Export .uasset to temporary JSON using UAssetGUI CLI
-        temp_json_path = os.path.join(temp_dir, "temp_blueprint.json")
-        cmd_export = [uasset_gui_exe, "tojson", src_uasset, temp_json_path, "VER_UE5_1"]
-        
-        try:
-            creation_flags = subprocess.CREATE_NO_WINDOW if os.name == 'nt' else 0
-            subprocess.run(cmd_export, check=True, creationflags=creation_flags)
-        except Exception as e:
-            self.c.view.write_log(f"UAssetGUI failed to export JSON: {e}", "error")
-            shutil.rmtree(temp_dir, ignore_errors=True)
-            return False
-
-        # 4. Parse the JSON and perform variable-length string modifications
-        try:
-            with open(temp_json_path, "r", encoding="utf-8") as f:
-                json_str = f.read()
-
-            # Define replacements (no length matching required!)
-            replacements = {
-                # Package and class names
-                f"/Game/Pal/Blueprint/Character/Monster/PalActorBP/{template_id}/BP_{template_id}": f"/Game/Pal/Blueprint/Character/Monster/PalActorBP/{custom_folder_name}/{custom_asset_name}",
-                f"Pal/Content/Pal/Blueprint/Character/Monster/PalActorBP/{template_id}/BP_{template_id}": f"Pal/Content/Pal/Blueprint/Character/Monster/PalActorBP/{custom_folder_name}/{custom_asset_name}",
-                f"Default__BP_{template_id}_C": f"Default__{custom_asset_name}_C",
-                f"BP_{template_id}.BP_{template_id}_C": f"{custom_asset_name}.{custom_asset_name}_C",
-                
-                # Hardcoded Skeletal Mesh redirects
-                f"/Game/Pal/Model/Character/Monster/WeaselDragon/SK_WeaselDragon": f"/Game/Pal/Model/Character/Monster/{custom_folder_name}/SK_{custom_folder_name}",
-                f"Pal/Content/Pal/Model/Character/Monster/WeaselDragon/SK_WeaselDragon": f"Pal/Content/Pal/Model/Character/Monster/{custom_folder_name}/SK_{custom_folder_name}"
-            }
-
-            # Standard string replacements
-            for old, new in replacements.items():
-                json_str = json_str.replace(old, new)
-
-            # Smart regex-based replacement to change BP_{template_id}_C -> BP_{custom_id}_C, 
-            # while protecting any instances containing 'ABP_' from being modified
-            class_pattern = re.compile(rf"(?<!A)BP_{template_id}_C")
-            json_str = class_pattern.sub(f"{custom_asset_name}_C", json_str)
-
-            with open(temp_json_path, "w", encoding="utf-8") as f:
-                f.write(json_str)
-        except Exception as e:
-            self.c.view.write_log(f"Failed to patch blueprint JSON: {e}", "error")
-            shutil.rmtree(temp_dir, ignore_errors=True)
-            return False
-
-        # 5. Import the modified JSON back into cooked assets using UAssetGUI CLI
-        project_dir = os.path.dirname(self.c.settings.get("uproject", ""))
-        project_name = os.path.splitext(os.path.basename(self.c.settings.get("uproject", "")))[0]
-        if not project_dir or not os.path.exists(project_dir):
-            self.c.view.write_log("Project directory not found in settings.", "error")
-            shutil.rmtree(temp_dir, ignore_errors=True)
-            return False
-            
-        # Self-healing: Delete uncooked folders
-        old_uncooked_dir = os.path.join(project_dir, "Content", "Pal", "Blueprint", "Character", "Monster", "PalActorBP", custom_folder_name)
-        if os.path.exists(old_uncooked_dir):
-            try: shutil.rmtree(old_uncooked_dir)
-            except Exception: pass
-
-        cooked_dir = os.path.join(project_dir, "Saved", "Cooked", "Windows", project_name, "Content", "Pal", "Blueprint", "Character", "Monster", "PalActorBP", custom_folder_name)
-        os.makedirs(cooked_dir, exist_ok=True)
-        
-        cooked_uasset = os.path.join(cooked_dir, f"{custom_asset_name}.uasset")
-        
-        cmd_import = [uasset_gui_exe, "fromjson", temp_json_path, cooked_uasset]
-        try:
-            subprocess.run(cmd_import, check=True, creationflags=creation_flags)
-        except Exception as e:
-            self.c.view.write_log(f"UAssetGUI failed to serialize assets: {e}", "error")
-            shutil.rmtree(temp_dir, ignore_errors=True)
-            return False
-
-        shutil.rmtree(temp_dir, ignore_errors=True)
-        self.c.view.write_log(f"Generated standalone pre-cooked blueprint class {custom_asset_name} in Cooked folder.", "success")
-        return True
+        return patch_actor_blueprint(self.c.settings, pal_id, template_id, log_callback=log_bridge)
 
     def export_to_palschema(self, p: dict):
         mods_dir = self.get_palschema_mods_dir()
@@ -182,7 +76,6 @@ class PalSchemaExporter:
         
         base_properties = self.c.templates_cache.get(template_id, {})
         
-        # Clean paths (no padding required anymore!)
         custom_folder_name = pal_id
         custom_asset_name = f"BP_{pal_id}"
         
@@ -191,9 +84,8 @@ class PalSchemaExporter:
         os.makedirs(pals_dir, exist_ok=True)
         
         new_monster_props = dict(base_properties)
-        new_monster_props["BPClass"] = f"MOD_{pal_id}"  # Map to custom key
+        new_monster_props["BPClass"] = f"MOD_{pal_id}"
         
-        # Resolve Tribe and EPalTribeID Enum depending on PaldexType choice
         if paldex_type == "Species":
             new_monster_props["Tribe"] = f"EPalTribeID::MOD_{pal_id}"
             
@@ -342,11 +234,10 @@ class PalSchemaExporter:
                 with open(os.path.join(raw_dir, "DT_PalCharacterIconDataTable.json"), "w", encoding="utf-8") as f_ic:
                     json.dump(icon_payload, f_ic, indent=4)
 
-        # 7. UICaptureCameraOffsetData Row (Fixes Paldeck and Details preview loading)
+        # 7. UICaptureCameraOffsetData Row
         raw_dir = os.path.join(mod_root, "raw")
         os.makedirs(raw_dir, exist_ok=True)
         
-        # We copy WeaselDragon's vanilla camera offsets so Furret displays perfectly aligned
         camera_payload = {
             "DT_PalUICaptureCameraOffsetData": {
                 f"MOD_{pal_id}": {
@@ -366,7 +257,6 @@ class PalSchemaExporter:
             }
         }
         
-        # We also generate it for the BOSS variant
         camera_payload["DT_PalUICaptureCameraOffsetData"][f"MOD_BOSS_{pal_id}"] = camera_payload["DT_PalUICaptureCameraOffsetData"][f"MOD_{pal_id}"]
         
         with open(os.path.join(raw_dir, "DT_PalUICaptureCameraOffsetData.json"), "w", encoding="utf-8") as f_cam:
