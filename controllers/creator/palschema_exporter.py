@@ -49,6 +49,19 @@ class PalSchemaExporter:
 
         return palschema_mods_dir if os.path.exists(palschema_mods_dir) else None
 
+    def delete_palschema_export(self, pal_id: str):
+        """Permanently deletes the exported PalSchema mod folder to prevent orphan directory clutter."""
+        mods_dir = self.get_palschema_mods_dir()
+        if mods_dir:
+            mod_name = f"PalBaker_Custom_{pal_id}"
+            mod_root = os.path.join(mods_dir, mod_name)
+            if os.path.exists(mod_root):
+                try:
+                    shutil.rmtree(mod_root)
+                    self.c.view.write_log(f"Successfully deleted PalSchema export directory: {mod_name}", "warning")
+                except Exception as e:
+                    self.c.view.write_log(f"Failed to delete PalSchema export: {e}", "error")
+
     def generate_custom_actor_blueprint(self, p: dict) -> bool:
         """
         Proxies standalone blueprint compilation cleanly to the centralized
@@ -85,6 +98,9 @@ class PalSchemaExporter:
         
         new_monster_props = dict(base_properties)
         new_monster_props["BPClass"] = f"MOD_{pal_id}"
+
+        # FIX 1: Enforce "IsPal" to true so custom species show in the Paldeck and light up habitat heatmaps
+        new_monster_props["IsPal"] = True
         
         if paldex_type == "Species":
             new_monster_props["Tribe"] = f"EPalTribeID::MOD_{pal_id}"
@@ -105,29 +121,29 @@ class PalSchemaExporter:
                 try: os.remove(enums_file)
                 except OSError: pass
 
-        new_monster_props["ElementType1"] = p["ElementType1"]
-        new_monster_props["ElementType2"] = p["ElementType2"]
-        new_monster_props["Hp"] = p["BaseHP"]
-        new_monster_props["MeleeAttack"] = p["BaseAtk"]
-        new_monster_props["Defense"] = p["BaseDef"]
-        new_monster_props["WorkSpeed"] = p["BaseWorkSpeed"]
-        new_monster_props["BaseSkills"] = p["BaseSkills"]
-        new_monster_props["PassiveSkills"] = p["PassiveSkills"]
-        new_monster_props["PartnerSkill"] = p["PartnerSkill"]
-        
-        new_monster_props["ZukanIndex"] = int(p.get("ZukanIndex", -1))
-        new_monster_props["ZukanIndexSuffix"] = str(p.get("ZukanIndexSuffix", ""))
-        
-        suitabilities = p.get("WorkSuitabilities", {})
-        for k, v in suitabilities.items():
-            new_monster_props[k] = v
+            new_monster_props["ElementType1"] = p["ElementType1"]
+            new_monster_props["ElementType2"] = p["ElementType2"]
+            new_monster_props["Hp"] = p["BaseHP"]
+            new_monster_props["MeleeAttack"] = p["BaseAtk"]
+            new_monster_props["Defense"] = p["BaseDef"]
+            new_monster_props["WorkSpeed"] = p["BaseWorkSpeed"]
+            new_monster_props["BaseSkills"] = p["BaseSkills"]
+            new_monster_props["PassiveSkills"] = p["PassiveSkills"]
+            new_monster_props["PartnerSkill"] = p["PartnerSkill"]
             
-        pals_payload = {
-            f"MOD_{pal_id}": new_monster_props
-        }
+            new_monster_props["ZukanIndex"] = int(p.get("ZukanIndex", -1))
+            new_monster_props["ZukanIndexSuffix"] = str(p.get("ZukanIndexSuffix", ""))
             
-        with open(os.path.join(pals_dir, f"{pal_id}.json"), "w", encoding="utf-8") as f:
-            json.dump(pals_payload, f, indent=4)
+            suitabilities = p.get("WorkSuitabilities", {})
+            for k, v in suitabilities.items():
+                new_monster_props[k] = v
+                
+            pals_payload = {
+                f"MOD_{pal_id}": new_monster_props
+            }
+                
+            with open(os.path.join(pals_dir, f"{pal_id}.json"), "w", encoding="utf-8") as f:
+                json.dump(pals_payload, f, indent=4)
 
         # 2. Translations
         trans_dir = os.path.join(mod_root, "translations", "en")
@@ -234,32 +250,80 @@ class PalSchemaExporter:
                 with open(os.path.join(raw_dir, "DT_PalCharacterIconDataTable.json"), "w", encoding="utf-8") as f_ic:
                     json.dump(icon_payload, f_ic, indent=4)
 
-        # 7. UICaptureCameraOffsetData Row
+        # 7. UICaptureCameraOffsetData Row (DYNAMIC OFFSET EXPORT)
         raw_dir = os.path.join(mod_root, "raw")
         os.makedirs(raw_dir, exist_ok=True)
         
+        # FIX 2: Dynamically query the cloned parent template's camera offset
+        parent_offset = self.c.camera_offsets_cache.get(template_id)
+        if parent_offset:
+            self.c.view.write_log(f"Dynamic Camera Offset resolved for {template_id} and cloned for {pal_id}.", "success")
+        else:
+            self.c.view.write_log(f"Warning: Camera offset for {template_id} not cached. Using standard fallback.", "warning")
+            parent_offset = {
+                "LocationOffset": { "X": 358.74005, "Y": 938.1497, "Z": 139.86491 },
+                "Rotator": { "Pitch": -0.51355, "Yaw": -110.36157, "Roll": 0.0 },
+                "PointLightOffset_1": { "X": -200.0, "Y": 100.0, "Z": 200.0 },
+                "PointLightIntensity_1": 10.0,
+                "PointLightSize_1": 1000.0,
+                "PointLightOffset_2": { "X": 200.0, "Y": 0.0, "Z": 100.0 },
+                "PointLightIntensity_2": 10.0,
+                "PointLightSize_2": 1000.0,
+                "RectLightOffset": { "X": 0.0, "Y": 300.0, "Z": 100.0 },
+                "RectLightRotator": { "Pitch": 0.0, "Yaw": -90.0, "Roll": 0.0 },
+                "RectLightIntensity": 450.0,
+                "RectLightSize": 1000.0
+            }
+
         camera_payload = {
             "DT_PalUICaptureCameraOffsetData": {
-                f"MOD_{pal_id}": {
-                    "LocationOffset": { "X": 358.74005, "Y": 938.1497, "Z": 139.86491 },
-                    "Rotator": { "Pitch": -0.51355, "Yaw": -110.36157, "Roll": 0.0 },
-                    "PointLightOffset_1": { "X": -200.0, "Y": 100.0, "Z": 200.0 },
-                    "PointLightIntensity_1": 10.0,
-                    "PointLightSize_1": 1000.0,
-                    "PointLightOffset_2": { "X": 200.0, "Y": 0.0, "Z": 100.0 },
-                    "PointLightIntensity_2": 10.0,
-                    "PointLightSize_2": 1000.0,
-                    "RectLightOffset": { "X": 0.0, "Y": 300.0, "Z": 100.0 },
-                    "RectLightRotator": { "Pitch": 0.0, "Yaw": -90.0, "Roll": 0.0 },
-                    "RectLightIntensity": 450.0,
-                    "RectLightSize": 1000.0
-                }
+                f"MOD_{pal_id}": parent_offset
             }
         }
-        
-        camera_payload["DT_PalUICaptureCameraOffsetData"][f"MOD_BOSS_{pal_id}"] = camera_payload["DT_PalUICaptureCameraOffsetData"][f"MOD_{pal_id}"]
+        camera_payload["DT_PalUICaptureCameraOffsetData"][f"MOD_BOSS_{pal_id}"] = parent_offset
         
         with open(os.path.join(raw_dir, "DT_PalUICaptureCameraOffsetData.json"), "w", encoding="utf-8") as f_cam:
             json.dump(camera_payload, f_cam, indent=4)
             
         self.c.view.write_log(f"Generated Paldeck UI Camera offsets for MOD_{pal_id}.", "success")
+
+        # 8. Overworld Spawning Export (HABITAT HEATMAP COMPILATION)
+        if p.get("EnableSpawns", True):
+            spawns_dir = os.path.join(mod_root, "spawns")
+            os.makedirs(spawns_dir, exist_ok=True)
+            
+            spawn_location = p.get("SpawnLocationID", "1_1_plain_begginer")
+            
+            # Note: SpawnerType is corrected to "Common" to bypass the EPalSpawnedCharacterType validation constraint.
+            spawns_payload = [
+                {
+                    "Type": "Sheet",
+                    "SpawnerName": spawn_location,
+                    "SpawnerType": "Common",
+                    "Location": { "X": 23300.0, "Y": -48800.0, "Z": 3000.0 },
+                    "Rotation": { "Pitch": 0.0, "Yaw": 0.0, "Roll": 0.0 },
+                    "SpawnGroupList": [
+                        {
+                            "Weight": 100,
+                            "PalList": [
+                                {
+                                    "PalId": f"MOD_{pal_id}",
+                                    "Level": int(p.get("SpawnMinLevel", 2)),
+                                    "Level_Max": int(p.get("SpawnMaxLevel", 5)),
+                                    "Num": int(p.get("SpawnMinGroup", 1)),
+                                    "Num_Max": int(p.get("SpawnMaxGroup", 3))
+                                }
+                            ]
+                        }
+                    ]
+                }
+            ]
+            
+            with open(os.path.join(spawns_dir, f"{pal_id}_spawns.json"), "w", encoding="utf-8") as f_spawn:
+                json.dump(spawns_payload, f_spawn, indent=4)
+            self.c.view.write_log(f"Generated overworld spawns for MOD_{pal_id} at spawner {spawn_location}.", "success")
+        else:
+            spawns_file = os.path.join(mod_root, "spawns", f"{pal_id}_spawns.json")
+            if os.path.exists(spawns_file):
+                try: os.remove(spawns_file)
+                except OSError: pass
