@@ -91,6 +91,7 @@ def build_pal_names_map(settings: dict) -> tuple[bool, str]:
     _build_partner_skills_cache(settings, repo_root, skill_names_lookup, partner_skill_to_pal_map)
     _build_waza_learnsets_cache(settings, repo_root)
     _build_wild_spawners_cache(settings, repo_root)
+    _build_camera_offsets_cache(settings, repo_root)
 
     return True, "Pal database metrics built and pre-cached successfully."
 
@@ -434,7 +435,6 @@ def _build_wild_spawners_cache(settings: dict, repo_root: str):
                         spawner_type = row_val.get("SpawnerType", "")
                         is_boss = "boss" in spawner_type.lower() or "predator" in spawner_type.lower()
                         
-                        # Extract mapped prominent Pals
                         for idx in range(1, 4):
                             pal_col = row_val.get(f"Pal_{idx}")
                             if pal_col and pal_col != "None":
@@ -442,7 +442,6 @@ def _build_wild_spawners_cache(settings: dict, repo_root: str):
                                 loc_name = get_localized_name(pal_col)
                                 spawner_groups[spawner_name].add(loc_name)
                                 
-                                # Setup default spawner mapping
                                 if pal_col not in default_spawners_map or (not is_boss and "dungeon" not in spawner_name.lower()):
                                     default_spawners_map[pal_col] = spawner_name
                                 
@@ -465,3 +464,37 @@ def _build_wild_spawners_cache(settings: dict, repo_root: str):
         shutil.rmtree(temp_spawners, ignore_errors=True)
     except Exception:
         pass
+
+def _build_camera_offsets_cache(settings: dict, repo_root: str):
+    """Extracts and parses UI capture camera offsets from the correct UI directory."""
+    try:
+        temp_camera = os.path.join(repo_root, "temp_camera_extract")
+        success, _ = extract_game_files(
+            settings, 
+            ["Pal/Content/Pal/DataTable/UI/DT_PalUICaptureCameraOffsetData.uasset"], 
+            temp_camera, 
+            format_type="json"
+        )
+        if success:
+            raw_camera_path = None
+            for root, dirs, files in os.walk(temp_camera):
+                for file in files:
+                    if file.lower() == "dt_paluicapturecameraoffsetdata.json":
+                        raw_camera_path = os.path.join(root, file)
+                        break
+                if raw_camera_path: break
+                
+            if raw_camera_path and os.path.exists(raw_camera_path):
+                with open(raw_camera_path, "r", encoding="utf-8-sig") as f:
+                    camera_raw_data = json.load(f)
+                rows_obj = None
+                for obj in (camera_raw_data if isinstance(camera_raw_data, list) else [camera_raw_data]):
+                    if obj.get("Type") == "DataTable" and "Rows" in obj:
+                        rows_obj = obj["Rows"]
+                        break
+                if rows_obj:
+                    with open(os.path.join(repo_root, "deps", "camera_offsets_cache.json"), "w", encoding="utf-8") as f_out:
+                        json.dump(rows_obj, f_out, indent=4)
+        shutil.rmtree(temp_camera, ignore_errors=True)
+    except Exception as e:
+        print(f"Warning: Failed to compile UICaptureCameraOffsetData cache: {e}", flush=True)

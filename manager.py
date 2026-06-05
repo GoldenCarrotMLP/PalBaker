@@ -134,8 +134,9 @@ def main(page: ft.Page):
     learnset_cache = os.path.join(os.path.dirname(__file__), "deps", "waza_master_level_cache.json")
     spawners_cache = os.path.join(os.path.dirname(__file__), "deps", "monster_spawners_cache.json")
     default_map_cache = os.path.join(os.path.dirname(__file__), "deps", "monster_spawners_default_map.json")
+    camera_offsets_cache = os.path.join(os.path.dirname(__file__), "deps", "camera_offsets_cache.json")
 
-    if not all(os.path.exists(p) for p in [map_path, skills_cache, passives_cache, partner_cache, params_cache, learnset_cache, spawners_cache, default_map_cache]):
+    if not all(os.path.exists(p) for p in [map_path, skills_cache, passives_cache, partner_cache, params_cache, learnset_cache, spawners_cache, default_map_cache, camera_offsets_cache]):
         mods_view.prompt_build_database()
 
 if __name__ == "__main__":

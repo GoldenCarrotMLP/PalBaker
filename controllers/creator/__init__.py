@@ -22,6 +22,7 @@ class CreatorController:
         self.monster_spawners_default_map = {}
         self.templates_cache = {}
         self.learnsets_cache = {}
+        self.camera_offsets_cache = {}
         
         # Load index caches on startup and dynamically update facade pointers
         self.load_index_caches()
@@ -53,6 +54,9 @@ class CreatorController:
         
         self.learnsets_cache.clear()
         self.learnsets_cache.update(self.cache.learnsets_cache)
+
+        self.camera_offsets_cache.clear()
+        self.camera_offsets_cache.update(self.cache.camera_offsets_cache)
         
     def get_creator_dir(self) -> str | None:
         return self.manager.get_creator_dir()
@@ -77,6 +81,10 @@ class CreatorController:
         
     def refresh_pals(self):
         self.manager.refresh_pals()
+
+    def delete_palschema_export(self, pal_id: str):
+        self.exporter.delete_palschema_export(pal_id)
+
     def refresh_actor_blueprint(self, pal_id: str):
         """Asynchronously extracts and patches the target Pal's parent blueprint."""
         pal_data = next((p for p in self.custom_pals if p["CharacterID"] == pal_id), None)

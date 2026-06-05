@@ -63,7 +63,7 @@ class PalManager:
             if "weaseldragon" in template_id.lower() or "amaterasuwolf" in template_id.lower():
                 predicted_coop_passives.append("GiveADragon_Ride")
 
-            # Predict overworld spawner location based on parent template ID [4]
+            # Predict overworld spawner location based on parent template ID
             predicted_spawner = self.c.monster_spawners_default_map.get(template_id, "1_1_plain_begginer")
 
             new_pal_data = {
@@ -96,7 +96,6 @@ class PalManager:
                 "PaldexType": "Species"  # Baseline classification default
             }
 
-
             target_file = os.path.join(creator_dir, f"{clean_id}_creator.json")
             try:
                 with open(target_file, "w", encoding="utf-8") as f:
@@ -109,7 +108,6 @@ class PalManager:
                 self.c.export_to_palschema(new_pal_data)
             except Exception as e:
                 self.c.view.write_log(f"Failed to save new Pal: {e}", "error")
-
 
             self.refresh_pals()
 
@@ -150,7 +148,8 @@ class PalManager:
             if os.path.exists(target_file):
                 try:
                     os.remove(target_file)
-                    self.c.view.write_log(f"Deleted custom Pal: {pal_id}", "warning")
+                    self.c.view.write_log(f"Deleted custom Pal config: {pal_id}", "warning")
+                    self.c.delete_palschema_export(pal_id)
                 except Exception as e:
                     self.c.view.write_log(f"Failed to delete Pal config: {e}", "error")
             self.refresh_pals()

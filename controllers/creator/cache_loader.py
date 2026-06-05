@@ -12,6 +12,7 @@ class CacheLoader:
         self.monster_spawners_default_map = {}
         self.templates_cache = {}
         self.learnsets_cache = {}
+        self.camera_offsets_cache = {}
 
     def load_index_caches(self):
         """Loads static caches from the local deps directory."""
@@ -65,7 +66,7 @@ class CacheLoader:
                     self.learnsets_cache = json.load(f)
             except Exception: pass
 
-        # Load Wild Spawner Locations directory [4]
+        # Load Wild Spawner Locations directory
         spawners_path = os.path.join(repo_root, "deps", "monster_spawners_cache.json")
         if os.path.exists(spawners_path):
             try:
@@ -79,4 +80,12 @@ class CacheLoader:
             try:
                 with open(default_map_path, "r", encoding="utf-8") as f:
                     self.monster_spawners_default_map = json.load(f)
+            except Exception: pass
+
+        # Load Camera Offsets Cache
+        camera_offsets_path = os.path.join(repo_root, "deps", "camera_offsets_cache.json")
+        if os.path.exists(camera_offsets_path):
+            try:
+                with open(camera_offsets_path, "r", encoding="utf-8") as f:
+                    self.camera_offsets_cache = json.load(f)
             except Exception: pass
