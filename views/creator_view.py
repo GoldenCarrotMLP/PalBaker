@@ -48,12 +48,25 @@ class CreatorView:
 
         self.editing_states = {}
 
+    def run_in_thread(self, func):
+        self.main_page.run_thread(func)
+
+    def run_async_task(self, func, *args):
+        self.main_page.run_task(func, *args)
+
+
     def refresh_pals(self):
         self.controller.refresh_pals()
 
     def refresh_creator_mods_ui(self):
         self.render_pals(self.controller.custom_pals)
 
+    def handle_refresh_bp(self, pal_id: str):
+        self.add_pal_btn.disabled = True
+        self.force_update()
+        self.controller.refresh_actor_blueprint(pal_id)
+
+    
     def render_pals(self, pals_data: list[dict]):
         self.pals_list.controls.clear()
         self.add_pal_btn.disabled = False
@@ -78,14 +91,16 @@ class CreatorView:
                 passive_skills=self.controller.passive_skills_cache,
                 partner_skills=self.controller.partner_skills_cache,
                 coop_passives=self.controller.coop_passives_cache,
-                monster_spawners=self.controller.monster_spawners_cache, # Passed spawners directory
+                monster_spawners=self.controller.monster_spawners_cache,
                 is_expanded=self.editing_states.get(p["CharacterID"], False),
                 on_toggle=self.toggle_card_editor,
                 on_save=self.handle_save_pal_confirm,
                 on_delete=self.handle_delete_pal_confirm,
-                show_search_dialog_callback=self.show_search_selector_dialog
+                show_search_dialog_callback=self.show_search_selector_dialog,
+                on_refresh_bp=self.handle_refresh_bp  # Injected callback
             )
             self.pals_list.controls.append(card.view)
+
         self.force_update()
 
     def toggle_card_editor(self, pal_id: str):

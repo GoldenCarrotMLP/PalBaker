@@ -77,3 +77,22 @@ class CreatorController:
         
     def refresh_pals(self):
         self.manager.refresh_pals()
+    def refresh_actor_blueprint(self, pal_id: str):
+        """Asynchronously extracts and patches the target Pal's parent blueprint."""
+        pal_data = next((p for p in self.custom_pals if p["CharacterID"] == pal_id), None)
+        if not pal_data:
+            self.view.write_log(f"Error: Custom Pal configuration {pal_id} not found.", "error")
+            self.refresh_pals()
+            return
+            
+        self.view.write_log(f"Refreshing standalone Actor Blueprint for {pal_id}...", "standard")
+        
+        def worker():
+            success = self.exporter.generate_custom_actor_blueprint(pal_data)
+            if success:
+                self.view.write_log(f"Successfully refreshed standalone Actor Blueprint for {pal_id}!", "success")
+            else:
+                self.view.write_log(f"Failed to generate Actor Blueprint for {pal_id}.", "error")
+            self.refresh_pals()
+            
+        self.view.run_in_thread(worker)

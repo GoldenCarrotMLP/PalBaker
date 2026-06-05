@@ -132,6 +132,8 @@ class ModItem:
             icon=ft.Icons.MORE_VERT,
             items=[
                 ft.PopupMenuItem(content=ft.Text("Push to Unreal"), on_click=lambda e: on_action_click(self.mod_data, "push"), disabled=not self.mod_data["has_fmodel"] or not self.mod_data.get("has_blend", False)),
+                ft.PopupMenuItem(content=ft.Text("Cook (Compile only)"), on_click=lambda e: on_action_click(self.mod_data, "cook_only"), disabled=not self.mod_data["has_ue"]),
+                ft.PopupMenuItem(content=ft.Text("Pack (Package only)"), on_click=lambda e: on_action_click(self.mod_data, "pack_only"), disabled=not self.mod_data["has_ue"]),
                 ft.PopupMenuItem(content=ft.Text("Cook & Pack (Skip Import)"), on_click=lambda e: on_action_click(self.mod_data, "cook"), disabled=not self.mod_data["has_ue"]),
                 ft.PopupMenuItem(content=ft.Text("Push & Cook & Pack"), on_click=lambda e: on_action_click(self.mod_data, "full"), disabled=not self.mod_data["has_fmodel"] or not self.mod_data.get("has_blend", False)),
                 ft.PopupMenuItem(content=ft.Text("Generate Sources"), on_click=lambda e: on_action_click(self.mod_data, "decompile"), disabled=not self.mod_data["has_ue"])
@@ -155,7 +157,7 @@ class ModItem:
                 content=ft.Icon(ft.Icons.FOLDER, color=ft.Colors.BLUE_200, size=20),
                 width=32,
                 height=32,
-                alignment=ft.Alignment.CENTER  # FIXED: Replaced lowercase alias with class-constant
+                alignment=ft.Alignment.CENTER
             )
 
         row_controls: list[ft.Control] = [
@@ -332,7 +334,7 @@ class ModItem:
                 
         safe_update(self.view)
 
-    def update_progress(self, line: str, flush: bool = True):
+    def update_progress(self, line: str, flush: bool):
         """Value parser for the progress bar."""
         line = line.strip()
         if not line: return

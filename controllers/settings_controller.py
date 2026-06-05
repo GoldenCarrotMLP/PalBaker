@@ -27,7 +27,16 @@ class SettingsController:
 
     async def pick_file(self, target_picker_component, picker, allowed_extensions=None):
         """Asynchronously triggers file selection."""
-        result = await picker.pick_files(allow_multiple=False, errors_allowed=False, allowed_extensions=allowed_extensions)
+        # Cleanly resolve the correct file type enum based on the custom extensions provided
+        file_type = ft.FilePickerFileType.ANY
+        if allowed_extensions:
+            file_type = ft.FilePickerFileType.CUSTOM
+
+        result = await picker.pick_files(
+            allow_multiple=False, 
+            allowed_extensions=allowed_extensions,
+            file_type=file_type
+        )
         if result and len(result) > 0 and result[0].path:
             target_picker_component.set_value(str(result[0].path))
             

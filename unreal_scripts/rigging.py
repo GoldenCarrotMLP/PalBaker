@@ -2,37 +2,36 @@
 import unreal
 import os
 
-def apply_rigging(working_dir, ue_path, folder_name, target_asset_path, bone_data_file="bone_data.json"):
+def apply_rigging(working_dir, ue_path, folder_name, target_asset_path, bone_data_file="bone_data.json", template_id=None, is_custom_pal=False):
     json_path = os.path.join(working_dir, bone_data_file)
     if not os.path.exists(json_path):
         return
 
     print(f"Checking for Animation Blueprint to apply advanced rigging to: {target_asset_path}")
     anim_bp = None
-    ar = unreal.AssetRegistryHelpers.get_asset_registry()
     asset_tools = unreal.AssetToolsHelpers.get_asset_tools()
     
     # Derive name and directory from the target mesh asset path directly
-    mesh_name = target_asset_path.split("/")[-1] # e.g. "SK_WeaselDragon_Ferret_Shiny"
-    base_mesh_name = mesh_name.replace("SK_", "") # e.g. "WeaselDragon_Ferret_Shiny"
-    bp_name = f"{base_mesh_name}_BP" # e.g. "WeaselDragon_Ferret_Shiny_BP"
+    mesh_name = target_asset_path.split("/")[-1]
+    base_mesh_name = mesh_name.replace("SK_", "")
+    bp_name = f"{base_mesh_name}_BP"
     
-    # If the mesh is in Palbaker (Altermatic variant), place the AnimBlueprint right next to it!
-    # If it is vanilla, save it in the default skeleton folder.
     if "Palbaker" in target_asset_path:
         target_bp_dir = "/".join(target_asset_path.split("/")[:-1])
     else:
         target_bp_dir = f"/Game/Pal/Model/Character/Skeleton/{folder_name}"
         
     target_bp_path = f"{target_bp_dir}/{bp_name}"
-    skeleton_path = f"/Game/Pal/Model/Character/Skeleton/{folder_name}/SK_{folder_name}_Skeleton"
+    
+    # Target parent skeleton for correct animation compilation
+    target_skeleton_name = template_id if (is_custom_pal and template_id) else folder_name
+    skeleton_path = f"/Game/Pal/Model/Character/Skeleton/{target_skeleton_name}/SK_{target_skeleton_name}_Skeleton"
 
-    # FIXED: Always delete any stale or old variant AnimBlueprint first to prevent node piling
     if unreal.EditorAssetLibrary.does_asset_exist(target_bp_path):
         print(f"Cleaning old Animation Blueprint for fresh rebuild: {target_bp_path}")
         unreal.EditorAssetLibrary.delete_asset(target_bp_path)
         
-    print(f"Generating new custom Animation Blueprint: {target_bp_path}")
+    print(f"Generating new custom Animation Blueprint: {target_bp_path} against {skeleton_path}")
     skel = unreal.EditorAssetLibrary.load_asset(skeleton_path)
     if skel:
         factory = unreal.AnimBlueprintFactory()

@@ -4,7 +4,7 @@ import os
 from .learnset_editor import LearnsetEditor
 
 class PalCreatorCard:
-    def __init__(self, page: ft.Page, pal_data: dict, settings: dict, active_skills: dict, passive_skills: dict, partner_skills: dict, coop_passives: dict, monster_spawners: dict, is_expanded: bool, on_toggle, on_save, on_delete, show_search_dialog_callback):
+    def __init__(self, page: ft.Page, pal_data: dict, settings: dict, active_skills: dict, passive_skills: dict, partner_skills: dict, coop_passives: dict, monster_spawners: dict, is_expanded: bool, on_toggle, on_save, on_delete, show_search_dialog_callback, on_refresh_bp):
         self.page = page
         self.p = pal_data
         self.settings = settings
@@ -18,8 +18,10 @@ class PalCreatorCard:
         self.on_save = on_save
         self.on_delete = on_delete
         self.show_search_dialog = show_search_dialog_callback
+        self.on_refresh_bp = on_refresh_bp  # Set callback
         
         self.pal_id = pal_data["CharacterID"]
+
 
         # Header Controls
         title = ft.Text(f"{pal_data['Name']} ({self.pal_id})", weight=ft.FontWeight.BOLD, size=15)
@@ -87,6 +89,7 @@ class PalCreatorCard:
 
     def build_editor_fields(self) -> ft.Control:
         p = self.p
+        template_id = p.get("TemplateID", "WeaselDragon")
         
         # 1. Inputs
         name_input = ft.TextField(label="Display Name", value=p["Name"], expand=True)
@@ -239,6 +242,75 @@ class PalCreatorCard:
             bgcolor=ft.Colors.BLACK
         )
 
+        # --- PALDECK (PALPEDIA) CONFIGURATION PANEL ---
+        z_index = p.get("ZukanIndex", -1)
+        has_paldeck = z_index != -1
+        
+        enable_paldeck_checkbox = ft.Checkbox(
+            label="Enable Paldeck (PalPedia) Entry", 
+            value=has_paldeck
+        )
+        
+        zukan_index_input = ft.TextField(
+            label="Paldeck Sort Number", 
+            value=str(z_index) if has_paldeck else "55", 
+            expand=True,
+            disabled=not has_paldeck
+        )
+        
+        zukan_suffix_input = ft.TextField(
+            label="Sub-Species Suffix (Optional)", 
+            value=p.get("ZukanIndexSuffix", ""), 
+            expand=True,
+            disabled=not has_paldeck
+        )
+
+        # Dropdown to select standalone species or subspecies variant
+        paldex_type_dd = ft.Dropdown(
+            label="Paldex Classification",
+            value=p.get("PaldexType", "Species"),
+            options=[
+                ft.dropdown.Option("Species", "New Standalone Species (Unique Tribe)"),
+                ft.dropdown.Option("Variant", "Subspecies Variant (Inherits Parent Tribe)")
+            ],
+            expand=True,
+            disabled=not has_paldeck
+        )
+        
+        pedia_desc_input = ft.TextField(
+            label="Paldeck Lore Description", 
+            value=p.get("LongDescription", f"A custom standalone Pal cloned from {template_id}."), 
+            expand=True, 
+            multiline=True, 
+            max_lines=3,
+            disabled=not has_paldeck
+        )
+
+        # Dynamic validation handler
+        def handle_paldeck_toggle(e):
+            is_enabled = enable_paldeck_checkbox.value
+            zukan_index_input.disabled = not is_enabled
+            zukan_suffix_input.disabled = not is_enabled
+            pedia_desc_input.disabled = not is_enabled
+            paldex_type_dd.disabled = not is_enabled  # Sync disabled state
+            self.page.update()
+
+        enable_paldeck_checkbox.on_change = handle_paldeck_toggle
+
+        paldeck_panel = ft.Container(
+            content=ft.Column([
+                ft.Text("Paldeck (PalPedia) Configurations", size=12, weight=ft.FontWeight.BOLD, color=ft.Colors.CYAN_400),
+                enable_paldeck_checkbox,
+                ft.Row([zukan_index_input, zukan_suffix_input], spacing=10),
+                paldex_type_dd,  # Injected dropdown control
+                pedia_desc_input
+            ], spacing=10),
+            padding=10,
+            border=ft.Border.all(1, ft.Colors.WHITE10),
+            border_radius=6,
+            bgcolor=ft.Colors.BLACK
+        )
+
         # 5. Level-up Learnset Editor Sub-Component
         self.learnset_editor = LearnsetEditor(
             self.page,
@@ -284,18 +356,31 @@ class PalCreatorCard:
                 "Learnset": self.learnset_editor.get_values(),
                 "SaddleItem": saddle_input.value.strip() if saddle_input.value else "None",
                 "CoopPassives": selected_coop_passives if (selected_coop_passives and selected_coop_passives[0] != "None") else [],
-                # Spawner Configuration Payload fields mapping
                 "EnableSpawns": enable_spawns_checkbox.value,
                 "SpawnLocationID": selected_spawner[0],
                 "SpawnMinLevel": int(spawn_min_lvl.value.strip() or "2"),
                 "SpawnMaxLevel": int(spawn_max_lvl.value.strip() or "5"),
                 "SpawnMinGroup": int(spawn_min_group.value.strip() or "1"),
-                "SpawnMaxGroup": int(spawn_max_group.value.strip() or "3")
+                "SpawnMaxGroup": int(spawn_max_group.value.strip() or "3"),
+                "EnablePaldeck": enable_paldeck_checkbox.value,
+                "ZukanIndex": int(zukan_index_input.value.strip() or "55") if enable_paldeck_checkbox.value else -1,
+                "ZukanIndexSuffix": zukan_suffix_input.value.strip() if enable_paldeck_checkbox.value else "",
+                "LongDescription": pedia_desc_input.value.strip() if enable_paldeck_checkbox.value else "",
+                "PaldexType": paldex_type_dd.value  # Injected payload parameter
             }
+
             self.on_save(self.pal_id, save_payload)
 
         def on_delete_click(e):
             self.on_delete(self.pal_id)
+
+        # Injected Action Button
+        refresh_bp_btn = ft.TextButton(
+            "Refresh Actor Blueprint", 
+            icon=ft.Icons.AUTORENEW_ROUNDED, 
+            on_click=lambda e: self.on_refresh_bp(self.pal_id),
+            style=ft.ButtonStyle(color=ft.Colors.CYAN_400)
+        )
 
         save_btn = ft.TextButton("Save Pal", icon=ft.Icons.SAVE, on_click=on_save_click, style=ft.ButtonStyle(color=ft.Colors.GREEN_400))
         delete_btn = ft.TextButton("Delete", icon=ft.Icons.DELETE, on_click=on_delete_click, style=ft.ButtonStyle(color=ft.Colors.RED_400))
@@ -306,10 +391,12 @@ class PalCreatorCard:
             desc_input,
             coop_panel,
             spawner_panel,
+            paldeck_panel,
             self.learnset_editor.view,
             adv_btn,
             advanced_cols,
-            ft.Row([save_btn, delete_btn], alignment=ft.MainAxisAlignment.END, spacing=10)
+            # Injected row controls
+            ft.Row([refresh_bp_btn, save_btn, delete_btn], alignment=ft.MainAxisAlignment.END, spacing=10)
         ], spacing=10)
         
         return fields_view

@@ -3,6 +3,7 @@ import os
 import sys
 import shutil
 import subprocess
+import glob
 from utils.audio_helper import get_staged_audio_overrides
 
 def run_and_stream(cmd_args) -> bool:
@@ -60,8 +61,13 @@ def clean_cook_environment(workspace):
         shutil.rmtree(workspace.cooked_skel_dir, ignore_errors=True)
     if os.path.exists(workspace.cooked_anims_dir): 
         shutil.rmtree(workspace.cooked_anims_dir, ignore_errors=True)
+        
+    # Safeguard: Do NOT delete cooked_bp_dir if it contains our pre-cooked custom standalone blueprint! [6]
     if os.path.exists(workspace.cooked_bp_dir): 
-        shutil.rmtree(workspace.cooked_bp_dir, ignore_errors=True)
+        if not workspace.is_custom_pal:
+            shutil.rmtree(workspace.cooked_bp_dir, ignore_errors=True)
+        else:
+            print(f"  -> Safeguard: Preserving pre-cooked custom blueprint folder: {os.path.basename(workspace.cooked_bp_dir)}", flush=True)
 
 
 def resolve_packaging_manifest(workspace, has_anims: bool) -> list[tuple[str, str]]:
@@ -82,18 +88,21 @@ def resolve_packaging_manifest(workspace, has_anims: bool) -> list[tuple[str, st
         folders_to_pack.append((workspace.cooked_altermatic_dir, workspace.ue_altermatic_virtual_path.replace("/Game/", "")))
         print("  -> Altermatic variants detected: Packing custom variant meshes.", flush=True)
 
+    # Packages the custom stand-alone blueprint dynamically
     if hasattr(workspace, 'cooked_bp_dir') and os.path.exists(workspace.cooked_bp_dir):
-        bp_cooked_base = os.path.join(workspace.cooked_bp_dir, f"BP_{workspace.monster_name}")
         bp_parts_found = False
-        for ext in [".uasset", ".uexp", ".ubulk"]:
-            cooked_file = bp_cooked_base + ext
-            if os.path.exists(cooked_file):
-                # FIXED: Base virtual path dynamically on workspace blueprint mapping rather than hardcoded string
-                virtual_file = f"{workspace.blueprint_virtual_path.replace('/Game/', '')}/BP_{workspace.monster_name}{ext}"
-                folders_to_pack.append((cooked_file, virtual_file))
-                bp_parts_found = True
+        
+        # Scan cooked folder to support standalone blueprints
+        for cooked_file in glob.glob(os.path.join(workspace.cooked_bp_dir, "BP_*.*")):
+            filename = os.path.basename(cooked_file)
+            # Resolve virtual relative path cleanly
+            virtual_rel_path = workspace.blueprint_virtual_path.replace('/Game/', '')
+            virtual_file = f"{virtual_rel_path}/{filename}"
+            folders_to_pack.append((cooked_file, virtual_file))
+            bp_parts_found = True
+            
         if bp_parts_found:
-            print(f"  -> Custom Blueprint detected: Packing only BP_{workspace.monster_name} Blueprint files.", flush=True)
+            print(f"  -> Standalone Blueprint detected: Packing {workspace.blueprint_virtual_path} files.", flush=True)
 
     if has_anims:
         folders_to_pack.append((workspace.cooked_anims_dir, workspace.anims_virtual_path.replace("/Game/", "")))
