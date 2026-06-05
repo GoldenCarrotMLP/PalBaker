@@ -77,6 +77,10 @@ class ModWorkspace:
         self.is_altermatic_active = is_altermatic_active
         self.base_type = base_type
 
+        # Standalone Custom Pal detection
+        creator_json = os.path.join(self.fmodel_root, "Exports", "Pal", "Content", "Palbaker", "Creator", f"{monster_name}_creator.json") if self.fmodel_root else ""
+        self.is_custom_pal = os.path.exists(creator_json)
+
         # FIXED: Look strictly inside the Pal's local directory for custom mod icons
         self.icon_fmodel_path = os.path.normpath(os.path.join(self.fmodel_dir, f"T_{monster_name}_icon_normal.png")) if self.fmodel_dir else ""
         self.has_icon = os.path.exists(self.icon_fmodel_path) if self.icon_fmodel_path else False
@@ -88,7 +92,44 @@ class ModWorkspace:
         
         self.skeleton_virtual_path = f"/Game/Pal/Model/Character/Skeleton/{monster_name}"
         self.anims_virtual_path = f"/Game/Pal/Animation/Character/Monster/{monster_name}"
-        self.blueprint_virtual_path = f"/Game/Pal/Blueprint/Character/Monster/PalActorBP/{monster_name}"
+        
+        # --- DETERMINISTIC PARENT TEMPLATE RESOLUTION ---
+        template_id = "WeaselDragon"  # Default fallback
+        if os.path.exists(creator_json):
+            try:
+                with open(creator_json, "r", encoding="utf-8") as f:
+                    c_data = json.load(f)
+                    template_id = c_data.get("TemplateID", "WeaselDragon")
+            except Exception:
+                pass
+        else:
+            if os.path.exists(manifest_path):
+                try:
+                    with open(manifest_path, "r", encoding="utf-8") as f:
+                        data = json.load(f)
+                        variants = data.get("variants", {})
+                        if isinstance(variants, dict):
+                            base_block = variants.get("base", {})
+                        else:
+                            base_block = next((v for v in variants if v.get("is_base")), {})
+                        template_id = base_block.get("TemplateID", "WeaselDragon")
+                except Exception:
+                    pass
+
+        self.template_id = template_id  # <-- Expose the parent template ID here
+
+        # Determine the exact padded folder name based on parent template ID length
+        parent_len = len(template_id)
+        custom_folder_name = monster_name[:parent_len].ljust(parent_len, "_")
+        
+        # Verify if this standalone blueprint was pre-cooked and injected into the Saved/Cooked directory
+        cooked_bp_path = os.path.join(self.project_dir, "Saved", "Cooked", "Windows", self.target_project_name, "Content", "Pal", "Blueprint", "Character", "Monster", "PalActorBP", custom_folder_name)
+        
+        if os.path.exists(cooked_bp_path):
+            self.blueprint_virtual_path = f"/Game/Pal/Blueprint/Character/Monster/PalActorBP/{custom_folder_name}"
+        else:
+            self.blueprint_virtual_path = f"/Game/Pal/Blueprint/Character/Monster/PalActorBP/{monster_name}"
+            
         self.icon_virtual_path = "/Game/Pal/Texture/PalIcon/Normal"
 
         # Configuration Backups

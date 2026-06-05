@@ -14,10 +14,6 @@ BLENDER_EXTRACTOR_SCRIPT = (
 )
 
 def get_virtual_path_for_file(absolute_path: str) -> str:
-    """
-    Dumb relative-path calculator. Resolves any physical path starting under
-    Pal/Content/ to its corresponding Unreal virtual /Game/ path automatically.
-    """
     clean_path = absolute_path.replace("\\", "/")
     marker = "Pal/Content/"
     if marker in clean_path:
@@ -26,11 +22,7 @@ def get_virtual_path_for_file(absolute_path: str) -> str:
         return f"/Game/{folder_part}"
     return ""
 
-
 def get_blend_files_for_context(fmodel_altermatic_dir: str, fmodel_dir: str = "") -> list[str]:
-    """
-    Scans strictly the target mod's vanilla and altermatic directories for existing .blend files.
-    """
     blend_files = []
     if fmodel_dir and os.path.exists(fmodel_dir):
         for f in os.listdir(fmodel_dir):
@@ -44,12 +36,7 @@ def get_blend_files_for_context(fmodel_altermatic_dir: str, fmodel_dir: str = ""
                 
     return blend_files
 
-
 def get_available_materials_for_context(fmodel_root: str, fmodel_altermatic_dir: str, character_id: str, category: str = "Monster") -> list[str]:
-    """
-    Dynamically scans your workspace directories and parses all sidecars 
-    to discover every compiled material available inside your ModKit.
-    """
     materials = []
     paths_to_check = []
 
@@ -86,7 +73,6 @@ def get_available_materials_for_context(fmodel_root: str, fmodel_altermatic_dir:
 
     return sorted(materials)
 
-
 def extract_blend_metadata(blender_path: str, blend_file_path: str) -> dict:
     if not blender_path or not os.path.exists(blender_path):
         return {"slots": [], "morphs": []}
@@ -119,7 +105,6 @@ def extract_blend_metadata(blender_path: str, blend_file_path: str) -> dict:
         print(f"Error extracting metadata from Blender: {e}")
 
     return {"slots": [], "morphs": []}
-
 
 def delta_merge_sidecar(existing_data: dict, fresh_slots: list[str], fresh_morphs: list[str]) -> dict:
     synced = {
@@ -156,7 +141,6 @@ def delta_merge_sidecar(existing_data: dict, fresh_slots: list[str], fresh_morph
 
     return synced
 
-
 def sync_sidecar_metadata(blender_path: str, blend_file_path: str) -> dict:
     root_dir = os.path.dirname(blend_file_path)
     base_name = os.path.splitext(os.path.basename(blend_file_path))[0]
@@ -188,7 +172,6 @@ def sync_sidecar_metadata(blender_path: str, blend_file_path: str) -> dict:
         print(f"ERROR: Failed to save sidecar {sidecar_path}: {e}")
 
     return synced_data
-
 
 def compile_unified_altermatic_json(monster_name: str, altermatic_staging_dir: str, swap_json_dir: str) -> tuple[bool, str]:
     manifest_name = f"{monster_name}_altermatic.json"
@@ -222,28 +205,52 @@ def compile_unified_altermatic_json(monster_name: str, altermatic_staging_dir: s
 
     swaps_array = []
 
+    # Detect if this is a custom standalone pal to prefix MOD_
+    fmodel_root = ""
+    if "Exports" in parts:
+        exp_idx = parts.index("Exports")
+        fmodel_root = "/".join(parts[:exp_idx+1])
+    else:
+        fmodel_root = os.path.normpath(os.path.join(altermatic_staging_dir, "..", "..", "..", "..", "..", ".."))
+
+    creator_json = os.path.join(fmodel_root, "Pal", "Content", "Palbaker", "Creator", f"{monster_name}_creator.json")
+    is_custom_pal = os.path.exists(creator_json)
+    
+    final_character_id = f"MOD_{monster_name}" if is_custom_pal else monster_name
+
     for v in variants_list:
-        if v.get("is_base"):
+        # We skip 'base' if it's vanilla, because the game's blueprint naturally holds it.
+        # But if it's custom, the game's blueprint holds the template parent (e.g. Chillet),
+        # so Altermatic MUST mesh-swap the base to Furret!
+        if v.get("is_base") and not is_custom_pal:
             continue
 
         try:
-            blend_base_name = os.path.splitext(v["SkeletonSource"])[0]
-            blend_file_path = os.path.join(altermatic_staging_dir, f"{blend_base_name}.blend")
-            sidecar_path = os.path.join(altermatic_staging_dir, f"{blend_base_name}_blend.json")
-
-            clean_path = blend_file_path.replace("\\", "/")
-            marker = "Pal/Content/"
-            if marker in clean_path:
-                relative_part = clean_path.split(marker, 1)[1]
-                sk_name = blend_base_name if blend_base_name.startswith("SK_") else f"SK_{blend_base_name}"
-                relative_virtual_dir = "/".join(relative_part.split("/")[:-1]).replace(" ", "_")
-                mesh_resolved_path = f"/Game/{relative_virtual_dir}/{sk_name}"
-            else:
-                cat_sanitized = category.replace(" ", "_")
-                mesh_resolved_path = f"/Game/Palbaker/Model/Character/{cat_sanitized}/{monster_name}/SK_{blend_base_name}"
-
             mat_replace_list = []
             slots_order = []
+            
+            if v.get("is_base") and is_custom_pal:
+                # Custom standalone Pal - Base Mesh Resolution
+                cat_sanitized = category.replace(" ", "_")
+                mesh_resolved_path = f"/Game/Pal/Model/Character/{cat_sanitized}/{monster_name}/SK_{monster_name}"
+                sidecar_path = os.path.join(fmodel_root, "Pal", "Content", "Pal", "Model", "Character", category, monster_name, f"{monster_name}_blend.json")
+            else:
+                # Standard Altermatic custom variant resolution
+                blend_base_name = os.path.splitext(v["SkeletonSource"])[0]
+                blend_file_path = os.path.join(altermatic_staging_dir, f"{blend_base_name}.blend")
+                sidecar_path = os.path.join(altermatic_staging_dir, f"{blend_base_name}_blend.json")
+
+                clean_path = blend_file_path.replace("\\", "/")
+                marker = "Pal/Content/"
+                if marker in clean_path:
+                    relative_part = clean_path.split(marker, 1)[1]
+                    sk_name = blend_base_name if blend_base_name.startswith("SK_") else f"SK_{blend_base_name}"
+                    relative_virtual_dir = "/".join(relative_part.split("/")[:-1]).replace(" ", "_")
+                    mesh_resolved_path = f"/Game/{relative_virtual_dir}/{sk_name}"
+                else:
+                    cat_sanitized = category.replace(" ", "_")
+                    mesh_resolved_path = f"/Game/Palbaker/Model/Character/{cat_sanitized}/{monster_name}/SK_{blend_base_name}"
+
             if os.path.exists(sidecar_path):
                 try:
                     with open(sidecar_path, "r", encoding="utf-8") as f_side:
@@ -270,7 +277,7 @@ def compile_unified_altermatic_json(monster_name: str, altermatic_staging_dir: s
                     })
 
             compiled_swap = {
-                "CharacterID": monster_name,
+                "CharacterID": final_character_id,
                 "SkelMeshPath": mesh_resolved_path,
                 "Gender": v.get("Gender", "None")
             }
@@ -322,17 +329,11 @@ def compile_unified_altermatic_json(monster_name: str, altermatic_staging_dir: s
     except Exception as e:
         return False, f"Failed to write deployment JSON: {e}"
 
-
 def load_traits_database() -> dict:
-    """
-    Self-healing lookup pipeline. Loads the dynamically generated passive skills cache dictionary first.
-    If it is missing, gracefully falls back to the original traits_db.json.
-    """
     root_dir = os.path.dirname(os.path.dirname(os.path.abspath(__file__)))
     target_path = os.path.normpath(os.path.join(root_dir, "deps", "passive_skills_cache.json"))
     
     if not os.path.exists(target_path):
-        # Fallback to traits_db.json
         fallback_path = os.path.normpath(os.path.join(root_dir, "traits_db.json"))
         if os.path.exists(fallback_path):
             target_path = fallback_path

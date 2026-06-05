@@ -84,14 +84,18 @@ class PalManager:
                 "Learnset": cloned_learnset,
                 "SaddleItem": predicted_saddle,
                 "CoopPassives": predicted_coop_passives,
-                # Spawner defaults
                 "EnableSpawns": True,
                 "SpawnLocationID": predicted_spawner,
                 "SpawnMinLevel": 2,
                 "SpawnMaxLevel": 5,
                 "SpawnMinGroup": 1,
-                "SpawnMaxGroup": 3
+                "SpawnMaxGroup": 3,
+                "ZukanIndex": -1,
+                "ZukanIndexSuffix": "",
+                "LongDescription": f"A custom standalone Pal cloned from {template_id}.",
+                "PaldexType": "Species"  # Baseline classification default
             }
+
 
             target_file = os.path.join(creator_dir, f"{clean_id}_creator.json")
             try:
@@ -99,9 +103,13 @@ class PalManager:
                     json.dump(new_pal_data, f, indent=4)
                 self.c.view.write_log(f"Successfully created brand new Pal template: {clean_id}", "success")
                 
+                # Auto-extract, clone, and binary-patch standalone blueprint assets on creation!
+                self.c.exporter.generate_custom_actor_blueprint(new_pal_data)
+                
                 self.c.export_to_palschema(new_pal_data)
             except Exception as e:
                 self.c.view.write_log(f"Failed to save new Pal: {e}", "error")
+
 
             self.refresh_pals()
 

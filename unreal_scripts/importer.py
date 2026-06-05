@@ -2,12 +2,10 @@
 import unreal
 import os
 
-def clear_cache(ue_path, fbx_file, folder_name):
+def clear_cache(ue_path, fbx_file, folder_name, is_custom_pal=False):
     """
     Cleans up old mesh assets from memory/disk before re-importing.
-    We must NEVER delete the Skeleton asset because doing so breaks active bone containers 
-    and causes the Unreal Editor to crash with InBoneContainer->IsValid() assertion failures.
-    Instead, we leave the Skeleton intact and let the FBX importer update/upsert it with new bones.
+    If this is a Custom Pal, we ensure any rogue generated skeletons matching its name are wiped out.
     """
     if fbx_file and os.path.exists(fbx_file):
         fbx_base_name = os.path.splitext(os.path.basename(fbx_file))[0]
@@ -16,7 +14,6 @@ def clear_cache(ue_path, fbx_file, folder_name):
             f"{ue_path}/SK_{folder_name}"  # Clean up canonical name cache as well
         ]
         
-        # Deleting the SkeletalMesh is safe, but we avoid touching the USkeleton completely
         for path in paths_to_delete:
             if unreal.EditorAssetLibrary.does_asset_exist(path):
                 print(f"[PalBaker] Clearing old mesh asset from cache: {path}")
@@ -25,11 +22,20 @@ def clear_cache(ue_path, fbx_file, folder_name):
                 except Exception as e:
                     print(f"[PalBaker] Warning: Failed to delete mesh asset: {e}")
 
-def import_assets(ue_path, textures, fbx_file, folder_name):
+        # Wipe any rogue custom skeletons to ensure it binds to the parent
+        if is_custom_pal:
+            rogue_skeleton = f"/Game/Pal/Model/Character/Skeleton/{folder_name}/SK_{folder_name}_Skeleton"
+            if unreal.EditorAssetLibrary.does_asset_exist(rogue_skeleton):
+                print(f"[PalBaker] Clearing rogue custom skeleton: {rogue_skeleton}")
+                try:
+                    unreal.EditorAssetLibrary.delete_asset(rogue_skeleton)
+                except Exception:
+                    pass
+
+def import_assets(ue_path, textures, fbx_file, folder_name, template_id=None, is_custom_pal=False):
     """
     Imports textures and the skeletal FBX mesh into Unreal Engine.
-    Leverages Unreal's native FbxImportUI to target the existing Skeleton if it exists,
-    performing a seamless bone merge (upsert) to support new jigglebones without crashing the Editor.
+    Forces binding to the parent's skeleton if configured as a custom Pal.
     """
     # 1. Textures Import
     if textures:
@@ -45,8 +51,6 @@ def import_assets(ue_path, textures, fbx_file, folder_name):
                 task.set_editor_property('destination_path', ue_path)
                 task.set_editor_property('automated', True)
                 task.set_editor_property('save', True)
-                
-                # Use Texture Factory
                 task.set_editor_property('factory', unreal.TextureFactory())
                 import_tasks.append(task)
                 
@@ -63,7 +67,6 @@ def import_assets(ue_path, textures, fbx_file, folder_name):
         
         print(f"[PalBaker] Importing Skeletal FBX: {fbx_filename}")
         
-        # Determine import asset naming convention
         is_vanilla_replace = "Palbaker" not in ue_path
         if is_vanilla_replace:
             fbx_import_name = f"SK_{folder_name}"
@@ -73,7 +76,6 @@ def import_assets(ue_path, textures, fbx_file, folder_name):
         target_asset_path = f"{ue_path}/{fbx_import_name}"
         target_phys_path = f"{ue_path}/PA_{folder_name}_PhysicsAsset"
 
-        # Create asset import task
         task = unreal.AssetImportTask()
         task.set_editor_property('filename', fbx_file)
         task.set_editor_property('destination_path', ue_path)
@@ -81,7 +83,6 @@ def import_assets(ue_path, textures, fbx_file, folder_name):
         task.set_editor_property('automated', True)
         task.set_editor_property('save', True)
         
-        # Configure FBX Import options
         import_ui = unreal.FbxImportUI()
         import_ui.set_editor_property('import_mesh', True)
         import_ui.set_editor_property('import_as_skeletal', True)
@@ -90,17 +91,16 @@ def import_assets(ue_path, textures, fbx_file, folder_name):
         import_ui.set_editor_property('import_animations', False)
         import_ui.set_editor_property('create_physics_asset', True)
         
-        # Configure Skeletal Mesh details
         skel_data = import_ui.skeletal_mesh_import_data
         skel_data.set_editor_property('import_mesh_lo_ds', False)
         skel_data.set_editor_property('import_morph_targets', True)
         skel_data.set_editor_property('use_t0_as_ref_pose', True)
         
-        # --- SKELETON UPSERT / MERGING LOGIC ---
-        # If the character's canonical Skeleton already exists on disk, target it during
-        # import so Unreal merges any new jigglebones/joint adjustments directly into it
-        # rather than creating a new skeleton or crashing on deleted asset references.
-        skeleton_path = f"/Game/Pal/Model/Character/Skeleton/{folder_name}/SK_{folder_name}_Skeleton"
+        # --- SMART SKELETON BINDING LOGIC ---
+        # Target the parent template's skeleton natively
+        target_skeleton_name = template_id if (is_custom_pal and template_id) else folder_name
+        skeleton_path = f"/Game/Pal/Model/Character/Skeleton/{target_skeleton_name}/SK_{target_skeleton_name}_Skeleton"
+        
         existing_skeleton = unreal.EditorAssetLibrary.load_asset(skeleton_path)
         if existing_skeleton:
             print(f"[PalBaker] Existing skeleton found at {skeleton_path}. Merging and updating bone container...")
@@ -115,19 +115,13 @@ def import_assets(ue_path, textures, fbx_file, folder_name):
         unreal.AssetToolsHelpers.get_asset_tools().import_asset_tasks([task])
         print(f"[PalBaker] Successfully imported skeletal mesh to: {target_asset_path}")
 
-        # --- MULTI-LAYER SELF-HEALING SKELETON & PHYSICS RELOCATION ---
-        # If this is a newly imported model, Unreal generates a brand-new skeleton and physics
-        # asset inside the active import directory. We must safely relocate them to their correct 
-        # canonical project paths before the AnimBlueprint compiler runs.
-        
-        expected_skeleton_path = f"/Game/Pal/Model/Character/Skeleton/{folder_name}/SK_{folder_name}_Skeleton"
+        # Relocate the generated PhysicsAsset cleanly to its expected path
+        expected_skeleton_path = f"/Game/Pal/Model/Character/Skeleton/{target_skeleton_name}/SK_{target_skeleton_name}_Skeleton"
         expected_phys_path = f"{ue_path}/PA_{folder_name}_PhysicsAsset"
         
         skeleton_relocated = False
         phys_relocated = False
 
-        # Layer 1: Memory Path Lookup
-        # Retrieve the exact paths generated by the importer task from Python memory.
         imported_paths = list(task.get_editor_property('imported_object_paths'))
         for imported_path in imported_paths:
             asset = unreal.EditorAssetLibrary.load_asset(imported_path)
@@ -138,7 +132,7 @@ def import_assets(ue_path, textures, fbx_file, folder_name):
             if asset_class == "Skeleton":
                 if imported_path != expected_skeleton_path:
                     print(f"[PalBaker] Relocating generated skeleton: {imported_path} -> {expected_skeleton_path}")
-                    unreal.EditorAssetLibrary.make_directory(f"/Game/Pal/Model/Character/Skeleton/{folder_name}")
+                    unreal.EditorAssetLibrary.make_directory(f"/Game/Pal/Model/Character/Skeleton/{target_skeleton_name}")
                     if unreal.EditorAssetLibrary.rename_asset(imported_path, expected_skeleton_path):
                         print(f"[PalBaker] Successfully relocated skeleton to {expected_skeleton_path}!")
                 skeleton_relocated = True
@@ -149,13 +143,11 @@ def import_assets(ue_path, textures, fbx_file, folder_name):
                     unreal.EditorAssetLibrary.rename_asset(imported_path, expected_phys_path)
                 phys_relocated = True
 
-        # Layer 2: Hard String Path Lookup (Foolproof Catch)
-        # In some UE 5.1 instances, the importer task drops auxiliary paths if directories contain spaces.
         if not skeleton_relocated:
             generated_skeleton_path = f"{ue_path}/{fbx_import_name}_Skeleton"
             if unreal.EditorAssetLibrary.does_asset_exist(generated_skeleton_path) and generated_skeleton_path != expected_skeleton_path:
                 print(f"[PalBaker] Hard Lookup: Relocating generated skeleton: {generated_skeleton_path} -> {expected_skeleton_path}")
-                unreal.EditorAssetLibrary.make_directory(f"/Game/Pal/Model/Character/Skeleton/{folder_name}")
+                unreal.EditorAssetLibrary.make_directory(f"/Game/Pal/Model/Character/Skeleton/{target_skeleton_name}")
                 if unreal.EditorAssetLibrary.rename_asset(generated_skeleton_path, expected_skeleton_path):
                     print(f"[PalBaker] Successfully relocated skeleton to {expected_skeleton_path}!")
 
