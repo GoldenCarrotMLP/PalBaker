@@ -97,9 +97,11 @@ class PalSchemaExporter:
         os.makedirs(pals_dir, exist_ok=True)
         
         new_monster_props = dict(base_properties)
+        
+        # RESTORED: This links the parameter row to the actual standalone Blueprint table row
         new_monster_props["BPClass"] = f"MOD_{pal_id}"
-
-        # FIX 1: Enforce "IsPal" to true so custom species show in the Paldeck and light up habitat heatmaps
+        
+        # Enforce "IsPal" to true so custom species show in the Paldeck
         new_monster_props["IsPal"] = True
         
         if paldex_type == "Species":
@@ -121,29 +123,29 @@ class PalSchemaExporter:
                 try: os.remove(enums_file)
                 except OSError: pass
 
-            new_monster_props["ElementType1"] = p["ElementType1"]
-            new_monster_props["ElementType2"] = p["ElementType2"]
-            new_monster_props["Hp"] = p["BaseHP"]
-            new_monster_props["MeleeAttack"] = p["BaseAtk"]
-            new_monster_props["Defense"] = p["BaseDef"]
-            new_monster_props["WorkSpeed"] = p["BaseWorkSpeed"]
-            new_monster_props["BaseSkills"] = p["BaseSkills"]
-            new_monster_props["PassiveSkills"] = p["PassiveSkills"]
-            new_monster_props["PartnerSkill"] = p["PartnerSkill"]
+        new_monster_props["ElementType1"] = p["ElementType1"]
+        new_monster_props["ElementType2"] = p["ElementType2"]
+        new_monster_props["Hp"] = p["BaseHP"]
+        new_monster_props["MeleeAttack"] = p["BaseAtk"]
+        new_monster_props["Defense"] = p["BaseDef"]
+        new_monster_props["WorkSpeed"] = p["BaseWorkSpeed"]
+        new_monster_props["BaseSkills"] = p["BaseSkills"]
+        new_monster_props["PassiveSkills"] = p["PassiveSkills"]
+        new_monster_props["PartnerSkill"] = p["PartnerSkill"]
+        
+        new_monster_props["ZukanIndex"] = int(p.get("ZukanIndex", -1))
+        new_monster_props["ZukanIndexSuffix"] = str(p.get("ZukanIndexSuffix", ""))
+        
+        suitabilities = p.get("WorkSuitabilities", {})
+        for k, v in suitabilities.items():
+            new_monster_props[k] = v
             
-            new_monster_props["ZukanIndex"] = int(p.get("ZukanIndex", -1))
-            new_monster_props["ZukanIndexSuffix"] = str(p.get("ZukanIndexSuffix", ""))
+        pals_payload = {
+            f"MOD_{pal_id}": new_monster_props
+        }
             
-            suitabilities = p.get("WorkSuitabilities", {})
-            for k, v in suitabilities.items():
-                new_monster_props[k] = v
-                
-            pals_payload = {
-                f"MOD_{pal_id}": new_monster_props
-            }
-                
-            with open(os.path.join(pals_dir, f"{pal_id}.json"), "w", encoding="utf-8") as f:
-                json.dump(pals_payload, f, indent=4)
+        with open(os.path.join(pals_dir, f"{pal_id}.json"), "w", encoding="utf-8") as f:
+            json.dump(pals_payload, f, indent=4)
 
         # 2. Translations
         trans_dir = os.path.join(mod_root, "translations", "en")
@@ -205,29 +207,32 @@ class PalSchemaExporter:
 
         self.c.view.write_log(f"Linked MOD_{pal_id} to standalone blueprint path: {bp_virtual_path}", "success")
 
-        # 5. Blueprint Patch Co-Op Overrides
+        # 5. Blueprint Patch Overrides (Co-op Integrations)
         saddle_item = p.get("SaddleItem", "None")
         coop_passives = p.get("CoopPassives", [])
         
-        if (saddle_item and saddle_item != "None") or coop_passives:
+        bp_payload = {}
+
+        target_bp_key = f"{custom_asset_name}_C"
+        pal_bp_data = {}
+        if saddle_item and saddle_item != "None":
+            pal_bp_data.setdefault("PalPartnerSkillParameter", {})["RestrictionItems"] = [{"Key": saddle_item}]
+        
+        coop_passives_list = []
+        for cp_id in coop_passives:
+            if cp_id and cp_id != "None":
+                coop_passives_list.append({
+                    "SkillAndParameters": [{"Key": {"Key": cp_id}, "Value": {"TriggerTypeFlags": 4}}]
+                })
+        if coop_passives_list:
+            pal_bp_data.setdefault("PalPartnerSkillParameter", {})["PassiveSkills"] = coop_passives_list
+
+        if pal_bp_data:
+            bp_payload[target_bp_key] = pal_bp_data
+
+        if bp_payload:
             bp_dir = os.path.join(mod_root, "blueprints")
             os.makedirs(bp_dir, exist_ok=True)
-            
-            coop_passives_list = []
-            for cp_id in coop_passives:
-                if cp_id and cp_id != "None":
-                    coop_passives_list.append({
-                        "SkillAndParameters": [{"Key": {"Key": cp_id}, "Value": {"TriggerTypeFlags": 4}}]
-                    })
-            
-            target_bp_key = f"{custom_asset_name}_C"
-            bp_payload = { target_bp_key: { "PalPartnerSkillParameter": {} } }
-            
-            if saddle_item and saddle_item != "None":
-                bp_payload[target_bp_key]["PalPartnerSkillParameter"]["RestrictionItems"] = [{"Key": saddle_item}]
-            if coop_passives_list:
-                bp_payload[target_bp_key]["PalPartnerSkillParameter"]["PassiveSkills"] = coop_passives_list
-                
             with open(os.path.join(bp_dir, f"{pal_id}_blueprint.json"), "w", encoding="utf-8") as f:
                 json.dump(bp_payload, f, indent=4)
 
@@ -254,7 +259,6 @@ class PalSchemaExporter:
         raw_dir = os.path.join(mod_root, "raw")
         os.makedirs(raw_dir, exist_ok=True)
         
-        # FIX 2: Dynamically query the cloned parent template's camera offset
         parent_offset = self.c.camera_offsets_cache.get(template_id)
         if parent_offset:
             self.c.view.write_log(f"Dynamic Camera Offset resolved for {template_id} and cloned for {pal_id}.", "success")
@@ -294,7 +298,8 @@ class PalSchemaExporter:
             
             spawn_location = p.get("SpawnLocationID", "1_1_plain_begginer")
             
-            # Note: SpawnerType is corrected to "Common" to bypass the EPalSpawnedCharacterType validation constraint.
+            # The presence of this file natively triggers PalSchema's logic 
+            # and activates the Paldeck habitat heatmap correctly with SpawnerType="Common"
             spawns_payload = [
                 {
                     "Type": "Sheet",

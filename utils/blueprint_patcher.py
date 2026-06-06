@@ -60,26 +60,36 @@ def patch_actor_blueprint(settings: dict, pal_id: str, template_id: str, log_cal
         shutil.rmtree(temp_dir, ignore_errors=True)
         return False
 
-    # 4. Parse the JSON and perform variable-length string modifications
+    # 4. Parse the JSON and perform highly-targeted string modifications
     try:
         with open(temp_json_path, "r", encoding="utf-8") as f:
             json_str = f.read()
 
+        # Phase 1: EXACT string replacements that target the Package Paths & Object Names perfectly
         replacements = {
-            f"/Game/Pal/Blueprint/Character/Monster/PalActorBP/{template_id}/BP_{template_id}": f"/Game/Pal/Blueprint/Character/Monster/PalActorBP/{custom_folder_name}/{custom_asset_name}",
-            f"Pal/Content/Pal/Blueprint/Character/Monster/PalActorBP/{template_id}/BP_{template_id}": f"Pal/Content/Pal/Blueprint/Character/Monster/PalActorBP/{custom_folder_name}/{custom_asset_name}",
-            f"Default__BP_{template_id}_C": f"Default__{custom_asset_name}_C",
-            f"BP_{template_id}.BP_{template_id}_C": f"{custom_asset_name}.{custom_asset_name}_C",
+            # Package Paths
+            f"/PalActorBP/{template_id}/BP_{template_id}": f"/PalActorBP/{pal_id}/BP_{pal_id}",
+            f"/Monster/{template_id}/SK_{template_id}": f"/Monster/{pal_id}/SK_{pal_id}",
+            f"/Monster/{template_id}/PA_{template_id}": f"/Monster/{pal_id}/PA_{pal_id}",
             
-            f"/Game/Pal/Model/Character/Monster/WeaselDragon/SK_WeaselDragon": f"/Game/Pal/Model/Character/Monster/{custom_folder_name}/SK_{custom_folder_name}",
-            f"Pal/Content/Pal/Model/Character/Monster/WeaselDragon/SK_WeaselDragon": f"Pal/Content/Pal/Model/Character/Monster/{custom_folder_name}/SK_{custom_folder_name}"
+            # UAssetGUI ObjectName Exact Matches (Fixes invisible meshes and broken collisions)
+            f"SkeletalMesh'SK_{template_id}'": f"SkeletalMesh'SK_{pal_id}'",
+            f'"SK_{template_id}"': f'"SK_{pal_id}"',
+            f"PhysicsAsset'PA_{template_id}_PhysicsAsset'": f"PhysicsAsset'PA_{pal_id}_PhysicsAsset'",
+            f'"PA_{template_id}_PhysicsAsset"': f'"PA_{pal_id}_PhysicsAsset"',
+            
+            # Specific default blueprint object instantiations
+            f"Default__BP_{template_id}": f"Default__BP_{pal_id}",
+            f'"BP_{template_id}"': f'"BP_{pal_id}"'
         }
 
         for old, new in replacements.items():
             json_str = json_str.replace(old, new)
 
-        class_pattern = re.compile(rf"(?<!A)BP_{template_id}_C")
-        json_str = class_pattern.sub(f"{custom_asset_name}_C", json_str)
+        # Phase 2: Regex replacements to safely target the Actor Blueprint Class Names
+        # The (?<!A) ensures we DO NOT match "ABP_WeaselDragon_C", preserving the animation blueprint!
+        json_str = re.sub(rf"(?<!A)BP_{template_id}_C", f"BP_{pal_id}_C", json_str)
+        json_str = re.sub(rf"(?<!A)BP_{template_id}(?!_C)", f"BP_{pal_id}", json_str)
 
         with open(temp_json_path, "w", encoding="utf-8") as f:
             f.write(json_str)
