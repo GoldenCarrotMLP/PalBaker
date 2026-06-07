@@ -14,6 +14,7 @@ from utils.builder.cooker_helper import clean_cook_environment, resolve_packagin
 from utils.state import save_push_state
 from utils.blueprint_patcher import patch_actor_blueprint
 
+# FIXED: Safely configure Windows terminal to support UTF-8 characters (emojis, foreign text, etc.)
 if sys.platform == "win32" and hasattr(sys.stdout, "reconfigure"):
     getattr(sys.stdout, "reconfigure")(encoding='utf-8')
 
@@ -164,8 +165,9 @@ def main():
             ue_import_script = os.path.join(os.path.dirname(__file__), "ue_import.py")
             success, log_msg = run_remote_import(workspace.ue_root, workspace.target_project_name, target_dir, ue_import_script)
             
+            # Safe print using replace to handle any lingering exotic unicode chars from Unreal
             if log_msg.strip():
-                print(log_msg, flush=True)
+                print(log_msg.encode('utf-8', errors='replace').decode('utf-8'), flush=True)
                 
             if not success:
                 print(f"!!! ERROR INSIDE UNREAL ENGINE DURING {os.path.basename(target_dir)} IMPORT !!!", flush=True)
@@ -204,9 +206,9 @@ def main():
             )
             
             if result.stdout.strip():
-                print(result.stdout, flush=True)
+                print(result.stdout.encode('utf-8', errors='replace').decode('utf-8'), flush=True)
             if result.stderr.strip():
-                print(result.stderr, flush=True)
+                print(result.stderr.encode('utf-8', errors='replace').decode('utf-8'), flush=True)
             
         print("SUCCESS! Staged layout sync completed.", flush=True)
 
@@ -256,7 +258,9 @@ def main():
 
         final_pak_path = workspace.output_pak_clean
         print(f"Preparing Pak (Target: {os.path.basename(final_pak_path)})...", flush=True)
-        response_file = os.path.join(workspace.output_dir, "response.txt")
+        
+        response_dir = os.path.join(workspace.project_dir, "Intermediate") if workspace.project_dir else os.path.dirname(__file__)
+        response_file = os.path.normpath(os.path.join(response_dir, "response.txt"))
 
         folders_to_pack = resolve_packaging_manifest(workspace, workspace.has_anims)
 

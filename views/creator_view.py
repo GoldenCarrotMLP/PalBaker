@@ -54,7 +54,6 @@ class CreatorView:
     def run_async_task(self, func, *args):
         self.main_page.run_task(func, *args)
 
-
     def refresh_pals(self):
         self.controller.refresh_pals()
 
@@ -66,7 +65,6 @@ class CreatorView:
         self.force_update()
         self.controller.refresh_actor_blueprint(pal_id)
 
-    
     def render_pals(self, pals_data: list[dict]):
         self.pals_list.controls.clear()
         self.add_pal_btn.disabled = False
@@ -97,7 +95,7 @@ class CreatorView:
                 on_save=self.handle_save_pal_confirm,
                 on_delete=self.handle_delete_pal_confirm,
                 show_search_dialog_callback=self.show_search_selector_dialog,
-                on_refresh_bp=self.handle_refresh_bp  # Injected callback
+                on_refresh_bp=self.handle_refresh_bp
             )
             self.pals_list.controls.append(card.view)
 
@@ -107,8 +105,8 @@ class CreatorView:
         self.editing_states[pal_id] = not self.editing_states.get(pal_id, False)
         self.refresh_pals()
 
-    def show_search_selector_dialog(self, title: str, dataset_dict: dict, on_select_callback):
-        self.search_selector_dialog.show(title, dataset_dict, on_select_callback)
+    def show_search_selector_dialog(self, title: str, dataset_dict: dict, on_select_callback, pal_elements: list = None):
+        self.search_selector_dialog.show(title, dataset_dict, on_select_callback, pal_elements)
 
     def show_add_dialog(self, e):
         self.add_pal_dialog.show()

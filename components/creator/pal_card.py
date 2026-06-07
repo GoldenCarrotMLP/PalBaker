@@ -18,10 +18,9 @@ class PalCreatorCard:
         self.on_save = on_save
         self.on_delete = on_delete
         self.show_search_dialog = show_search_dialog_callback
-        self.on_refresh_bp = on_refresh_bp  # Set callback
+        self.on_refresh_bp = on_refresh_bp
         
         self.pal_id = pal_data["CharacterID"]
-
 
         # Header Controls
         title = ft.Text(f"{pal_data['Name']} ({self.pal_id})", weight=ft.FontWeight.BOLD, size=15)
@@ -32,14 +31,6 @@ class PalCreatorCard:
             on_click=lambda e: self.on_toggle(self.pal_id)
         )
 
-        # Body editor fields (loaded strictly when expanded to save layout memory)
-        body_container = ft.Container(visible=is_expanded, padding=ft.Padding(left=10, top=10, right=10, bottom=10))
-        if is_expanded:
-            body_container.content = self.build_editor_fields()
-
-        # --- STRICT CUSTOM SPECIES ICON RESOLUTION ---
-        # Query strictly under its own ID to preserve its unique visual identity.
-        # Fall back to a framed placeholder icon rather than showing Chillet's/Parent's icon.
         fmodel_base = self.settings.get("fmodel_output", "")
         
         custom_icon_path = os.path.normpath(os.path.join(
@@ -72,6 +63,10 @@ class PalCreatorCard:
                 bgcolor=ft.Colors.WHITE10
             )
 
+        body_container = ft.Container(visible=is_expanded, padding=ft.Padding(left=10, top=10, right=10, bottom=10))
+        if is_expanded:
+            body_container.content = self.build_editor_fields()
+
         self.view = ft.Container(
             content=ft.Column([
                 ft.Row([
@@ -87,15 +82,27 @@ class PalCreatorCard:
             bgcolor=ft.Colors.WHITE10 if is_expanded else None
         )
 
+    def show_search_dialog_with_elements(self, title: str, dataset_dict: dict, on_select_callback):
+        """Pre-processes active Pal element structures and routes them directly to the search modal."""
+        raw_el1 = self.p.get("ElementType1", "EPalElementType::None")
+        pal_el1 = raw_el1.split("::")[-1] if "::" in raw_el1 else raw_el1
+        
+        raw_el2 = self.p.get("ElementType2", "EPalElementType::None")
+        pal_el2 = raw_el2.split("::")[-1] if "::" in raw_el2 else raw_el2
+        
+        elements_list = [pal_el1]
+        if pal_el2 and pal_el2 != "None":
+            elements_list.append(pal_el2)
+            
+        self.show_search_dialog(title, dataset_dict, on_select_callback, elements_list)
+
     def build_editor_fields(self) -> ft.Control:
         p = self.p
         template_id = p.get("TemplateID", "WeaselDragon")
         
-        # 1. Inputs
         name_input = ft.TextField(label="Display Name", value=p["Name"], expand=True)
         desc_input = ft.TextField(label="Short Description", value=p["Description"], expand=True, multiline=True, max_lines=2)
 
-        # 2. Elements Dropdowns
         elem_options = [
             ft.dropdown.Option("EPalElementType::None", "None"),
             ft.dropdown.Option("EPalElementType::Normal", "Neutral"),
@@ -111,11 +118,10 @@ class PalCreatorCard:
         elem1_dd = ft.Dropdown(label="Primary Element", value=p["ElementType1"], options=elem_options, expand=True)
         elem2_dd = ft.Dropdown(label="Secondary Element", value=p["ElementType2"], options=elem_options, expand=True)
 
-        # 3. Dynamic Dropdown Trigger Selectors
         selected_skills = list(p["BaseSkills"])
         friendly_skill = "None"
         if selected_skills:
-            friendly_skill = next((lbl for lbl, val in self.active_skills.items() if val == selected_skills[0]), selected_skills[0])
+            friendly_skill = next((lbl for lbl, val in self.active_skills.items() if (val["id"] if isinstance(val, dict) else val) == selected_skills[0]), selected_skills[0])
         skills_btn_text = ft.Text(f"Skills: {friendly_skill}")
         skills_btn = ft.OutlinedButton(
             content=skills_btn_text,
@@ -155,7 +161,6 @@ class PalCreatorCard:
             )
         )
 
-        # 4. CO-OP / MOUNTING CUSTOMIZATION PANEL
         saddle_input = ft.TextField(
             label="Unlock Key Item ID (Saddle/Harness)", 
             value=p.get("SaddleItem", "None"), 
@@ -189,13 +194,11 @@ class PalCreatorCard:
             bgcolor=ft.Colors.BLACK
         )
 
-        # --- OVERWORLD WILD SPAWNER PANEL ---
         enable_spawns_checkbox = ft.Checkbox(
             label="Enable Overworld Wild Spawning", 
             value=p.get("EnableSpawns", True)
         )
         
-        # Dynamic Spawner Selector
         selected_spawner = [p.get("SpawnLocationID", "1_1_plain_begginer")]
         friendly_spawner = next((lbl for lbl, val in self.monster_spawners.items() if val == selected_spawner[0]), selected_spawner[0])
         spawner_btn_text = ft.Text(f"Spawner Pool: {friendly_spawner}")
@@ -242,7 +245,6 @@ class PalCreatorCard:
             bgcolor=ft.Colors.BLACK
         )
 
-        # --- PALDECK (PALPEDIA) CONFIGURATION PANEL ---
         z_index = p.get("ZukanIndex", -1)
         has_paldeck = z_index != -1
         
@@ -265,7 +267,6 @@ class PalCreatorCard:
             disabled=not has_paldeck
         )
 
-        # Dropdown to select standalone species or subspecies variant
         paldex_type_dd = ft.Dropdown(
             label="Paldex Classification",
             value=p.get("PaldexType", "Species"),
@@ -286,13 +287,12 @@ class PalCreatorCard:
             disabled=not has_paldeck
         )
 
-        # Dynamic validation handler
         def handle_paldeck_toggle(e):
             is_enabled = enable_paldeck_checkbox.value
             zukan_index_input.disabled = not is_enabled
             zukan_suffix_input.disabled = not is_enabled
             pedia_desc_input.disabled = not is_enabled
-            paldex_type_dd.disabled = not is_enabled  # Sync disabled state
+            paldex_type_dd.disabled = not is_enabled
             self.page.update()
 
         enable_paldeck_checkbox.on_change = handle_paldeck_toggle
@@ -302,7 +302,7 @@ class PalCreatorCard:
                 ft.Text("Paldeck (PalPedia) Configurations", size=12, weight=ft.FontWeight.BOLD, color=ft.Colors.CYAN_400),
                 enable_paldeck_checkbox,
                 ft.Row([zukan_index_input, zukan_suffix_input], spacing=10),
-                paldex_type_dd,  # Injected dropdown control
+                paldex_type_dd,
                 pedia_desc_input
             ], spacing=10),
             padding=10,
@@ -311,15 +311,14 @@ class PalCreatorCard:
             bgcolor=ft.Colors.BLACK
         )
 
-        # 5. Level-up Learnset Editor Sub-Component
+        # Injecting the element-aware search wrapper [7]
         self.learnset_editor = LearnsetEditor(
             self.page,
             self.active_skills,
             p.get("Learnset", []),
-            self.show_search_dialog
+            self.show_search_dialog_with_elements
         )
 
-        # 6. Collapsible Advanced Panel
         hp_input = ft.TextField(label="Base HP", value=str(p["BaseHP"]), expand=True)
         atk_input = ft.TextField(label="Base Attack", value=str(p["BaseAtk"]), expand=True)
         def_input = ft.TextField(label="Base Defense", value=str(p["BaseDef"]), expand=True)
@@ -336,7 +335,6 @@ class PalCreatorCard:
             on_click=lambda e: self.toggle_advanced_accordion(advanced_cols, adv_btn)
         )
 
-        # Action triggers
         def on_save_click(e):
             save_payload = {
                 "CharacterID": self.pal_id,
@@ -366,7 +364,7 @@ class PalCreatorCard:
                 "ZukanIndex": int(zukan_index_input.value.strip() or "55") if enable_paldeck_checkbox.value else -1,
                 "ZukanIndexSuffix": zukan_suffix_input.value.strip() if enable_paldeck_checkbox.value else "",
                 "LongDescription": pedia_desc_input.value.strip() if enable_paldeck_checkbox.value else "",
-                "PaldexType": paldex_type_dd.value  # Injected payload parameter
+                "PaldexType": paldex_type_dd.value
             }
 
             self.on_save(self.pal_id, save_payload)
@@ -374,7 +372,6 @@ class PalCreatorCard:
         def on_delete_click(e):
             self.on_delete(self.pal_id)
 
-        # Injected Action Button
         refresh_bp_btn = ft.TextButton(
             "Refresh Actor Blueprint", 
             icon=ft.Icons.AUTORENEW_ROUNDED, 
@@ -395,7 +392,6 @@ class PalCreatorCard:
             self.learnset_editor.view,
             adv_btn,
             advanced_cols,
-            # Injected row controls
             ft.Row([refresh_bp_btn, save_btn, delete_btn], alignment=ft.MainAxisAlignment.END, spacing=10)
         ], spacing=10)
         
