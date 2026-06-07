@@ -103,6 +103,12 @@ class SettingsController:
 
         self.refresh_ue4ss_status(exe_path)
 
+    def quiet_save(self, current_paths: dict, show_mapped: bool):
+        """Saves settings quietly to disk without triggering the heavy verification/build pipeline."""
+        self.settings.update(current_paths)
+        self.settings["show_mapped"] = show_mapped
+        save_settings(self.settings)
+
     def save_clicked(self, current_paths: dict, show_mapped: bool):
         self.settings.update(current_paths)
         self.settings["show_mapped"] = show_mapped

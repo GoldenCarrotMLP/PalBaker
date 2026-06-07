@@ -8,7 +8,9 @@ from components.mods.dialogs import (
     create_overwrite_warning_dialog,
     create_decompile_options_dialog,
     create_troubleshooting_advisor_dialog,
-    create_build_database_dialog
+    create_build_database_dialog,
+    create_unreal_closed_dialog,            # <-- IMPORTED
+    create_remote_exec_disabled_dialog      # <-- IMPORTED
 )
 from components.altermatic.dialogs import AltermaticEditDialog, AltermaticAddDialog, AltermaticDeleteDialog
 
@@ -242,6 +244,20 @@ class ModsView:
     def prompt_build_database(self):
         dlg = create_build_database_dialog(
             lambda e: (self.pop_dialog(), self.controller.build_pal_database()),
+            lambda e: self.pop_dialog()
+        )
+        self.show_dialog(dlg)
+
+    def prompt_unreal_closed_warning(self, on_launch):
+        dlg = create_unreal_closed_dialog(
+            lambda e: (self.pop_dialog(), on_launch()),
+            lambda e: self.pop_dialog()
+        )
+        self.show_dialog(dlg)
+
+    def prompt_remote_exec_disabled_warning(self, on_fix):
+        dlg = create_remote_exec_disabled_dialog(
+            lambda e: (self.pop_dialog(), on_fix()),
             lambda e: self.pop_dialog()
         )
         self.show_dialog(dlg)

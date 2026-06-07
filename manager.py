@@ -140,17 +140,5 @@ def main(page: ft.Page):
         if not all(os.path.exists(p) for p in [map_path, skills_cache, passives_cache, partner_cache, params_cache, learnset_cache, spawners_cache, default_map_cache, camera_offsets_cache]):
             mods_view.prompt_build_database()
 
-    # --- AUTO-OPEN UNREAL ENGINE ---
-    ue_root = settings.get("ue_root", "")
-    uproject = settings.get("uproject", "")
-    if ue_root and uproject and os.path.exists(ue_root) and os.path.exists(uproject):
-        try:
-            from utils.plugins.installer import is_unreal_running, launch_unreal_editor
-            if not is_unreal_running():
-                print("Unreal Engine is not running. Auto-launching...", flush=True)
-                launch_unreal_editor(ue_root, uproject)
-        except Exception as e:
-            print(f"Failed to auto-launch Unreal Engine: {e}")
-
 if __name__ == "__main__":
     ft.run(main)

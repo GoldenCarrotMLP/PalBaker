@@ -16,6 +16,33 @@ class PipelineExecutor:
     def handle_action(self, mod_data, action):
         if self.is_building: return
 
+        # Unreal Engine environment validation for specific pipelines
+        if action in ["push", "full", "decompile", "browse_unreal"]:
+            from utils.plugins.detector import check_remote_execution_settings
+            from utils.plugins.installer import is_unreal_running, launch_unreal_editor, enable_remote_execution_settings
+            
+            uproject = self.c.settings.get("uproject", "")
+            ue_root = self.c.settings.get("ue_root", "")
+            
+            # Check 1: Check if Remote Execution is statically disabled in INI
+            if not check_remote_execution_settings(uproject):
+                def on_fix_clicked():
+                    enable_remote_execution_settings(uproject)
+                    launch_unreal_editor(ue_root, uproject)
+                    self.c.view.show_snackbar("Python Remote Execution enabled! Launching Unreal Editor... Please wait for it to fully load, then retry.", ft.Colors.GREEN_400)
+                
+                self.c.view.prompt_remote_exec_disabled_warning(on_fix_clicked)
+                return
+            
+            # Check 2: Check if Unreal Editor is physically closed
+            if not is_unreal_running():
+                def on_launch_clicked():
+                    launch_unreal_editor(ue_root, uproject)
+                    self.c.view.show_snackbar("Launching Unreal Editor... Please wait for it to fully load, then retry.", ft.Colors.CYAN_400)
+                
+                self.c.view.prompt_unreal_closed_warning(on_launch_clicked)
+                return
+
         if action == "extract_pal":
             self.c.execute_extraction_pipeline(mod_data)
         elif action in ["push", "full"] and mod_data.get("ue_modified"):
@@ -152,7 +179,7 @@ class PipelineExecutor:
             script_args = [mod_data["name"], category, action]
             await run_pipeline_async(script_args, log_callback, progress_callback, complete_callback, self.active_token)
 
-        self.c.view.run_async_task(run_task)
+        self.c.view.run_task(run_task)
 
     def execute_browse_unreal(self, mod_data):
         self.is_building = True
