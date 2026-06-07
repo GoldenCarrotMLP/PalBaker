@@ -231,13 +231,25 @@ def _build_active_skills_cache(settings: dict, repo_root: str, skill_names_looku
                         
                         lookup_key = f"WAZA_{internal_id}"
                         friendly_name = skill_names_lookup.get(lookup_key, internal_id)
-                        skills_cache[friendly_name] = internal_id
+                        
+                        # Extract Element and Type metadata [7]
+                        raw_element = r_v.get("Element", "EPalElementType::None")
+                        element = raw_element.split("::")[1] if "::" in raw_element else raw_element
+                        
+                        raw_category = r_v.get("Category", "EPalWazaCategory::None")
+                        category = raw_category.split("::")[1] if "::" in raw_category else raw_category
+                        
+                        skills_cache[friendly_name] = {
+                            "id": internal_id,
+                            "element": element,
+                            "category": category
+                        }
                         
                     with open(os.path.join(repo_root, "deps", "active_skills_cache.json"), "w", encoding="utf-8") as f_out:
                         json.dump(skills_cache, f_out, indent=4)
         shutil.rmtree(temp_skills, ignore_errors=True)
-    except Exception:
-        pass
+    except Exception as e:
+        print(f"Warning: Failed to compile Active Skills cache: {e}", flush=True)
 
 def _build_passive_skills_cache(settings: dict, repo_root: str, skill_names_lookup: dict):
     try:

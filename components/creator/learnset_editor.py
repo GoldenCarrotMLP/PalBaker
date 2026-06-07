@@ -51,7 +51,9 @@ class LearnsetEditor:
         for idx, entry in enumerate(self.learnset):
             lvl = entry["Level"]
             w_id = entry["WazaID"]
-            friendly_waza = next((lbl for lbl, val in self.active_skills_cache.items() if val == w_id), w_id)
+            
+            # Safe layout lookup supporting both flat and enriched cache types
+            friendly_waza = next((lbl for lbl, val in self.active_skills_cache.items() if (val["id"] if isinstance(val, dict) else val) == w_id), w_id)
             
             row = ft.Row([
                 ft.Text(f"Lv. {lvl}:", size=11, weight=ft.FontWeight.BOLD, width=50),

@@ -168,7 +168,6 @@ def fix_hierarchy_base(armature_name: str = "Armature"):
 
 @translator.register("get_pose_bones_info", (0, 0))
 def get_pose_bones_info_base(armature_name: str = "Armature") -> list[dict]:
-    # Rule A: Strictly localized inside the execution context
     from mathutils import Matrix
     
     arm_obj = bpy.data.objects.get(armature_name)
@@ -329,6 +328,29 @@ def compile_material_instance_base(mat_name: str, parent_class: str, params: dic
         links.new(color_b.outputs[0], combine_node.inputs["Blue"])
         links.new(combine_node.outputs["Color"], sep_color.inputs["Color"])
 
+        # --- DYNAMICALLY BAKE AND CONNECT COMBINED CHANNELS TO DISK AND SHADER TREE ---
+        try:
+            from image_combiner import build_mrao_texture
+            mrao_filename = f"T_{mat_name}_M"
+            out_filepath = os.path.join(working_dir, f"{mrao_filename}.png")
+            
+            print(f"[PalBaker] Baking combined MRAO channels to: {out_filepath}", flush=True)
+            build_mrao_texture(combine_node, out_filepath)
+            
+            # Replace combine network with baked texture node
+            nodes.remove(color_r)
+            nodes.remove(color_g)
+            nodes.remove(color_b)
+            nodes.remove(combine_node)
+            
+            mrao_tex = create_texture_node(nodes, working_dir, mrao_filename, -1200, 0, non_color=True)
+            links.new(mrao_tex.outputs["Color"], sep_color.inputs["Color"])
+            
+            # Add to params so downstream unreal import logic picks up on it
+            params["MetallicRoughnessOcclusionSpecularTexture"] = mrao_filename
+        except Exception as e:
+            print(f"[PalBaker Warning] Failed to bake combined MRAO texture: {e}", flush=True)
+
     mix_node = translator.execute(
         "connect_mix_nodes", 
         nodes, 
@@ -362,7 +384,6 @@ def compile_material_instance_base(mat_name: str, parent_class: str, params: dic
 
 @translator.register("export_fbx", (0, 0))
 def export_fbx_base(fbx_path: str, armature_name: str = "Armature"):
-    # Rule A: Strictly localized inside the execution context
     from mathutils import Matrix
     
     arm_obj = bpy.data.objects.get(armature_name)
@@ -417,10 +438,49 @@ def get_material_textures_base(mat_name: str) -> dict:
         
     textures = {}
     nodes = mat.node_tree.nodes
+    links = mat.node_tree.links
     
-    # 1. Inspect Principled BSDF socket links directly
     bsdf = next((n for n in nodes if n.type == 'BSDF_PRINCIPLED'), None)
     if bsdf:
+        # --- AUTO-BAKE MRAO CHANNELS ON-THE-FLY IF DETECTED ---
+        metallic_socket = translator.execute("get_bsdf_socket", bsdf, "metallic")
+        if metallic_socket and metallic_socket.is_linked:
+            sep_node = metallic_socket.links[0].from_node
+            if sep_node.type in ['SEPARATE_COLOR', 'SEPARATE_RGB']:
+                color_socket = sep_node.inputs.get("Color") or sep_node.inputs.get("Image")
+                if color_socket and color_socket.is_linked:
+                    combine_node = color_socket.links[0].from_node
+                    if combine_node.type in ['COMBINE_COLOR', 'COMBINE_RGB']:
+                        blend_path = bpy.data.filepath
+                        if blend_path:
+                            working_dir = os.path.dirname(blend_path)
+                            try:
+                                from image_combiner import build_mrao_texture
+                                mrao_filename = f"T_{mat_name}_M"
+                                out_filepath = os.path.join(working_dir, f"{mrao_filename}.png")
+                                
+                                print(f"[PalBaker] Auto-baking combined MRAO channels during export to: {out_filepath}", flush=True)
+                                build_mrao_texture(combine_node, out_filepath)
+                                
+                                # Replace combine network with baked texture node
+                                nodes_to_remove = [combine_node]
+                                for input_socket in combine_node.inputs:
+                                    if input_socket.is_linked:
+                                        input_node = input_socket.links[0].from_node
+                                        if input_node.type == 'RGB':
+                                            nodes_to_remove.append(input_node)
+                                            
+                                for node in nodes_to_remove:
+                                    try: nodes.remove(node)
+                                    except Exception: pass
+                                    
+                                mrao_tex = create_texture_node(nodes, working_dir, mrao_filename, -1200, 0, non_color=True)
+                                links.new(mrao_tex.outputs["Color"], sep_node.inputs["Color"])
+                                
+                                print(f"[PalBaker] Successfully baked and connected MRAO texture: {mrao_filename}", flush=True)
+                            except Exception as e:
+                                print(f"[PalBaker Warning] Auto-baking MRAO failed: {e}", flush=True)
+
         def trace_texture(socket):
             if not socket or not socket.is_linked:
                 return None
@@ -428,19 +488,16 @@ def get_material_textures_base(mat_name: str) -> dict:
             link = socket.links[0]
             from_node = link.from_node
             
-            # Unwrap standard Unreal DirectX Normal Map converters
             if from_node.type == 'NORMAL_MAP':
                 color_socket = from_node.inputs.get("Color")
                 if color_socket and color_socket.is_linked:
                     from_node = color_socket.links[0].from_node
             
-            # Unwrap Separate Color channels (Metallic/Roughness/Specular occlusion maps)
             elif from_node.type in ['SEPARATE_COLOR', 'SEPARATE_RGB']:
                 color_socket = from_node.inputs.get("Color") or from_node.inputs.get("Image")
                 if color_socket and color_socket.is_linked:
                     from_node = color_socket.links[0].from_node
                     
-            # Unwrap Multiply Mix nodes
             elif from_node.type in ['MIX', 'MIX_RGB']:
                 for input_name in ["A", "B", "Color1", "Color2"]:
                     input_socket = from_node.inputs.get(input_name)
@@ -481,7 +538,6 @@ def get_material_textures_base(mat_name: str) -> dict:
         if sss_tex:
             textures["Subsurface Texture"] = sss_tex
 
-    # 2. Fallback heuristic scanner for exotic custom shader networks
     non_base_suffixes = ["_n", "_normal", "_m", "_s", "_specular", "_param", "_mrao", "_ao", "_em", "_emissive", "_rgn"]
     for node in nodes:
         if node.type == 'TEX_IMAGE' and node.image:

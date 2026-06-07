@@ -62,7 +62,7 @@ def clean_cook_environment(workspace):
     if os.path.exists(workspace.cooked_anims_dir): 
         shutil.rmtree(workspace.cooked_anims_dir, ignore_errors=True)
         
-    # Safeguard: Do NOT delete cooked_bp_dir if it contains our pre-cooked custom standalone blueprint! [6]
+    # Safeguard: Do NOT delete cooked_bp_dir if it contains our pre-cooked custom standalone blueprint!
     if os.path.exists(workspace.cooked_bp_dir): 
         if not workspace.is_custom_pal:
             shutil.rmtree(workspace.cooked_bp_dir, ignore_errors=True)
@@ -144,6 +144,10 @@ def pack_cooked_assets(unrealpak_path: str, response_file: str, output_pak: str,
     """
     os.makedirs(os.path.dirname(response_file), exist_ok=True)
 
+    # Global list of blacklisted substrings (case-insensitive)
+    # Add or edit elements in this array to exclude other asset files from being packaged.
+    PACKAGING_BLACKLIST = ["extra"]
+
     files_found = 0
     with open(response_file, "w") as f:
         for path_on_disk, relative_virtual_path in folders_to_pack:
@@ -159,6 +163,9 @@ def pack_cooked_assets(unrealpak_path: str, response_file: str, output_pak: str,
                                 # Exclude Skeleton if no custom animations are shipped
                                 if "Skeleton" in file and not has_anims:
                                     continue
+                                # Exclude files matching blacklist keywords (case-insensitive)
+                                if any(term.lower() in file.lower() for term in PACKAGING_BLACKLIST):
+                                    continue
                                     
                                 abs_path = os.path.join(root, file)
                                 rel_to_cooked = os.path.relpath(abs_path, path_on_disk)
@@ -167,11 +174,17 @@ def pack_cooked_assets(unrealpak_path: str, response_file: str, output_pak: str,
                                 files_found += 1
                 # Case B: File-level packaging (Single explicit asset)
                 else:
+                    filename = os.path.basename(path_on_disk)
+                    if any(term.lower() in filename.lower() for term in PACKAGING_BLACKLIST):
+                        continue
+                        
                     rel_virtual = "../../../Pal/Content/" + relative_virtual_path.replace("\\", "/")
                     f.write(f'"{path_on_disk}" "{rel_virtual}"\n')
                     files_found += 1
-                            
+                                
     if files_found > 0:
-        run_and_stream([unrealpak_path, output_pak, f"-Create={response_file}"])
-        
+        # FIXED: Standardize absolute response path formatting to forward slashes to prevent escaping errors in UnrealPak
+        clean_response_path = response_file.replace("\\", "/")
+        run_and_stream([unrealpak_path, output_pak, f"-Create={clean_response_path}"])
+            
     return files_found

@@ -1,7 +1,63 @@
+# utils/plugins/installer.py
 import os
 import shutil
 import subprocess
 import time
+
+def is_unreal_running() -> bool:
+    """Returns True if UnrealEditor.exe is currently running on the system."""
+    try:
+        if os.name == 'nt':
+            creation_flags = 0x08000000 # CREATE_NO_WINDOW
+            output = subprocess.run(
+                ["tasklist", "/FI", "IMAGENAME eq UnrealEditor.exe", "/NH"], 
+                capture_output=True, text=True, creationflags=creation_flags
+            ).stdout
+            return "UnrealEditor.exe" in output
+        else:
+            output = subprocess.run(["pgrep", "-x", "UnrealEditor"], capture_output=True, text=True).stdout
+            return bool(output.strip())
+    except Exception:
+        return False
+
+def close_unreal_editor(verbose: bool = False):
+    """Force kills any running UnrealEditor processes to release file locks."""
+    if verbose:
+        print(">>> Terminating running Unreal Editor instances...")
+    try:
+        if os.name == 'nt':
+            creation_flags = 0x08000000 # CREATE_NO_WINDOW
+            subprocess.run(["taskkill", "/F", "/IM", "UnrealEditor.exe"], capture_output=True, creationflags=creation_flags)
+        else:
+            subprocess.run(["pkill", "-x", "UnrealEditor"], capture_output=True)
+    except Exception as e:
+        if verbose: print(f"Warning during taskkill: {e}")
+    time.sleep(1.5)
+
+def launch_unreal_editor(ue_root: str, uproject_path: str, verbose: bool = False) -> tuple[bool, str]:
+    """Headlessly launches the target project in Unreal Editor."""
+    editor_exe = os.path.join(ue_root, "Engine", "Binaries", "Win64", "UnrealEditor.exe")
+    if not os.path.exists(editor_exe):
+        return False, f"Could not find UnrealEditor.exe at {editor_exe}"
+        
+    if verbose:
+        print(f">>> Launching project: {uproject_path}")
+    try:
+        creation_flags = 0x00000008 if os.name == 'nt' else 0 # DETACHED_PROCESS
+        subprocess.Popen(
+            [editor_exe, uproject_path],
+            creationflags=creation_flags,
+            close_fds=True,
+            start_new_session=True if os.name != 'nt' else False
+        )
+        return True, "Unreal Editor successfully launched!"
+    except Exception as e:
+        return False, f"Failed to launch Unreal Editor: {e}"
+
+def restart_unreal_editor(ue_root: str, uproject_path: str, verbose: bool = False) -> tuple[bool, str]:
+    """Terminates running instances and relaunches the project."""
+    close_unreal_editor(verbose)
+    return launch_unreal_editor(ue_root, uproject_path, verbose)
 
 def sync_plugin_files(src_dir: str, dest_dir: str, verbose: bool = False):
     """Syncs/copies the plugin folder structure from the repository to the ModKit."""
@@ -24,7 +80,6 @@ def copy_dlls_back(dest_dll_dir: str, src_dll_dir: str, verbose: bool = False):
             print(f">>> Copying clean compiled binaries back into local repository: {src_dll_dir}")
         os.makedirs(src_dll_dir, exist_ok=True)
         
-        # Clear old DLLs in source directory first
         for f in os.listdir(src_dll_dir):
             try:
                 os.remove(os.path.join(src_dll_dir, f))
@@ -32,10 +87,8 @@ def copy_dlls_back(dest_dll_dir: str, src_dll_dir: str, verbose: bool = False):
                 pass
 
         for f in os.listdir(dest_dll_dir):
-            # Skip Live Coding/Hot Reload temporary binaries (e.g. *-0001.dll)
             if "-" in f and f.split("-")[-1].split(".")[0].isdigit():
                 continue
-            # Skip massive .pdb debug databases (saves ~50MB per build in Git)
             if f.endswith(".pdb"):
                 continue
             
@@ -123,7 +176,6 @@ def enable_cooking_settings(uproject_path: str) -> tuple[bool, str]:
     shader_code_found = False
     
     section_header = "[/Script/UnrealEd.ProjectPackagingSettings]"
-    keys_to_override = ["bUseIoStore", "bShareMaterialShaderCode"]
     
     for line in lines:
         stripped = line.strip()
@@ -165,36 +217,3 @@ def enable_cooking_settings(uproject_path: str) -> tuple[bool, str]:
         f.writelines(new_lines)
         
     return True, "Project packaging settings successfully configured!"
-
-def restart_unreal_editor(ue_root: str, uproject_path: str, verbose: bool = False) -> tuple[bool, str]:
-    """Terminates any running UnrealEditor.exe processes and headlessly relaunches the target project."""
-    editor_exe = os.path.join(ue_root, "Engine", "Binaries", "Win64", "UnrealEditor.exe")
-    if not os.path.exists(editor_exe):
-        return False, f"Could not find UnrealEditor.exe at {editor_exe}"
-        
-    if verbose:
-        print(">>> Terminating running Unreal Editor instances...")
-    try:
-        if os.name == 'nt':
-            subprocess.run(["taskkill", "/F", "/IM", "UnrealEditor.exe"], capture_output=True)
-        else:
-            subprocess.run(["pkill", "-f", "UnrealEditor"], capture_output=True)
-    except Exception as e:
-        if verbose:
-            print(f"Warning during taskkill: {e}")
-            
-    time.sleep(1.0)
-    
-    if verbose:
-        print(f">>> Relaunching project: {uproject_path}")
-    try:
-        creation_flags = 0x00000008 if os.name == 'nt' else 0
-        subprocess.Popen(
-            [editor_exe, uproject_path],
-            creationflags=creation_flags,
-            close_fds=True,
-            start_new_session=True if os.name != 'nt' else False
-        )
-        return True, "Unreal Editor successfully restarted!"
-    except Exception as e:
-        return False, f"Failed to relaunch Unreal Editor: {e}"

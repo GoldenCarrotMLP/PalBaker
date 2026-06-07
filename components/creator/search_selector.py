@@ -6,33 +6,103 @@ class SearchSelectorDialog:
         self.page = page
         self.on_select = None
         self.dataset = {}
+        self.pal_elements = []
         
         self.search_input = ft.TextField(label="Search...", prefix_icon=ft.Icons.SEARCH)
         self.results_list = ft.ListView(height=250, spacing=2, scroll=ft.ScrollMode.AUTO)
-        
         self.cancel_btn = ft.TextButton("Cancel", on_click=self.close_dialog)
+
+        # Pal matching checkbox (Instantiated without lambdas to guarantee event binding)
+        self.pal_only_checkbox = ft.Checkbox(
+            label="Match Pal Elements Only",
+            value=False,
+            visible=False
+        )
+        self.pal_only_checkbox.on_change = self._on_pal_only_change
+        
+        # Dynamic filter dropdowns (Instantiated without lambdas to guarantee event binding)
+        self.element_filter = ft.Dropdown(
+            label="Filter by Element",
+            width=180,
+            options=[ft.dropdown.Option("All")],
+            value="All"
+        )
+        self.element_filter.on_change = self._on_element_filter_change
+
+        self.category_filter = ft.Dropdown(
+            label="Filter by Type",
+            width=180,
+            options=[ft.dropdown.Option("All")],
+            value="All"
+        )
+        self.category_filter.on_change = self._on_category_filter_change
+
+        self.filters_row = ft.Row([self.element_filter, self.category_filter], visible=False, spacing=10)
         
         self.dialog = ft.AlertDialog(
             modal=True,
-            content=ft.Column([self.search_input, self.results_list], tight=True, spacing=15, width=400),
+            content=ft.Column([self.search_input, self.pal_only_checkbox, self.filters_row, self.results_list], tight=True, spacing=15, width=400),
             actions=[self.cancel_btn]
         )
-        self.search_input.on_change = lambda e: self.populate_results(self.search_input.value)
+        self.search_input.on_change = self._on_search_input_change
 
-    def show(self, title: str, dataset_dict: dict, on_select_callback):
-        print(f"\n[SearchSelector] ---> show() called for '{title}'", flush=True)
-        print(f"[SearchSelector] Received dataset of type: {type(dataset_dict)} with length: {len(dataset_dict)}", flush=True)
-        
-        if not dataset_dict:
-            print("[SearchSelector] ⚠️ WARNING: The dataset dictionary passed is completely empty!", flush=True)
-            
+    def _on_element_filter_change(self, e):
+        """Strongly-bound event handler for element dropdown selections."""
+        self.populate_results(self.search_input.value)
+
+    def _on_category_filter_change(self, e):
+        """Strongly-bound event handler for type dropdown selections."""
+        self.populate_results(self.search_input.value)
+
+    def _on_pal_only_change(self, e):
+        """Strongly-bound event handler for the Pal element matching checkbox."""
+        self.populate_results(self.search_input.value)
+
+    def _on_search_input_change(self, e):
+        """Strongly-bound event handler for the search text field."""
+        self.populate_results(self.search_input.value)
+
+    def show(self, title: str, dataset_dict: dict, on_select_callback, pal_elements: list = None):
         self.on_select = on_select_callback
         self.dataset = dataset_dict
         self.dialog.title = ft.Text(title)
         self.search_input.label = f"Search {title}..."
         self.search_input.value = ""
+        self.pal_elements = pal_elements or []
         
-        # 1. Mount and open the dialog first so the Flet layout engine registers it
+        is_enriched = any(isinstance(v, dict) and ("element" in v or "category" in v) for v in dataset_dict.values())
+        self.filters_row.visible = is_enriched
+        
+        # Dynamically configures the Pal Affinity match filter checkbox
+        if is_enriched and self.pal_elements and any(el != "None" for el in self.pal_elements):
+            clean_els = [el for el in self.pal_elements if el != "None"]
+            self.pal_only_checkbox.label = f"Match Pal Elements ({', '.join(clean_els)})"
+            self.pal_only_checkbox.visible = True
+            self.pal_only_checkbox.value = True
+        else:
+            self.pal_only_checkbox.visible = False
+            self.pal_only_checkbox.value = False
+        
+        if is_enriched:
+            elements = set()
+            categories = set()
+            for v in dataset_dict.values():
+                if isinstance(v, dict):
+                    if "element" in v and v["element"]: 
+                        elements.add(v["element"])
+                    if "category" in v and v["category"]: 
+                        categories.add(v["category"])
+            
+            self.element_filter.options = [ft.dropdown.Option("All", "All Elements")] + [
+                ft.dropdown.Option(el, el) for el in sorted(list(elements))
+            ]
+            self.element_filter.value = "All"
+            
+            self.category_filter.options = [ft.dropdown.Option("All", "All Types")] + [
+                ft.dropdown.Option(cat, cat) for cat in sorted(list(categories))
+            ]
+            self.category_filter.value = "All"
+        
         self.dialog.open = True
         try:
             if hasattr(self.page, "show_dialog"):
@@ -42,53 +112,73 @@ class SearchSelectorDialog:
             else:
                 self.page.dialog = self.dialog
                 self.page.update()
-            print("[SearchSelector] Dialog successfully mounted in UI.", flush=True)
-        except Exception as e:
-            print(f"[SearchSelector] ❌ ERROR opening dialog: {e}", flush=True)
+        except Exception:
+            pass
 
-        # 2. Populate and update the lists now that the dialog is fully mounted
         self.populate_results("")
 
     def populate_results(self, query=""):
         query_clean = query.strip().lower()
-        print(f"[SearchSelector] Populating results for query: '{query_clean}'", flush=True)
-        
         self.results_list.controls.clear()
         matches = 0
         max_render_limit = 35 
         
-        for friendly_name, internal_id in self.dataset.items():
-            if not query_clean or (query_clean in friendly_name.lower() or query_clean in internal_id.lower()):
+        show_pal_only = self.pal_only_checkbox.value if self.pal_only_checkbox.visible else False
+        selected_element = self.element_filter.value if self.filters_row.visible else "All"
+        selected_category = self.category_filter.value if self.filters_row.visible else "All"
+        
+        for friendly_name, val in self.dataset.items():
+            actual_id = val["id"] if isinstance(val, dict) else val
+            element = val.get("element", "None") if isinstance(val, dict) else "None"
+            category = val.get("category", "None") if isinstance(val, dict) else "None"
+            
+            # Match elements filter rules
+            if show_pal_only and self.pal_elements:
+                if element not in self.pal_elements:
+                    continue
+            
+            if selected_element != "All" and element != selected_element:
+                continue
+            if selected_category != "All" and category != selected_category:
+                continue
+                
+            if not query_clean or (query_clean in friendly_name.lower() or query_clean in actual_id.lower()):
                 if matches < max_render_limit:
+                    subtitle_str = f"ID: {actual_id}"
+                    if isinstance(val, dict):
+                        subtitle_str += f" | {element} | {category}"
+                        
                     self.results_list.controls.append(
                         ft.ListTile(
                             title=ft.Text(friendly_name, size=12),
-                            subtitle=ft.Text(internal_id, size=10, color=ft.Colors.WHITE38),
-                            on_click=lambda ev, i_id=internal_id, f_name=friendly_name: self.execute_select(i_id, f_name),
+                            subtitle=ft.Text(subtitle_str, size=10, color=ft.Colors.WHITE38),
+                            on_click=lambda ev, i_id=val, f_name=friendly_name: self.execute_select(i_id, f_name),
                             dense=True
                         )
                     )
                 matches += 1
                 
-        print(f"[SearchSelector] Total matches found in loop: {matches}", flush=True)
-        
         if matches == 0:
             self.results_list.controls.append(
-                ft.Text("No entries match search query.", italic=True, size=12, color=ft.Colors.WHITE38)
+                ft.Text("No entries match criteria.", italic=True, size=12, color=ft.Colors.WHITE38)
             )
         elif matches > max_render_limit:
             self.results_list.controls.append(
-                ft.Text(f"...and {matches - max_render_limit} more locations. Type to filter.", italic=True, size=11, color=ft.Colors.CYAN_400)
+                ft.Text(f"...and {matches - max_render_limit} more entries. Type to filter.", italic=True, size=11, color=ft.Colors.CYAN_400)
             )
             
         try: 
+            # Force target-level updates to guarantee synchronization
+            if self.filters_row.visible:
+                self.element_filter.update()
+                self.category_filter.update()
+            self.pal_only_checkbox.update()
+            self.results_list.update()
             self.dialog.update()
-            print("[SearchSelector] Dialog layout successfully updated and rendered.", flush=True)
-        except Exception as e: 
-            print(f"[SearchSelector] ❌ ERROR updating dialog layout: {e}", flush=True)
+        except Exception: 
+            pass
 
     def close_dialog(self, e=None):
-        print("[SearchSelector] Closing dialog...", flush=True)
         self.dialog.open = False
         try:
             if hasattr(self.page, "pop_dialog"):
@@ -97,11 +187,11 @@ class SearchSelectorDialog:
                 self.page.close(self.dialog)
             else:
                 self.page.update()
-        except Exception as e:
-            print(f"[SearchSelector] ❌ ERROR closing dialog: {e}", flush=True)
+        except Exception:
+            pass
 
-    def execute_select(self, internal_id, friendly_name):
-        print(f"[SearchSelector] User selected: {friendly_name} ({internal_id})", flush=True)
+    def execute_select(self, val, friendly_name):
+        actual_id = val["id"] if isinstance(val, dict) else val
         self.close_dialog()
         if self.on_select:
-            self.on_select(internal_id, friendly_name)
+            self.on_select(actual_id, friendly_name)
