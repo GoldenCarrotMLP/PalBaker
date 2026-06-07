@@ -113,3 +113,31 @@ def create_build_database_dialog(on_confirm, on_cancel) -> ft.AlertDialog:
             ft.TextButton("Build Database", on_click=on_confirm, style=ft.ButtonStyle(color=ft.Colors.CYAN_400)),
         ]
     )
+
+def create_unreal_closed_dialog(on_launch, on_cancel) -> ft.AlertDialog:
+    return ft.AlertDialog(
+        open=True,
+        modal=True,
+        title=ft.Text("Unreal Editor is Closed", color=ft.Colors.ORANGE_400),
+        content=ft.Column([
+            ft.Text("The requested action requires Unreal Editor to be running in the background with Python Remote Execution enabled.\n\nWould you like to launch Unreal Editor now?"),
+        ], tight=True),
+        actions=[
+            ft.TextButton("Cancel", on_click=on_cancel),
+            ft.TextButton("Launch Unreal Editor", on_click=on_launch, style=ft.ButtonStyle(color=ft.Colors.CYAN_400)),
+        ]
+    )
+
+def create_remote_exec_disabled_dialog(on_fix, on_cancel) -> ft.AlertDialog:
+    return ft.AlertDialog(
+        open=True,
+        modal=True,
+        title=ft.Text("Remote Execution is Disabled", color=ft.Colors.RED_400),
+        content=ft.Column([
+            ft.Text("Python Remote Execution is currently disabled in your project's settings.\n\nPalBaker can automatically modify your DefaultEngine.ini to enable it and then launch the editor."),
+        ], tight=True),
+        actions=[
+            ft.TextButton("Cancel", on_click=on_cancel),
+            ft.TextButton("Enable & Launch", on_click=on_fix, style=ft.ButtonStyle(color=ft.Colors.CYAN_400)),
+        ]
+    )

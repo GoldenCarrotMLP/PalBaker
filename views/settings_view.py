@@ -8,62 +8,59 @@ class SettingsView:
         self.main_page = page
         self.settings = settings
         self.on_rebuild_db_callback = on_rebuild_db_callback
+        self.on_save_callback = on_save_callback # Bind callback to class instance
         
-        # FIXED: Initialize shared pickers once to prevent dynamic TimeoutExceptions
         self.dir_picker = ft.FilePicker()
         self.file_picker = ft.FilePicker()
         self.main_page.services.append(self.dir_picker)
         self.main_page.services.append(self.file_picker)
 
-        # Link the Controller
         self.controller = SettingsController(self, settings, on_save_callback)
 
-        # RENAME label from "FModel Output Folder" to "Workspace Folder"
         self.fmodel_picker = PathPicker(
             label="Workspace Folder", 
             value=str(settings.get("fmodel_output", "")), 
             icon=ft.Icons.FOLDER_OPEN,
-            on_browse_click=lambda e: self.main_page.run_task(self.controller.pick_directory, self.fmodel_picker, self.dir_picker)
+            on_browse_click=lambda e: self.main_page.run_task(self.controller.pick_directory, self.fmodel_picker, self.dir_picker),
+            on_change=self._auto_save
         )
         
         self.ue_root_picker = PathPicker(
             label="Unreal Engine Root (e.g. UE_5.1)", 
             value=str(settings.get("ue_root", "")), 
             icon=ft.Icons.FOLDER_OPEN,
-            on_browse_click=lambda e: self.main_page.run_task(self.controller.pick_directory, self.ue_root_picker, self.dir_picker)
+            on_browse_click=lambda e: self.main_page.run_task(self.controller.pick_directory, self.ue_root_picker, self.dir_picker),
+            on_change=self._auto_save
         )
         
         self.uproject_picker = PathPicker(
             label="Palworld ModKit .uproject Path", 
             value=str(settings.get("uproject", "")), 
             icon=ft.Icons.FILE_OPEN,
-            on_browse_click=lambda e: self.main_page.run_task(self.controller.pick_file, self.uproject_picker, self.file_picker, ["uproject"])
+            on_browse_click=lambda e: self.main_page.run_task(self.controller.pick_file, self.uproject_picker, self.file_picker, ["uproject"]),
+            on_change=self._auto_save
         )
         
         self.blender_picker = PathPicker(
             label="Blender Executable Path", 
             value=str(settings.get("blender", "")), 
             icon=ft.Icons.FILE_OPEN,
-            on_browse_click=lambda e: self.main_page.run_task(self.controller.pick_file, self.blender_picker, self.file_picker)
+            on_browse_click=lambda e: self.main_page.run_task(self.controller.pick_file, self.blender_picker, self.file_picker),
+            on_change=self._auto_save
         )
         
         self.palworld_exe_picker = PathPicker(
             label="Palworld.exe Path", 
             value=str(settings.get("palworld_exe", "")), 
             icon=ft.Icons.FILE_OPEN,
-            on_browse_click=lambda e: self.main_page.run_task(self.controller.pick_file, self.palworld_exe_picker, self.file_picker, ["exe"])
+            on_browse_click=lambda e: self.main_page.run_task(self.controller.pick_file, self.palworld_exe_picker, self.file_picker, ["exe"]),
+            on_change=self._on_palworld_exe_change
         )
-
-        # Intercept manual typings on the exe picker so UE4SS detects the executable dynamically on-the-fly
-        original_on_change = self.palworld_exe_picker.text_field.on_change
-        def new_on_change(e):
-            original_on_change(e)
-            self.controller.refresh_ue4ss_status(self.palworld_exe_picker.get_value())
-        self.palworld_exe_picker.text_field.on_change = new_on_change
 
         self.show_mapped_switch = ft.Switch(
             label="Show Mapped Names (e.g. Chillet instead of WeaselDragon)", 
-            value=bool(settings.get("show_mapped", False))
+            value=bool(settings.get("show_mapped", False)),
+            on_change=self._on_show_mapped_change
         )
         
         # --- UE4SS Integration UI ---
@@ -82,7 +79,6 @@ class SettingsView:
         ], wrap=True)
 
         # --- PALSCHEMA INTEGRATION UI ---
-        # Added a clean native UI state section for PalSchema mod management
         self.palschema_status_text = ft.Text("Checking PalSchema status...", size=14)
         
         self.install_palschema_btn = ft.ElevatedButton("Install PalSchema", on_click=lambda e: self.controller.manage_palschema("Install"))
@@ -116,7 +112,7 @@ class SettingsView:
                 self.show_mapped_switch,
                 ft.Divider(),
                 ft.Row([
-                    ft.ElevatedButton("Save and Reload Mod List", icon=ft.Icons.SAVE, on_click=self._on_save, height=50, expand=True),
+                    ft.ElevatedButton("Save & Verify Project Requirements", icon=ft.Icons.VERIFIED, on_click=self._on_save, height=50, expand=True),
                     ft.ElevatedButton("Rebuild Game Database", icon=ft.Icons.STORAGE_ROUNDED, on_click=self._on_rebuild_db, height=50, style=ft.ButtonStyle(color=ft.Colors.CYAN_400))
                 ], spacing=10)
             ]
@@ -124,6 +120,26 @@ class SettingsView:
         
         # Run standard startup scan
         self.controller.refresh_ue4ss_status()
+
+    def _auto_save(self, e=None):
+        current_paths = {
+            "fmodel_output": self.fmodel_picker.get_value(),
+            "ue_root": self.ue_root_picker.get_value(),
+            "uproject": self.uproject_picker.get_value(),
+            "blender": self.blender_picker.get_value(),
+            "palworld_exe": self.palworld_exe_picker.get_value(),
+        }
+        self.controller.quiet_save(current_paths, bool(self.show_mapped_switch.value))
+
+    def _on_palworld_exe_change(self, e=None):
+        self._auto_save()
+        self.controller.refresh_ue4ss_status(self.palworld_exe_picker.get_value())
+
+    def _on_show_mapped_change(self, e=None):
+        self._auto_save()
+        if self.on_save_callback:
+            # Setting scan_disk=False instantly updates mod names without freezing the UI!
+            self.on_save_callback(scan_disk=False)
 
     def _on_rebuild_db(self, e):
         """Dispatches the linked database rebuild warning trigger."""
