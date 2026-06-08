@@ -1,5 +1,5 @@
 # utils/blender_utils/adapters_base.py
-import bpy
+import bpy  # type: ignore
 import os
 import math
 import re
@@ -54,7 +54,7 @@ def clean_scene_base():
 
 @translator.register("ensure_addon_enabled", (4, 2))
 def ensure_addon_enabled_v4_2(addon_name: str):
-    import addon_utils
+    import addon_utils  # type: ignore
     pkg_id = f"bl_ext.system.{addon_name}"
     
     state = addon_utils.check(pkg_id)
@@ -169,7 +169,7 @@ def fix_hierarchy_base(armature_name: str = "Armature"):
 
 @translator.register("get_pose_bones_info", (0, 0))
 def get_pose_bones_info_base(armature_name: str = "Armature") -> list[dict]:
-    from mathutils import Matrix
+    from mathutils import Matrix  # type: ignore
     
     arm_obj = bpy.data.objects.get(armature_name)
     if not arm_obj:
@@ -388,7 +388,7 @@ def compile_material_instance_base(mat_name: str, parent_class: str, params: dic
 
 @translator.register("export_fbx", (0, 0))
 def export_fbx_base(fbx_path: str, armature_name: str = "Armature"):
-    from mathutils import Matrix
+    from mathutils import Matrix  # type: ignore
     
     arm_obj = bpy.data.objects.get(armature_name)
     if arm_obj:

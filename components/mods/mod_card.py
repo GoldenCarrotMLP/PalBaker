@@ -1,5 +1,5 @@
 # components/mods/mod_card.py
-import flet as ft
+import flet as ft  # type: ignore
 import os
 import sys
 import subprocess
