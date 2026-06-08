@@ -80,8 +80,13 @@ class AltermaticEditDialog:
         # FIXED: Enforce a strict fallback string to satisfy Pylance
         selected_source = self.general_section.skeleton_source_dropdown.value or "base"
         
-        self.materials_section.populate(character_id, selected_source, variant_data, available_mats, self.is_base, self.current_category)
-        self.morphs_section.populate(character_id, selected_source, variant_data.get("MorphTarget", []), self.is_base)
+        # Populate material and morphs asynchronously
+        async def load_advanced_data():
+            await self.materials_section.populate(character_id, selected_source, variant_data, available_mats, self.is_base, self.current_category)
+            await self.morphs_section.populate(character_id, selected_source, variant_data.get("MorphTarget", []), self.is_base)
+            self.force_ui_update()
+            
+        self.page.run_task(load_advanced_data)
 
         self.delete_btn.visible = not self.is_base
         self.advanced_toggle_button.visible = not self.is_base
@@ -110,9 +115,12 @@ class AltermaticEditDialog:
         self.general_section.open_blend_button.disabled = is_base_source
         self.general_section.refresh_layout_button.disabled = is_base_source
 
-        self.materials_section.populate(self.current_character_id, selected_source, None, self.available_mats, self.is_base, self.current_category)
-        self.morphs_section.populate(self.current_character_id, selected_source, [], self.is_base)
-        self.force_ui_update()
+        async def reload_advanced():
+            await self.materials_section.populate(self.current_character_id, selected_source, None, self.available_mats, self.is_base, self.current_category)
+            await self.morphs_section.populate(self.current_character_id, selected_source, [], self.is_base)
+            self.force_ui_update()
+            
+        self.page.run_task(reload_advanced)
 
     def force_ui_update(self):
         try: self.dialog.update()
@@ -122,25 +130,10 @@ class AltermaticEditDialog:
         source = self.general_section.skeleton_source_dropdown.value
         if not source: return
 
-        fmodel_root = self.settings.get("fmodel_output", "")
-        if not fmodel_root:
-            return
-        
-        if source == "base":
-            blend_path = os.path.normpath(os.path.join(
-                fmodel_root, "Exports", "Pal", "Content", "Pal", "Model", "Character", self.current_category,
-                self.current_character_id, f"{self.current_character_id}.blend"
-            ))
-        else:
-            blend_path = os.path.normpath(os.path.join(
-                fmodel_root, "Exports", "Pal", "Content", "Palbaker", "Model", "Character", self.current_category,
-                self.current_character_id, source
-            ))
-
-        blender_exe = self.settings.get("blender")
-        if os.path.exists(blend_path) and blender_exe and os.path.exists(blender_exe):
-            try: subprocess.Popen([blender_exe, blend_path])
-            except Exception: pass
+        async def _async_open_blend():
+            await self.page.mods_view.cli.altermatic_open_blend(self.current_character_id, source, self.current_category)
+            
+        self.page.run_task(_async_open_blend)
 
     def handle_refresh_layout_click(self, e):
         close_dialog_safe(self.page, self.dialog)
@@ -169,39 +162,37 @@ class AltermaticEditDialog:
         self.force_ui_update()
 
         req_traits, pref_traits = self.traits_section.get_values()
-        
-        from utils.altermatic_helper import get_virtual_path_for_file
-        root_dir = os.path.dirname(self.settings.get("uproject", ""))
-        target_dir = os.path.join(root_dir, "Content", "Palbaker", "Model", "Character", self.current_category, self.current_character_id)
-        mat_resolved_dir = get_virtual_path_for_file(os.path.join(target_dir, "dummy_sidecar_blend.json"))
-
-        mat_replaces = []
-        slots = self.materials_section.get_slots_for_skeleton(self.current_character_id, general_values["SkeletonSource"], self.current_category)
-
-        for idx, dropdown in self.materials_section.active_material_dropdowns.items():
-            if dropdown.value and dropdown.value != "default":
-                resolved_mat_path = f"{mat_resolved_dir}/{dropdown.value}"
-                mat_replaces.append({
-                    "Index": str(idx),
-                    "MatPath": resolved_mat_path,
-                    "SlotName": slots[idx]
-                })
-
+        mat_resolved_dir = f"/Game/Palbaker/Model/Character/{self.current_category}/{self.current_character_id}".replace(" ", "_")
         morphs = self.morphs_section.get_values()
 
-        variant_data = {
-            "label": "base" if self.is_base else general_values["label"],
-            "CharacterID": self.current_character_id,
-            "SkeletonSource": general_values["SkeletonSource"],
-            "Gender": general_values["Gender"],
-            "IsRarePal": general_values["IsRarePal"],
-            "SkinName": general_values["SkinName"],
-            "ReqTrait": req_traits,
-            "PrefTrait": pref_traits,
-            "MatReplace": mat_replaces,
-            "MorphTarget": morphs,
-            "is_base": self.is_base
-        }
+        async def fetch_slots_and_save():
+            mat_replaces = []
+            slots = await self.materials_section.get_slots_for_skeleton(self.current_character_id, general_values["SkeletonSource"], self.current_category)
 
-        close_dialog_safe(self.page, self.dialog)
-        self.on_save_callback(self.editing_index, variant_data)
+            for idx, dropdown in self.materials_section.active_material_dropdowns.items():
+                if dropdown.value and dropdown.value != "default":
+                    resolved_mat_path = f"{mat_resolved_dir}/{dropdown.value}"
+                    mat_replaces.append({
+                        "Index": str(idx),
+                        "MatPath": resolved_mat_path,
+                        "SlotName": slots[idx]
+                    })
+
+            full_variant_data = {
+                "label": "base" if self.is_base else general_values["label"],
+                "CharacterID": self.current_character_id,
+                "SkeletonSource": general_values["SkeletonSource"],
+                "Gender": general_values["Gender"],
+                "IsRarePal": general_values["IsRarePal"],
+                "SkinName": general_values["SkinName"],
+                "ReqTrait": req_traits,
+                "PrefTrait": pref_traits,
+                "MatReplace": mat_replaces,
+                "MorphTarget": morphs,
+                "is_base": self.is_base
+            }
+
+            close_dialog_safe(self.page, self.dialog)
+            self.on_save_callback(self.editing_index, full_variant_data)
+
+        self.page.run_task(fetch_slots_and_save)

@@ -20,33 +20,17 @@ class MorphsSection:
             self.morphs_col
         ], spacing=15)
 
-    def get_morph_targets_for_skeleton(self, character_id: str, source: str) -> list[str]:
-        """Resolves active blendshapes directly from your sidecar JSON (0ms overhead)."""
-        root_dir = os.path.dirname(self.settings.get("uproject", ""))
-        
-        if source == "base":
-            sidecar_path = os.path.join(
-                root_dir, "Content", "Pal", "Model", "Character", "Monster", 
-                character_id, f"{character_id}_blend.json"
-            )
-        else:
-            sidecar_name = f"{os.path.splitext(source)[0]}_blend.json"
-            sidecar_path = os.path.join(
-                root_dir, "Content", "Palbaker", "Model", "Character", "Monster", 
-                character_id, sidecar_name
-            )
-
-        # Read directly from the consolidated sidecar's MorphTarget array
-        if os.path.exists(sidecar_path):
-            try:
-                with open(sidecar_path, "r", encoding="utf-8") as f:
-                    data = json.load(f)
-                    morphs = [m["Target"] for m in data.get("MorphTarget", []) if "Target" in m]
-                    if morphs:
-                        return morphs
-            except Exception:
-                pass
-
+    async def get_morph_targets_for_skeleton(self, character_id: str, source: str) -> list[str]:
+        """Resolves active blendshapes directly via the CLI (0ms overhead / client-server safe)."""
+        try:
+            res = await self.page.mods_view.cli.altermatic_sidecar(character_id, source)
+            if res.get("status") == "success":
+                data = res.get("data", {})
+                morphs = [m["Target"] for m in data.get("MorphTarget", []) if "Target" in m]
+                if morphs:
+                    return morphs
+        except Exception:
+            pass
         return ["breast_size", "belly_fat", "waist_width", "height_scale"]
 
     def update_morph_state(self, morph_name: str, key: str, value):
@@ -118,7 +102,7 @@ class MorphsSection:
             
         return controls
 
-    def populate(self, character_id: str, selected_source: str, preloaded_morphs: list, is_base: bool):
+    async def populate(self, character_id: str, selected_source: str, preloaded_morphs: list, is_base: bool):
         self.view.visible = not is_base
         if is_base:
             return
@@ -126,7 +110,7 @@ class MorphsSection:
         self.morphs_col.controls.clear()
         self.active_morph_states.clear()
         
-        morph_names = self.get_morph_targets_for_skeleton(character_id, selected_source)
+        morph_names = await self.get_morph_targets_for_skeleton(character_id, selected_source)
         
         preload_map = {}
         if preloaded_morphs:

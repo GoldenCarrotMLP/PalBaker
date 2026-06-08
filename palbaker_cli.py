@@ -6,8 +6,30 @@ from utils.config import load_settings, save_settings
 from utils.scanner import get_mod_info
 from utils.plugins.installer import is_unreal_running
 import asyncio
-from controllers.audio_controller import AudioController
-from controllers.altermatic import AltermaticController
+from utils.audio_controller import AudioController
+from utils.altermatic import AltermaticController
+
+from utils.creator import CreatorController
+
+class DummyView:
+    def write_log(self, text, category="standard", flush=True):
+        pass
+    def show_snackbar(self, message, color=None):
+        pass
+    def force_update(self):
+        pass
+    def refresh_creator_mods_ui(self):
+        pass
+    def run_in_thread(self, func):
+        import threading
+        threading.Thread(target=func, daemon=True).start()
+
+class DummyController(CreatorController):
+    def __init__(self, settings):
+        super().__init__(DummyView(), settings)
+
+    def refresh_pals(self):
+        pass
 
 def json_print(data):
     """Outputs data as a JSON string and forces stdout flush to prevent buffering issues."""
@@ -31,6 +53,14 @@ def main():
     config_set.add_argument("value", help="Setting value to save")
 
 
+    # mod
+    mod_parser = subparsers.add_parser("mod", help="Pipeline execution")
+    mod_parser.add_argument("action", choices=["extract", "create-blend", "push", "cook", "pack", "full", "decompile", "set-icon", "browse-ue"])
+    mod_parser.add_argument("mod", help="Internal name of the Pal")
+    mod_parser.add_argument("--overwrite", action="store_true", help="Overwrite existing .blend files during decompile")
+    mod_parser.add_argument("--path", help="Path to icon file (used with set-icon)")
+
+
     # audio
     audio_parser = subparsers.add_parser("audio", help="Manage custom audio overrides")
     audio_subparsers = audio_parser.add_subparsers(dest="subcommand", required=True)
@@ -49,15 +79,6 @@ def main():
     audio_play.add_argument("cry", help="Name of the cry")
 
 
-
-    # mod
-    mod_parser = subparsers.add_parser("mod", help="Pipeline execution")
-    mod_parser.add_argument("action", choices=["extract", "create-blend", "push", "cook", "pack", "full", "decompile", "set-icon"])
-    mod_parser.add_argument("mod", help="Internal name of the Pal")
-    mod_parser.add_argument("--overwrite", action="store_true", help="Overwrite existing .blend files during decompile")
-    mod_parser.add_argument("--path", help="Path to icon file (used with set-icon)")
-
-
     # altermatic
     altermatic_parser = subparsers.add_parser("altermatic", help="Manage Altermatic variants")
     altermatic_subparsers = altermatic_parser.add_subparsers(dest="subcommand", required=True)
@@ -68,6 +89,32 @@ def main():
     
     altermatic_list = altermatic_subparsers.add_parser("list", help="List all variants")
     altermatic_list.add_argument("mod", help="Internal name of the Pal")
+
+    altermatic_add = altermatic_subparsers.add_parser("add", help="Add Altermatic variant")
+    altermatic_add.add_argument("mod", help="Internal name of the Pal")
+    altermatic_add.add_argument("label", help="Variant label name")
+    altermatic_add.add_argument("--custom", action="store_true", help="Create custom mesh blend")
+    altermatic_add.add_argument("--source", default="base", help="Skeleton source choice")
+
+    altermatic_delete = altermatic_subparsers.add_parser("delete", help="Delete Altermatic variant")
+    altermatic_delete.add_argument("mod", help="Internal name of the Pal")
+    altermatic_delete.add_argument("index", type=int, help="Variant index to delete")
+
+    altermatic_save = altermatic_subparsers.add_parser("save", help="Save/update Altermatic variant")
+    altermatic_save.add_argument("index", type=int, help="Variant index (-1 for new)")
+    altermatic_save.add_argument("--data", required=True, help="JSON data payload")
+
+    altermatic_sidecar = altermatic_subparsers.add_parser("sidecar", help="Sync/Fetch Altermatic sidecar")
+    altermatic_sidecar.add_argument("mod", help="Internal name of the Pal")
+    altermatic_sidecar.add_argument("blend_name", help="Blend file name")
+
+    altermatic_metadata = altermatic_subparsers.add_parser("metadata", help="Fetch blend files and available materials for a mod context")
+    altermatic_metadata.add_argument("mod", help="Internal name of the Pal")
+
+    altermatic_open_blend = altermatic_subparsers.add_parser("open-blend", help="Open a .blend file in Blender")
+    altermatic_open_blend.add_argument("mod", help="Internal name of the Pal")
+    altermatic_open_blend.add_argument("blend_name", help="Blend file name or 'base'")
+    altermatic_open_blend.add_argument("--category", default="Monster", help="Pal category name")
 
 
     # creator
@@ -92,7 +139,6 @@ def main():
 
 
 
-    # manager
     manager_parser = subparsers.add_parser("manager", help="Global state management")
     manager_subparsers = manager_parser.add_subparsers(dest="subcommand", required=True)
     
@@ -100,12 +146,23 @@ def main():
     manager_list = manager_subparsers.add_parser("list", help="List all parsed mods")
     manager_list.add_argument("--show-unextracted", action="store_true", help="Include unextracted Pals")
 
+    manager_caches = manager_subparsers.add_parser("get-caches", help="Fetch consolidated database/skills caches directly")
+
     # env
     env_parser = subparsers.add_parser("env", help="Environment and UE4SS tasks")
     env_subparsers = env_parser.add_subparsers(dest="subcommand", required=True)
     env_subparsers.add_parser("verify", help="Verify workspace setup")
-    env_subparsers.add_parser("ue4ss-install", help="Install UE4SS")
-    env_subparsers.add_parser("install-plugin", help="Install PalSchema Plugin")
+    
+    env_ue4ss = env_subparsers.add_parser("ue4ss-install", help="Install, uninstall, or repair UE4SS")
+    env_ue4ss.add_argument("--action", choices=["install-palworld", "install-latest", "repair", "uninstall"], default="install-palworld")
+    
+    env_plugin = env_subparsers.add_parser("install-plugin", help="Install or uninstall PalSchema Plugin")
+    env_plugin.add_argument("--action", choices=["install", "uninstall"], default="install")
+
+    env_status = env_subparsers.add_parser("status", help="Fetch complete real-time status of UE4SS and PalSchema")
+    env_subparsers.add_parser("launch-unreal", help="Launch the configured Unreal Editor for the project")
+    env_subparsers.add_parser("enable-remote-exec", help="Configure DefaultEngine.ini to enable remote Python execution")
+    env_subparsers.add_parser("autodetect", help="Autodetect Unreal Engine, Palworld, and Blender paths")
 
 
     args = parser.parse_args()
@@ -130,46 +187,33 @@ def main():
             
             mod_data = mods[0]
             
-            class DummyView:
-                def write_log(self, text, category="standard", flush=True):
-                    if category == "error": raise Exception(text)
-                    # print(f"[{category}] {text}")
-                def run_in_thread(self, func): func()
-            
-            class DummyMC:
-                def __init__(self, settings, view):
-                    self.settings = settings
-                    self.view = view
-                async def run_async_task_threadsafe(self, func):
-                    # We just run it synchronously since we're in a CLI script, not a GUI loop
-                    import asyncio
-                    return await asyncio.to_thread(func)
-                def refresh_mods(self, scan_disk, target_mod): pass
-
-            view = DummyView()
-            mc = DummyMC(settings, view)
-            audio_ctrl = AudioController(mc)
-            
             if args.subcommand == "set":
-                # Need to run an async method
-                async def run_set():
-                    # Actually apply_custom_audio uses run_async_task_threadsafe to run the worker
-                    # We can just run it directly. But wait, apply_custom_audio is async.
-                    # Wait, let's look at apply_custom_audio.
-                    pass
-                    
-                # To keep it simple, we just replicate the worker here or call apply_custom_audio?
-                # Actually, apply_custom_audio does everything.
-                asyncio.run(audio_ctrl.apply_custom_audio(mod_data, args.cry, args.path))
-                
-                json_print({"status": "success", "message": f"Audio {args.cry} set for {args.mod}"})
+                from utils.audio_helper import apply_custom_audio_worker
+                success, msg = apply_custom_audio_worker(settings, mod_data, args.cry, args.path)
+                if success:
+                    json_print({"status": "success", "message": f"Audio {args.cry} set for {args.mod}"})
+                else:
+                    json_print({"status": "error", "message": msg})
                 
             elif args.subcommand == "clear":
-                asyncio.run(audio_ctrl.clear_audio(mod_data, args.cry))
-                json_print({"status": "success", "message": f"Audio {args.cry} cleared for {args.mod}"})
+                from utils.audio_helper import clear_audio_worker
+                removed = clear_audio_worker(mod_data, args.cry)
+                if removed:
+                    json_print({"status": "success", "message": f"Audio {args.cry} cleared for {args.mod}"})
+                else:
+                    json_print({"status": "error", "message": f"No custom audio found to clear for {args.cry}."})
             elif args.subcommand == "play":
-                asyncio.run(audio_ctrl.play_audio(mod_data, args.cry))
-                json_print({"status": "success", "message": f"Audio playing for {args.cry}"})
+                from utils.audio_controller import AudioController
+                class DummyMC:
+                    def __init__(self, settings):
+                        self.settings = settings
+                        self.view = DummyView()
+                    def run_async_task_threadsafe(self, func): pass
+                    def refresh_mods(self, scan_disk, target_mod): pass
+                mc = DummyMC(settings)
+                ac = AudioController(mc)
+                asyncio.run(ac.play_audio(mod_data, args.cry))
+                json_print({"status": "success", "message": f"Played audio {args.cry} for {args.mod}"})
 
 
 
@@ -228,6 +272,23 @@ def main():
                 dest = os.path.join(icon_dir, "icon.png")
                 shutil.copy2(args.path, dest)
                 json_print({"status": "success", "message": f"Icon set for {args.mod}"})
+            elif args.action == "browse-ue":
+                f_path = mod_data.get("fmodel_path") or mod_data.get("fmodel_altermatic_path") or mod_data.get("ue_path")
+                # Deduce category from f_path
+                parts = f_path.replace("\\", "/").split("/")
+                category = "Monster"
+                if "Character" in parts:
+                    idx = parts.index("Character")
+                    if idx + 1 < len(parts):
+                        category = parts[idx + 1]
+                category_sanitized = category.replace(" ", "_")
+                ue_virtual_path = f"/Game/Pal/Model/Character/{category_sanitized}/{mod_data['name']}"
+                python_cmd = f'import unreal; unreal.EditorUtilityLibrary.sync_browser_to_folders(["{ue_virtual_path}"])'
+                from utils.builder.unreal_helper import run_remote_command, focus_unreal_window
+                target_project_name = os.path.splitext(os.path.basename(settings["uproject"]))[0]
+                run_remote_command(settings["ue_root"], target_project_name, python_cmd) # FIXED: Pass arguments correctly
+                focus_unreal_window(target_project_name)
+                json_print({"status": "success", "message": f"Focused Unreal content browser to {mod_data['name']}"})
             else:
                 # Delegate to build_mod.py
                 if args.action in ["push", "full"] and not is_unreal_running():
@@ -265,11 +326,6 @@ def main():
                 sys.exit(1)
             mod_data = mods[0]
             
-            class DummyView:
-                def write_log(self, text, category="standard", flush=True): pass
-                def show_snackbar(self, message, color): pass
-                def force_update(self): pass
-            
             class DummyMC:
                 def __init__(self, settings, view):
                     self.settings = settings
@@ -290,81 +346,278 @@ def main():
                 # Returns the current active variants from the mod data directly
                 json_print({"status": "success", "data": mod_data.get("altermatic_variants", [])})
 
-
-        elif args.command == "creator":
-            settings = load_settings()
-            from controllers.creator import CreatorController
-            class DummyView:
-                def write_log(self, text, category="standard", flush=True): pass
-                def show_snackbar(self, message, color): pass
-                def force_update(self): pass
-                def refresh_creator_mods_ui(self): pass
-            view = DummyView()
-            creator_ctrl = CreatorController(view, settings)
-            
-            if args.subcommand == "list":
-                creator_ctrl.load_custom_pals()
-                json_print({"status": "success", "data": creator_ctrl.custom_pals})
-                
             elif args.subcommand == "add":
-                creator_ctrl.add_custom_pal(args.id, args.template)
-                import time
-                for _ in range(50):
-                    creator_ctrl.load_custom_pals()
-                    if any(p.get("CharacterID") == args.id for p in creator_ctrl.custom_pals):
-                        break
-                    time.sleep(0.1)
-                json_print({"status": "success", "message": f"Successfully created new Pal template: {args.id}"})
-                
+                alt_ctrl.cloner._execute_clone_workflow(
+                    mod_data, 
+                    args.label, 
+                    args.custom, 
+                    args.source, 
+                    os.path.join(mod_data.get("fmodel_path", ""), f"{mod_data['name']}.blend"),
+                    mod_data.get("fmodel_altermatic_path", ""),
+                    sync=True # FIXED: Synchronous execution on main thread
+                )
+                json_print({"status": "success", "message": f"Successfully queued Altermatic variant: {args.label}"})
+
             elif args.subcommand == "delete":
-                creator_ctrl.delete_custom_pal(args.id)
-                import time
-                for _ in range(50):
-                    creator_ctrl.load_custom_pals()
-                    if not any(p.get("CharacterID") == args.id for p in creator_ctrl.custom_pals):
-                        break
-                    time.sleep(0.1)
-                json_print({"status": "success", "message": f"Deleted custom Pal: {args.id}"})
-                
-            elif args.subcommand == "update":
-                import json
+                alt_ctrl.delete_altermatic_variant_by_index(mod_data["name"], args.index, sync=True) # FIXED: Synchronous bypass
+                json_print({"status": "success", "message": f"Deleted variant at index {args.index}"})
+
+            elif args.subcommand == "save":
+                import json as json_lib
                 try:
-                    payload = json.loads(args.data)
+                    payload = json_lib.loads(args.data)
                 except Exception as ex:
                     error_print(f"Malformed update data: {ex}")
                     sys.exit(1)
-                creator_ctrl.save_custom_pal(args.id, payload)
-                import time
-                time.sleep(0.2) # give it a brief moment to write out the thread
+                alt_ctrl.save_altermatic_variant_callback(args.index, payload, sync=True) # FIXED: Synchronous write
+                json_print({"status": "success", "message": "Successfully updated Altermatic variant structure."})
+
+            elif args.subcommand == "sidecar":
+                from utils.altermatic_helper import sync_sidecar_metadata
+                fmodel_altermatic_dir = mod_data.get("fmodel_altermatic_path")
+                if not fmodel_altermatic_dir:
+                    category = alt_ctrl.get_category_from_path(mod_data.get("fmodel_path"))
+                    fmodel_root = settings.get("fmodel_output", "")
+                    fmodel_altermatic_dir = os.path.join(fmodel_root, "Exports", "Pal", "Content", "Palbaker", "Model", "Character", category, mod_data["name"])
+                
+                blend_file_path = os.path.normpath(os.path.join(fmodel_altermatic_dir, args.blend_name))
+                if not os.path.exists(blend_file_path):
+                    # Check in normal fmodel dir too
+                    fmodel_dir = mod_data.get("fmodel_path")
+                    if fmodel_dir:
+                        blend_file_path = os.path.normpath(os.path.join(fmodel_dir, args.blend_name))
+                
+                if os.path.exists(blend_file_path):
+                    sidecar_data = sync_sidecar_metadata(settings.get("blender"), blend_file_path)
+                    json_print({"status": "success", "data": sidecar_data})
+                else:
+                    json_print({"status": "error", "message": f"Blend file {args.blend_name} not found on disk."})
+
+            elif args.subcommand == "metadata":
+                from utils.altermatic_helper import get_blend_files_for_context, get_available_materials_for_context
+                fmodel_altermatic_dir = mod_data.get("fmodel_altermatic_path")
+                fmodel_dir = mod_data.get("fmodel_path")
+                f_path = fmodel_dir or fmodel_altermatic_dir or mod_data.get("ue_path")
+                category = alt_ctrl.get_category_from_path(f_path)
+                fmodel_root = settings.get("fmodel_output", "")
+                
+                base_blend_path = os.path.join(fmodel_dir, f"{mod_data['name']}.blend") if fmodel_dir else ""
+                has_base_blend = bool(base_blend_path and os.path.exists(base_blend_path))
+                
+                blend_files = get_blend_files_for_context(fmodel_altermatic_dir, fmodel_dir)
+                available_mats = get_available_materials_for_context(fmodel_root, fmodel_altermatic_dir, mod_data["name"], category)
+                
+                json_print({
+                    "status": "success",
+                    "has_base_blend": has_base_blend,
+                    "blend_files": blend_files,
+                    "available_materials": available_mats,
+                    "category": category
+                })
+            elif args.subcommand == "open-blend":
+                category = args.category
+                source = args.blend_name
+                
+                fmodel_root = settings.get("fmodel_output", "")
+                if not fmodel_root:
+                    json_print({"status": "error", "message": "Workspace Folder not set in Settings."})
+                    sys.exit(1)
+                
+                if source == "base":
+                    blend_path = os.path.normpath(os.path.join(
+                        fmodel_root, "Exports", "Pal", "Content", "Pal", "Model", "Character", category,
+                        mod_data["name"], f"{mod_data['name']}.blend"
+                    ))
+                else:
+                    blend_path = os.path.normpath(os.path.join(
+                        fmodel_root, "Exports", "Pal", "Content", "Palbaker", "Model", "Character", category,
+                        mod_data["name"], source
+                    ))
+
+                blender_exe = settings.get("blender")
+                if not blender_exe or not os.path.exists(blender_exe):
+                    json_print({"status": "error", "message": "Blender executable path invalid or not found."})
+                    sys.exit(1)
+                
+                if not os.path.exists(blend_path):
+                    json_print({"status": "error", "message": f"Blend file not found: {blend_path}"})
+                    sys.exit(1)
+                
+                import subprocess
+                try:
+                    subprocess.Popen([blender_exe, blend_path])
+                    json_print({"status": "success", "message": f"Launched Blender for {blend_path}"})
+                except Exception as ex:
+                    json_print({"status": "error", "message": f"Failed to spawn Blender process: {ex}"})
+
+
+        elif args.command == "creator":
+            settings = load_settings()
+            
+            if args.subcommand == "list":
+                from utils.creator.cache_loader import CacheLoader
+                import json as json_lib
+                cl = CacheLoader()
+                cl.load_index_caches()
+                # Instead of instantiating the old controller to find templates or pals, let's call the manager directly
+                from utils.creator.pal_manager import PalManager
+                
+                dc = DummyController(settings)
+                pm = PalManager(dc)
+                pm.load_custom_pals()
+                json_print({"status": "success", "data": dc.custom_pals})
+                
+            elif args.subcommand == "add":
+                from utils.creator.pal_manager import PalManager
+                
+                dc = DummyController(settings)
+                pm = PalManager(dc)
+                pm.add_custom_pal(args.id, args.template, sync=True) # FIXED: Synchronous write
+                json_print({"status": "success", "message": f"Successfully created new Pal template: {args.id}"})
+                
+            elif args.subcommand == "delete":
+                from utils.creator.pal_manager import PalManager
+                
+                dc = DummyController(settings)
+                pm = PalManager(dc)
+                pm.delete_custom_pal(args.id, sync=True) # FIXED: Synchronous deletion
+                json_print({"status": "success", "message": f"Deleted custom Pal: {args.id}"})
+                
+            elif args.subcommand == "update":
+                import json as json_lib
+                try:
+                    payload = json_lib.loads(args.data)
+                except Exception as ex:
+                    error_print(f"Malformed update data: {ex}")
+                    sys.exit(1)
+                from utils.creator.pal_manager import PalManager
+                
+                dc = DummyController(settings)
+                pm = PalManager(dc)
+                pm.save_custom_pal(args.id, payload, sync=True) # FIXED: Synchronous write
                 json_print({"status": "success", "message": f"Successfully updated custom Pal parameters for: {args.id}"})
             elif args.subcommand == "refresh-bp":
-                creator_ctrl.refresh_actor_blueprint(args.id)
-                json_print({"status": "success", "message": f"Refreshed Actor Blueprint for {args.id}"})
+                from utils.creator.pal_manager import PalManager
+                from utils.creator.palschema_exporter import PalSchemaExporter
+                
+                dc = DummyController(settings)
+                pm = PalManager(dc)
+                pm.load_custom_pals()
+                pal_data = next((p for p in dc.custom_pals if p["CharacterID"] == args.id), None)
+                if not pal_data:
+                    error_print(f"Custom Pal configuration {args.id} not found.")
+                    sys.exit(1)
+                
+                pe = PalSchemaExporter(dc)
+                success = pe.generate_custom_actor_blueprint(pal_data)
+                if success:
+                    json_print({"status": "success", "message": f"Refreshed Actor Blueprint for {args.id}"})
+                else:
+                    json_print({"status": "error", "message": "Failed to refresh blueprint."})
 
 
 
         
         elif args.command == "env":
             settings = load_settings()
-            from controllers.settings_controller import SettingsController
-            class DummyView:
-                def write_log(self, text, category="standard", flush=True): log_print(text)
-                def show_snackbar(self, msg, color): pass
-                def force_update(self): pass
-            
-            def log_print(msg, level="standard"):
-                json_print({"type": "log", "level": level, "message": msg})
-                
-            ctrl = SettingsController(DummyView(), settings)
             if args.subcommand == "verify":
-                ctrl.verify_and_build(auto_close=True)
-                json_print({"status": "success", "message": "Verification completed."})
+                from utils.check_compiler_requirements import verify_compiler_requirements
+                from utils.plugin_manager import check_project_requirements
+                # Run standard check_project_requirements or verification
+                success, msg = verify_compiler_requirements(all_yes=True, print_output=False)
+                if success:
+                    # Let's check requirements
+                    reqs = check_project_requirements(settings.get("ue_root", ""), settings.get("uproject", ""))
+                    if reqs.get("error"):
+                        json_print({"status": "error", "message": reqs["error"]})
+                    else:
+                        json_print({"status": "success", "data": reqs, "message": "Verification completed."})
+                else:
+                    json_print({"status": "error", "message": msg})
             elif args.subcommand == "ue4ss-install":
-                ctrl.manage_ue4ss()
-                json_print({"status": "success", "message": "UE4SS install triggered."})
+                from utils.ue4ss_helper import download_and_extract_ue4ss, uninstall_ue4ss, get_ue4ss_status
+                exe_path = settings.get("palworld_exe", "")
+                if not exe_path:
+                    json_print({"status": "error", "message": "Palworld.exe path not set in config."})
+                else:
+                    status = get_ue4ss_status(exe_path)
+                    branch = status.get("branch", "Palworld-Experimental")
+                    if branch == "Unknown" or branch == "None":
+                        branch = "Palworld-Experimental"
+                    
+                    action = args.action
+                    if action == "install-palworld":
+                        download_and_extract_ue4ss(exe_path, "Palworld-Experimental", lambda m, e: None)
+                    elif action == "install-latest":
+                        download_and_extract_ue4ss(exe_path, "Latest-Experimental", lambda m, e: None)
+                    elif action == "repair":
+                        download_and_extract_ue4ss(exe_path, branch, lambda m, e: None)
+                    elif action == "uninstall":
+                        from utils.palschema_helper import uninstall_palschema
+                        uninstall_palschema(exe_path, lambda m, e: None)
+                        uninstall_ue4ss(exe_path, lambda m, e: None)
+                        
+                    json_print({"status": "success", "message": "UE4SS management action completed."})
             elif args.subcommand == "install-plugin":
-                ctrl.manage_palschema()
-                json_print({"status": "success", "message": "PalSchema install triggered."})
+                action = args.action
+                if action == "install":
+                    from utils.plugin_manager import install_and_compile_plugin
+                    success, msg = install_and_compile_plugin(settings.get("ue_root", ""), settings.get("uproject", ""))
+                    if success:
+                        json_print({"status": "success", "message": msg})
+                    else:
+                        json_print({"status": "error", "message": msg})
+                elif action == "uninstall":
+                    from utils.palschema_helper import uninstall_palschema
+                    exe_path = settings.get("palworld_exe", "")
+                    if not exe_path:
+                        json_print({"status": "error", "message": "Palworld.exe path not set in config."})
+                    else:
+                        uninstall_palschema(exe_path, lambda m, e: None)
+                        json_print({"status": "success", "message": "PalSchema uninstalled successfully."})
+            elif args.subcommand == "status":
+                from utils.ue4ss_helper import get_ue4ss_status
+                from utils.palschema_helper import get_palschema_status
+                from utils.plugins.detector import check_remote_execution_settings
+                exe_path = settings.get("palworld_exe", "")
+                uproject_path = settings.get("uproject", "")
+                ue4ss_stat = get_ue4ss_status(exe_path)
+                palschema_stat = get_palschema_status(exe_path)
+                json_print({
+                    "status": "success",
+                    "ue4ss": ue4ss_stat,
+                    "palschema": palschema_stat,
+                    "unreal_running": is_unreal_running(),
+                    "remote_exec_enabled": check_remote_execution_settings(uproject_path) if uproject_path else False
+                })
+            elif args.subcommand == "launch-unreal":
+                from utils.plugins.installer import launch_unreal_editor
+                ue_root = settings.get("ue_root", "")
+                uproject_path = settings.get("uproject", "")
+                if not ue_root or not uproject_path:
+                    json_print({"status": "error", "message": "Unreal root or uproject path not configured."})
+                else:
+                    success, msg = launch_unreal_editor(ue_root, uproject_path)
+                    if success:
+                        json_print({"status": "success", "message": "Unreal Editor launch triggered."})
+                    else:
+                        json_print({"status": "error", "message": msg})
+            elif args.subcommand == "enable-remote-exec":
+                from utils.plugins.installer import enable_remote_execution_settings
+                uproject_path = settings.get("uproject", "")
+                if not uproject_path:
+                    json_print({"status": "error", "message": "uproject path not configured."})
+                else:
+                    enable_remote_execution_settings(uproject_path)
+                    json_print({"status": "success", "message": "Python Remote Execution settings enabled."})
+            elif args.subcommand == "autodetect":
+                from utils.autofill_helper import detect_unreal_engine, detect_palworld_exe, find_blender_versions
+                json_print({
+                    "status": "success",
+                    "ue_root": detect_unreal_engine(),
+                    "palworld_exe": detect_palworld_exe(),
+                    "blender_versions": find_blender_versions()
+                })
 
         elif args.command == "manager":
             if args.subcommand == "list":
@@ -380,12 +633,40 @@ def main():
                     "data": all_mods
                 })
             elif args.subcommand == "build-db":
-                from utils.asset_manager import AssetManager
-                settings = load_settings()
-                class DummyLog:
-                    def write_log(self, msg, category="standard", flush=False): pass
-                AssetManager.build_pal_database(settings["fmodel_path"], DummyLog())
-                json_print({"status": "success", "message": "Database built successfully."})
+                from utils.extractor import build_pal_names_map
+                success, msg = build_pal_names_map(settings)
+                if success:
+                    json_print({"status": "success", "message": "Database built successfully."})
+                else:
+                    json_print({"status": "error", "message": msg})
+            elif args.subcommand == "get-caches":
+                repo_root = os.path.dirname(os.path.abspath(__file__))
+                def load_json(name):
+                    p = os.path.join(repo_root, "deps", name)
+                    if os.path.exists(p):
+                        try:
+                            with open(p, "r", encoding="utf-8") as f:
+                                return json.load(f)
+                        except Exception: pass
+                    return {}
+                from utils.names import load_names_map
+                from utils.altermatic_helper import load_traits_database
+                json_print({
+                    "status": "success",
+                    "data": {
+                        "active_skills": load_json("active_skills_cache.json"),
+                        "passive_skills": load_json("passive_skills_cache.json"),
+                        "coop_passives": load_json("coop_passives_cache.json"),
+                        "partner_skills": load_json("partner_skills_cache.json"),
+                        "templates": load_json("monster_parameter_cache.json"),
+                        "learnsets": load_json("waza_master_level_cache.json"),
+                        "monster_spawners": load_json("monster_spawners_cache.json"),
+                        "monster_spawners_default_map": load_json("monster_spawners_default_map.json"),
+                        "camera_offsets": load_json("camera_offsets_cache.json"),
+                        "pal_names": load_names_map(),
+                        "traits_db": load_traits_database()
+                    }
+                })
 
     except Exception as e:
         error_print(str(e))

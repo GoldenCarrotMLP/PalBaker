@@ -84,18 +84,24 @@ class PalBakerCLI:
         """Verify workspace setup (MSVC, UBT)."""
         return await self._execute(["env", "verify"])
 
-    async def env_ue4ss_install(self):
-        """Install UE4SS."""
-        return await self._execute(["env", "ue4ss-install"])
+    async def env_ue4ss_install(self, action="install-palworld"):
+        """Install, uninstall, or repair UE4SS."""
+        return await self._execute(["env", "ue4ss-install", "--action", action])
 
-    async def env_install_plugin(self):
-        """Install PalSchema Plugin."""
-        return await self._execute(["env", "install-plugin"])
+    async def env_install_plugin(self, action="install"):
+        """Install or uninstall PalSchema Plugin."""
+        return await self._execute(["env", "install-plugin", "--action", action])
 
     async def creator_list(self):
         """List all custom standalone Pals."""
         return await self._execute(["creator", "list"])
 
+    async def get_skills_cache(self):
+        """Fetches the static active, passive, partner, coop, monster spawners, templates, learnsets, and camera offsets caches over stdout via standard CLI-first dispatch."""
+        res = await self._execute(["manager", "get-caches"])
+        if res.get("status") == "success":
+            return res.get("data", {})
+        return {}
     async def creator_add(self, pal_id: str, template_id: str):
         """Create a new standalone Pal."""
         return await self._execute(["creator", "add", pal_id, "--template", template_id])
@@ -117,3 +123,49 @@ class PalBakerCLI:
     async def altermatic_list(self, mod_name: str):
         """List all Altermatic variants for a mod."""
         return await self._execute(["altermatic", "list", mod_name])
+
+    async def altermatic_add(self, mod_name: str, label: str, custom: bool, source: str):
+        """Add Altermatic variant via CLI."""
+        args = ["altermatic", "add", mod_name, label]
+        if custom:
+            args.append("--custom")
+        args.extend(["--source", source])
+        return await self._execute(args)
+
+    async def altermatic_delete(self, mod_name: str, index: int):
+        """Delete Altermatic variant via CLI."""
+        return await self._execute(["altermatic", "delete", mod_name, str(index)])
+
+    async def altermatic_save(self, index: int, data: dict):
+        """Save Altermatic variant via CLI."""
+        import json as json_lib
+        data_str = json_lib.dumps(data)
+        return await self._execute(["altermatic", "save", str(index), "--data", data_str])
+
+    async def env_status(self):
+        """Fetch UE4SS and PalSchema status via CLI."""
+        return await self._execute(["env", "status"])
+
+    async def env_launch_unreal(self):
+        """Launch Unreal Editor via CLI."""
+        return await self._execute(["env", "launch-unreal"])
+
+    async def env_enable_remote_exec(self):
+        """Enable Python Remote Execution via CLI."""
+        return await self._execute(["env", "enable-remote-exec"])
+
+    async def env_autodetect(self):
+        """Autodetect Unreal, Palworld, and Blender paths via CLI."""
+        return await self._execute(["env", "autodetect"])
+
+    async def altermatic_metadata(self, mod_name: str):
+        """Fetch blend files and available materials via CLI."""
+        return await self._execute(["altermatic", "metadata", mod_name])
+
+    async def altermatic_open_blend(self, mod_name: str, blend_name: str, category="Monster"):
+        """Launch Blender for a specific blend file via CLI."""
+        return await self._execute(["altermatic", "open-blend", mod_name, blend_name, "--category", category])
+
+    async def altermatic_sidecar(self, mod_name: str, blend_name: str):
+        """Generates or loads the sidecar JSON structure for a blend file via the CLI."""
+        return await self._execute(["altermatic", "sidecar", mod_name, blend_name])

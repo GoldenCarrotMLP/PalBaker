@@ -1,7 +1,6 @@
 # components/creator/add_dialog.py
 import flet as ft  # type: ignore
 import re
-from utils.names import get_localized_name
 
 class AddPalDialog:
     def __init__(self, page: ft.Page, templates_cache: dict, on_confirm_callback):
@@ -15,7 +14,7 @@ class AddPalDialog:
 
         self.pal_id_input = ft.TextField(label="New Standalone Pal ID", hint_text="e.g., Furret")
         self.selected_parent_text = ft.Text(
-            f"Selected: {get_localized_name(self.selected_parent_id[0])} ({self.selected_parent_id[0]})", 
+            f"Selected: {self.get_localized_name(self.selected_parent_id[0])} ({self.selected_parent_id[0]})", 
             weight=ft.FontWeight.BOLD, 
             color=ft.Colors.CYAN_400
         )
@@ -50,13 +49,17 @@ class AddPalDialog:
             ]
         )
 
+    def get_localized_name(self, internal_name: str) -> str:
+        pal_names = getattr(self.page, "pal_names", {})
+        return pal_names.get(internal_name, internal_name)
+
     def show(self):
         self.pal_id_input.value = ""
         self.search_input.value = ""
         
         if self.templates:
             self.selected_parent_id[0] = list(self.templates.keys())[0]
-            self.selected_parent_text.value = f"Selected: {get_localized_name(self.selected_parent_id[0])} ({self.selected_parent_id[0]})"
+            self.selected_parent_text.value = f"Selected: {self.get_localized_name(self.selected_parent_id[0])} ({self.selected_parent_id[0]})"
         
         self.populate_results("")
         setattr(self.dialog, "open", True)
@@ -77,7 +80,7 @@ class AddPalDialog:
         self.results_list.controls.clear()
         matches = 0
         for k in self.templates.keys():
-            localized = get_localized_name(k)
+            localized = self.get_localized_name(k)
             if not query_clean or (query_clean in k.lower() or query_clean in localized.lower()):
                 self.results_list.controls.append(
                     ft.ListTile(
