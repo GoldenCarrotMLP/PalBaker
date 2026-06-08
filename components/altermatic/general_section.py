@@ -1,5 +1,5 @@
 # components/altermatic/general_section.py
-import flet as ft
+import flet as ft  # type: ignore
 
 class GeneralSection:
     def __init__(self, on_skeleton_changed, on_open_blend, on_refresh_layout):

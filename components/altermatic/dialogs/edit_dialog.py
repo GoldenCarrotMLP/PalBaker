@@ -1,5 +1,5 @@
 # components/altermatic/dialogs/edit_dialog.py
-import flet as ft
+import flet as ft  # type: ignore
 import os
 import subprocess
 import json

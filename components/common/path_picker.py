@@ -1,4 +1,4 @@
-import flet as ft
+import flet as ft  # type: ignore
 
 class PathPicker:
     # FIXED: Removed the narrow ': str' type constraint from the 'icon' parameter 

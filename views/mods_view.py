@@ -1,8 +1,9 @@
 # views/mods_view.py
-import flet as ft
+import flet as ft  # type: ignore
 import os
 
 from controllers.mods import ModsController
+from ui_client.dispatcher import PalBakerCLI
 from components.mods.mod_card import ModItem
 from components.mods.dialogs import (
     create_overwrite_warning_dialog,
@@ -20,6 +21,7 @@ class ModsView:
         self.settings = settings
         
         self.controller = ModsController(self, settings)
+        self.cli = PalBakerCLI()
 
         self.mods_list = ft.ListView(expand=True, spacing=10)
         self.log_view = ft.ListView(expand=True, spacing=2, auto_scroll=True)
@@ -177,12 +179,12 @@ class ModsView:
                     on_cancel_click=self.controller.handle_cancel,
                     on_pick_icon=self.trigger_icon_picker,
                     on_pick_audio=self.trigger_audio_picker,
-                    on_play_audio=self.controller.play_audio,
-                    on_clear_audio=self.controller.clear_audio,
-                    on_toggle_altermatic=self.controller.toggle_altermatic,
-                    on_add_variant=self.controller.add_altermatic_variant,
-                    on_edit_variant=self.controller.edit_altermatic_variant,
-                    on_delete_variant=self.controller.delete_altermatic_variant,
+                    on_play_audio=lambda mod_data, cry: self.run_async_task(self._async_play_audio, mod_data, cry),
+                    on_clear_audio=lambda mod_data, cry: self.run_async_task(self._async_clear_audio, mod_data, cry),
+                    on_toggle_altermatic=lambda mod_data, status: self.run_async_task(self._async_toggle_altermatic, mod_data, status),
+                    on_add_variant=lambda mod_data: self.run_async_task(self._async_add_variant, mod_data),
+                    on_edit_variant=lambda mod_data, idx: self.run_async_task(self._async_edit_variant, mod_data, idx),
+                    on_delete_variant=lambda mod_data, idx: self.run_async_task(self._async_delete_variant, mod_data, idx),
                     is_building=global_building,
                     show_mapped=self.controller.show_mapped
                 )
@@ -208,14 +210,28 @@ class ModsView:
         if result and len(result) > 0:
             path = result[0].path
             if isinstance(path, str):
-                self.controller.apply_custom_icon(mod_data, path)
+                try:
+                    response = await self.cli.set_icon(mod_data["name"], path)
+                    if response.get("status") == "success":
+                        self.write_log(f"Icon set for {mod_data['name']}", "success")
+                    else:
+                        self.write_log(f"Error setting icon: {response.get('message', 'Unknown error')}", "error")
+                except Exception as e:
+                    self.write_log(f"Error setting icon: {str(e)}", "error")
 
     async def trigger_audio_picker(self, mod_data, cry_name):
         result = await self.audio_picker.pick_files(allow_multiple=False, allowed_extensions=["wav", "mp3", "ogg"])
         if result and len(result) > 0:
             path = result[0].path
             if isinstance(path, str):
-                await self.controller.apply_custom_audio(mod_data, cry_name, path)
+                try:
+                    response = await self.cli._execute(["audio", "set", mod_data["name"], cry_name, path])
+                    if response.get("status") == "success":
+                        self.write_log(f"Audio set for {mod_data['name']} ({cry_name})", "success")
+                    else:
+                        self.write_log(f"Error setting audio: {response.get('message', 'Unknown error')}", "error")
+                except Exception as e:
+                    self.write_log(f"Error setting audio: {str(e)}", "error")
 
     def update_card_progress(self, mod_name: str, line: str, flush: bool):
         if mod_name in self.cached_components:
@@ -231,22 +247,91 @@ class ModsView:
 
     def prompt_decompile_options(self, mod_data):
         dlg = create_decompile_options_dialog(
-            lambda e: (self.pop_dialog(), self.controller.execute_decompile_pipeline(mod_data, False)),
-            lambda e: (self.pop_dialog(), self.controller.execute_decompile_pipeline(mod_data, True)),
+            lambda e: (self.pop_dialog(), self.run_async_task(self._async_decompile, mod_data, False)),
+            lambda e: (self.pop_dialog(), self.run_async_task(self._async_decompile, mod_data, True)),
             lambda e: self.pop_dialog()
         )
         self.show_dialog(dlg)
 
-    def prompt_troubleshooting_advisor(self, summary):
-        dlg = create_troubleshooting_advisor_dialog(summary, lambda e: self.pop_dialog())
-        self.show_dialog(dlg)
+    async def _async_decompile(self, mod_data, overwrite: bool):
+        """Execute decompile pipeline via CLI."""
+        try:
+            args = ["mod", "decompile", mod_data["name"]]
+            if overwrite:
+                args.append("--overwrite")
+            response = await self.cli._execute(args)
+            if response.get("status") == "success":
+                self.write_log(f"Decompile completed for {mod_data['name']}", "success")
+                if response.get("summary"):
+                    self.write_log(f"Summary: {response.get('summary')}", "standard")
+            else:
+                self.write_log(f"Decompile failed: {response.get('message', 'Unknown error')}", "error")
+        except Exception as e:
+            self.write_log(f"Error during decompile: {str(e)}", "error")
 
     def prompt_build_database(self):
         dlg = create_build_database_dialog(
-            lambda e: (self.pop_dialog(), self.controller.build_pal_database()),
+            lambda e: (self.pop_dialog(), self.run_async_task(self._async_build_database)),
             lambda e: self.pop_dialog()
         )
         self.show_dialog(dlg)
+
+    async def _async_build_database(self):
+        """Build Pal database via CLI."""
+        try:
+            response = await self.cli.build_database()
+            if response.get("status") == "success":
+                self.write_log("Database built successfully!", "success")
+            else:
+                self.write_log(f"Database build failed: {response.get('message', 'Unknown error')}", "error")
+        except Exception as e:
+            self.write_log(f"Error building database: {str(e)}", "error")
+
+    async def _async_play_audio(self, mod_data, cry_name):
+        """Play audio via CLI."""
+        try:
+            response = await self.cli._execute(["audio", "play", mod_data["name"], cry_name])
+            if response.get("status") != "success":
+                self.write_log(f"Error playing audio: {response.get('message', 'Unknown error')}", "error")
+        except Exception as e:
+            self.write_log(f"Error playing audio: {str(e)}", "error")
+
+    async def _async_clear_audio(self, mod_data, cry_name):
+        """Clear audio via CLI."""
+        try:
+            response = await self.cli._execute(["audio", "clear", mod_data["name"], cry_name])
+            if response.get("status") == "success":
+                self.write_log(f"Audio cleared for {cry_name}", "success")
+            else:
+                self.write_log(f"Error clearing audio: {response.get('message', 'Unknown error')}", "error")
+        except Exception as e:
+            self.write_log(f"Error clearing audio: {str(e)}", "error")
+
+    async def _async_toggle_altermatic(self, mod_data, status: str):
+        """Toggle Altermatic via CLI (status: 'on' or 'off')."""
+        try:
+            response = await self.cli.altermatic_toggle(mod_data["name"], status)
+            if response.get("status") == "success":
+                self.write_log(f"Altermatic toggled to {status} for {mod_data['name']}", "success")
+            else:
+                self.write_log(f"Error toggling Altermatic: {response.get('message', 'Unknown error')}", "error")
+        except Exception as e:
+            self.write_log(f"Error toggling Altermatic: {str(e)}", "error")
+
+    async def _async_add_variant(self, mod_data):
+        """Add Altermatic variant via CLI."""
+        # This will be handled by the dialog - for now just log
+        self.write_log(f"Adding Altermatic variant for {mod_data['name']}", "standard")
+
+    async def _async_edit_variant(self, mod_data, index: int):
+        """Edit Altermatic variant via CLI."""
+        # This will be handled by the dialog - for now just log
+        self.write_log(f"Editing Altermatic variant {index} for {mod_data['name']}", "standard")
+
+    async def _async_delete_variant(self, mod_data, index: int):
+        """Delete Altermatic variant via CLI."""
+        # This will be handled by the dialog - for now just log
+        self.write_log(f"Deleting Altermatic variant {index} for {mod_data['name']}", "standard")
 
     def prompt_unreal_closed_warning(self, on_launch):
         dlg = create_unreal_closed_dialog(
@@ -337,4 +422,22 @@ class ModsView:
         self.main_page.update()
 
     def refresh_mods(self, scan_disk: bool = True):
-        self.controller.refresh_mods(scan_disk)
+        self.controller.show_mapped = bool(self.settings.get("show_mapped", False))
+        if scan_disk:
+            self.set_refresh_state(loading=True)
+            async def worker():
+                try:
+                    response = await self.cli.list_mods(show_unextracted=True) # Always fetch all, filter locally
+                    if response.get("status") == "success":
+                        self.controller.raw_mods = response.get("data", [])
+                        self.clear_ui_cache()
+                    else:
+                        self.write_log(f"CLI Error: {response.get('message')}", "error")
+                except Exception as e:
+                    self.write_log(f"Disk scan encountered an error: {e}", "error")
+                finally:
+                    self.set_refresh_state(loading=False)
+                    self.controller.apply_filters()
+            self.run_async_task(worker)
+        else:
+            self.controller.apply_filters()

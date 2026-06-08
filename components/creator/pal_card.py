@@ -1,5 +1,5 @@
 # components/creator/pal_card.py
-import flet as ft
+import flet as ft  # type: ignore
 import os
 from .learnset_editor import LearnsetEditor
 
