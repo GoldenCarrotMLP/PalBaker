@@ -62,11 +62,11 @@ class PipelineExecutor:
             try:
                 proc = self.active_token["process"]
                 if os.name == 'nt':
-                    subprocess.run(["taskkill", "/F", "/T", "/PID", str(proc.pid)], stdout=subprocess.DEVNULL, stderr=subprocess.DEVNULL)
+                    subprocess.run(["taskkill", "/F", "/T", "/PID", str(proc.pid)], stdout=subprocess.DEVNULL, stderr=subprocess.DEVNULL)  # type: ignore
                 else:
                     import signal
                     try:
-                        os.killpg(os.getpgid(proc.pid), signal.SIGKILL)
+                        os.killpg(os.getpgid(proc.pid), signal.SIGKILL)  # type: ignore
                     except Exception as pg_err:
                         print(f"Failed to kill process group: {pg_err}", flush=True)
                         proc.kill()

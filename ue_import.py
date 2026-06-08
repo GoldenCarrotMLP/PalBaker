@@ -2,7 +2,7 @@
 import sys
 import os
 import json
-import unreal
+import unreal  # type: ignore
 
 palbaker_root = globals().get('PALBAKER_ROOT', '')
 if palbaker_root and palbaker_root not in sys.path:

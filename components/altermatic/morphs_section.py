@@ -108,7 +108,7 @@ class MorphsSection:
                 options=[ft.dropdown.Option("Free"), ft.dropdown.Option("Restrict")],
                 width=140
             )
-            type_dd.on_change = lambda e, mn=state_key: self.update_morph_state(mn, "type_val", e.control.value)
+            type_dd.on_change = lambda e, mn=state_key: self.update_morph_state(mn, "type_val", e.control.value)  # type: ignore
 
             controls.append(ft.Column([
                 ft.Row([ft.Text("Min Boundary:", size=11, width=100), min_slider], spacing=5),
@@ -158,7 +158,7 @@ class MorphsSection:
                 container.controls = self.render_morph_row_controls(m_name, e.control.value)
                 self.on_update_callback()
 
-            mode_dd.on_change = handle_mode_change
+            mode_dd.on_change = handle_mode_change  # type: ignore
 
             options_container.controls = self.render_morph_row_controls(name, initial_mode, preload_data)
 

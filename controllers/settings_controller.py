@@ -182,7 +182,7 @@ class SettingsController:
             missing_assets = reqs.get("missing_assets", [])
             if missing_assets:
                 files_controls = [ft.Text(f" \u2022 {f}", size=12, color=ft.Colors.WHITE70) for f in missing_assets]
-                files_list = ft.ListView(controls=files_controls, height=150, spacing=2, padding=10)
+                files_list = ft.ListView(controls=files_controls, height=150, spacing=2, padding=10)  # type: ignore
                 
                 content = ft.Column([
                     ft.Text("The following core framework assets are missing from your ModKit's Content directory:"),

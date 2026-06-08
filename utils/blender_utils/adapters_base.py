@@ -64,7 +64,7 @@ def ensure_addon_enabled_v4_2(addon_name: str):
 
     try:
         if hasattr(bpy.ops, "extensions") and hasattr(bpy.ops.extensions, "package_enable"):
-            bpy.ops.extensions.package_enable(pkg_id=pkg_id)
+            bpy.ops.extensions.package_enable(pkg_id=pkg_id)  # type: ignore
             bpy.ops.wm.save_userpref()
             return
     except Exception:
@@ -132,16 +132,16 @@ def import_mesh_base(file_path: str):
         translator.ensure_addon_enabled(resolved_name)
         
         try:
-            bpy.ops.psk.import_file(filepath=file_path)
+            bpy.ops.psk.import_file(filepath=file_path)  # type: ignore
             print(f"[PalBaker] Imported PSK using modern operator: {file_path}")
         except (AttributeError, RuntimeError):
             try:
-                import_op_group = getattr(bpy.ops, "import")
+                import_op_group = getattr(bpy.ops, "import")  # type: ignore
                 import_op_group.psk(filepath=file_path)
                 print(f"[PalBaker] Imported PSK using legacy 'import.psk' operator: {file_path}")
             except (AttributeError, RuntimeError):
                 try:
-                    bpy.ops.import_scene.psk(filepath=file_path)
+                    bpy.ops.import_scene.psk(filepath=file_path)  # type: ignore
                     print(f"[PalBaker] Imported PSK using legacy 'import_scene.psk' operator fallback: {file_path}")
                 except Exception as e:
                     print(f"[PalBaker] ERROR: Failed to import PSK asset: {e}")
@@ -164,7 +164,8 @@ def fix_hierarchy_base(armature_name: str = "Armature"):
     for obj in bpy.data.objects:
         if obj.type == 'ARMATURE':
             obj.name = armature_name
-            obj.data.name = armature_name
+            if obj.data:  # type: ignore
+                obj.data.name = armature_name
 
 @translator.register("get_pose_bones_info", (0, 0))
 def get_pose_bones_info_base(armature_name: str = "Armature") -> list[dict]:
@@ -177,7 +178,7 @@ def get_pose_bones_info_base(armature_name: str = "Armature") -> list[dict]:
     bones_info = []
     swap = Matrix(((1, 0, 0, 0), (0, -1, 0, 0), (0, 0, 1, 0), (0, 0, 0, 1)))
 
-    for p_bone in arm_obj.pose.bones:
+    for p_bone in arm_obj.pose.bones:  # type: ignore
         raw_name = p_bone.name
         ue_bone_name = raw_name.replace('.', '_')
         raw_name_lower = raw_name.lower()
@@ -259,8 +260,11 @@ def compile_material_instance_base(mat_name: str, parent_class: str, params: dic
     if not mat: return
     
     mat.use_nodes = True
-    nodes = mat.node_tree.nodes
-    links = mat.node_tree.links
+    if mat.node_tree:  # type: ignore
+        nodes = mat.node_tree.nodes  # type: ignore
+        links = mat.node_tree.links  # type: ignore
+    else:
+        return
     nodes.clear()
 
     output_node = nodes.new("ShaderNodeOutputMaterial")
@@ -297,7 +301,7 @@ def compile_material_instance_base(mat_name: str, parent_class: str, params: dic
 
     tex_mrao_name = params.get("MetallicRoughnessOcclusionSpecularTexture")
     sep_color = nodes.new("ShaderNodeSeparateColor")
-    sep_color.mode = 'RGB'
+    sep_color.mode = 'RGB'  # type: ignore
     sep_color.location = (-800, 0)
     
     if metallic_socket: links.new(sep_color.outputs["Red"], metallic_socket)
@@ -308,20 +312,20 @@ def compile_material_instance_base(mat_name: str, parent_class: str, params: dic
         links.new(mrao_tex.outputs["Color"], sep_color.inputs["Color"])
     else:
         combine_node = nodes.new("ShaderNodeCombineColor")
-        combine_node.mode = 'RGB'
+        combine_node.mode = 'RGB'  # type: ignore
         combine_node.location = (-1200, 0)
         
         color_r = nodes.new("ShaderNodeRGB")
         color_r.location = (-1500, 100)
-        color_r.outputs[0].default_value = (0.0, 0.0, 0.0, 1.0)
+        color_r.outputs[0].default_value = (0.0, 0.0, 0.0, 1.0)  # type: ignore
         
         color_g = nodes.new("ShaderNodeRGB")
         color_g.location = (-1500, -100)
-        color_g.outputs[0].default_value = (0.5, 0.5, 0.5, 1.0)
+        color_g.outputs[0].default_value = (0.5, 0.5, 0.5, 1.0)  # type: ignore
         
         color_b = nodes.new("ShaderNodeRGB")
         color_b.location = (-1500, -300)
-        color_b.outputs[0].default_value = (1.0, 1.0, 1.0, 1.0)
+        color_b.outputs[0].default_value = (1.0, 1.0, 1.0, 1.0)  # type: ignore
         
         links.new(color_r.outputs[0], combine_node.inputs["Red"])
         links.new(color_g.outputs[0], combine_node.inputs["Green"])
@@ -366,7 +370,7 @@ def compile_material_instance_base(mat_name: str, parent_class: str, params: dic
         norm_map = nodes.new("ShaderNodeNormalMap")
         norm_map.location = (-400, -300)
         if hasattr(norm_map, "convention"):
-            norm_map.convention = 'DIRECTX'
+            norm_map.convention = 'DIRECTX'  # type: ignore
         links.new(norm_map.outputs["Normal"], normal_socket)
         links.new(norm_tex.outputs["Color"], norm_map.inputs["Color"])
 
@@ -389,9 +393,9 @@ def export_fbx_base(fbx_path: str, armature_name: str = "Armature"):
     arm_obj = bpy.data.objects.get(armature_name)
     if arm_obj:
         print("Restoring bones to T-pose before export...")
-        for p_bone in arm_obj.pose.bones:
+        for p_bone in arm_obj.pose.bones:  # type: ignore
             p_bone.matrix_basis = Matrix.Identity(4)
-        bpy.context.view_layer.update()
+        bpy.context.view_layer.update()  # type: ignore
     
     bpy.ops.export_scene.fbx(
         filepath=os.path.abspath(fbx_path),
@@ -437,8 +441,8 @@ def get_material_textures_base(mat_name: str) -> dict:
         return {}
         
     textures = {}
-    nodes = mat.node_tree.nodes
-    links = mat.node_tree.links
+    nodes = mat.node_tree.nodes  # type: ignore
+    links = mat.node_tree.links  # type: ignore
     
     bsdf = next((n for n in nodes if n.type == 'BSDF_PRINCIPLED'), None)
     if bsdf:

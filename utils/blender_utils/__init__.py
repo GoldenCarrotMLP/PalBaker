@@ -10,7 +10,7 @@ except ImportError:
     # If imported outside of Blender (e.g., by the PalBaker orchestrator),
     # inject a strictly compliant ModuleType mock into sys.modules.
     mock_bpy = types.ModuleType("bpy")
-    mock_bpy.app = type("App", (), {"version": (0, 0, 0)})()
+    mock_bpy.app = type("App", (), {"version": (0, 0, 0)})()  # type: ignore
     sys.modules["bpy"] = mock_bpy
 
 import bpy

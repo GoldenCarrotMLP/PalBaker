@@ -126,9 +126,9 @@ class ModsView:
         if hasattr(e, "local_delta") and e.local_delta is not None:
             delta = e.local_delta.y
         elif hasattr(e, "delta_y"):
-            delta = e.delta_y
+            delta = e.delta_y  # type: ignore
 
-        new_console_height = max(50, self.console_container.height - delta)
+        new_console_height = max(50, (self.console_container.height or 0) - delta)  # type: ignore
         self.console_container.height = new_console_height
         self.console_height = new_console_height
         
@@ -168,7 +168,7 @@ class ModsView:
             if name in self.cached_components:
                 item = self.cached_components[name]
                 item.mod_data = mod_data
-                item.set_show_mapped(self.controller.show_mapped)
+                item.set_show_mapped(self.controller.show_mapped)  # type: ignore
                 item.set_state(global_building, is_active_target=(name == active_mod_name))
             else:
                 item = ModItem(
@@ -184,7 +184,7 @@ class ModsView:
                     on_edit_variant=self.controller.edit_altermatic_variant,
                     on_delete_variant=self.controller.delete_altermatic_variant,
                     is_building=global_building,
-                    show_mapped=self.controller.show_mapped
+                    show_mapped=self.controller.show_mapped  # type: ignore
                 )
                 
                 if self.expanded_states.get(name, False):

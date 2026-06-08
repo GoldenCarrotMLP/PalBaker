@@ -1,5 +1,5 @@
 # unreal_scripts/materials.py
-import unreal
+import unreal  # type: ignore
 import json
 import os
 
