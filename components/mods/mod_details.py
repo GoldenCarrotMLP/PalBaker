@@ -1,5 +1,5 @@
 # components/mods/mod_details.py
-import flet as ft
+import flet as ft  # type: ignore
 
 class ModDetails:
     def __init__(self, mod_data: dict, on_pick_icon, on_pick_audio, on_play_audio, on_clear_audio,

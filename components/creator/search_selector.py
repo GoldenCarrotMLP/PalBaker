@@ -1,5 +1,5 @@
 # components/creator/search_selector.py
-import flet as ft
+import flet as ft  # type: ignore
 
 class SearchSelectorDialog:
     def __init__(self, page: ft.Page):

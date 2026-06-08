@@ -1,5 +1,5 @@
 # components/altermatic/traits_section.py
-import flet as ft
+import flet as ft  # type: ignore
 import threading
 import time
 

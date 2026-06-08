@@ -3,7 +3,7 @@ import os
 import sys
 import subprocess
 import asyncio
-import flet as ft  # <-- ADDED THIS IMPORT TO FIX THE NameError
+import flet as ft  # <-- ADDED THIS IMPORT TO FIX THE NameError  # type: ignore
 from utils.builder.pipeline_runner import run_pipeline_async
 
 class PipelineExecutor:
@@ -69,7 +69,8 @@ class PipelineExecutor:
                         os.killpg(os.getpgid(proc.pid), signal.SIGKILL)
                     except Exception as pg_err:
                         print(f"Failed to kill process group: {pg_err}", flush=True)
-                        proc.kill()
+                        if proc is not None:
+                            proc.kill()  # type: ignore
             except Exception as e:
                 self.c.view.write_log(f"Error terminating process: {e}", "error")
 
