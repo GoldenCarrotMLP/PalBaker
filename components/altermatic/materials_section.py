@@ -1,5 +1,5 @@
 # components/altermatic/materials_section.py
-import flet as ft
+import flet as ft  # type: ignore
 import os
 import json
 
