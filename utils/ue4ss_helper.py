@@ -17,7 +17,7 @@ KNOWN_HASHES = {
     "12592a086dbe5bcf2724c5c3ec7d4d16772f07bebaa0d5184801ccc12a6c43af": "Latest-Experimental"
 }
 
-def get_binaries_dir(palworld_exe: str) -> str :
+def get_binaries_dir(palworld_exe: str | None) -> str :
     """Resolves the Win64 binary directory from the game executable path."""
     if not palworld_exe or not os.path.exists(palworld_exe):
         return ""
@@ -47,7 +47,7 @@ def hash_file(filepath: str) -> str:
     except Exception:
         return ""
 
-def get_ue4ss_status(palworld_exe: str) -> dict:
+def get_ue4ss_status(palworld_exe: str | None) -> dict:
     """Evaluates whether UE4SS is installed, which branch, and if the DLL matches its expected hash."""
     bin_dir = get_binaries_dir(palworld_exe)
     if not bin_dir:

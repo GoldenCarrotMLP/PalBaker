@@ -46,7 +46,7 @@ class SettingsController:
             if target_picker_component == self.view.palworld_exe_picker:
                 self.refresh_ue4ss_status(str(result[0].path))
 
-    def refresh_ue4ss_status(self, exe_path: str = None):
+    def refresh_ue4ss_status(self, exe_path: str | None = None):
         if exe_path is None:
             exe_path = self.view.palworld_exe_picker.get_value()
             

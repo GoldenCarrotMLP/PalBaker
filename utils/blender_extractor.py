@@ -29,7 +29,7 @@ def parse_args():
             output_fbx = args[i + 1]
     return output_json, output_fbx
 
-def extract_metadata(output_path: str, fbx_path: str = None):
+def extract_metadata(output_path: str, fbx_path: str | None = None):
     print(f"\n[PalBaker Extractor] Starting metadata extraction for {os.path.basename(output_path)}...", flush=True)
     working_dir = os.path.dirname(output_path)
     

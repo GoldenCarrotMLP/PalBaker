@@ -62,7 +62,7 @@ class SearchSelectorDialog:
         """Strongly-bound event handler for the search text field."""
         self.populate_results(self.search_input.value)
 
-    def show(self, title: str, dataset_dict: dict, on_select_callback, pal_elements: list = None):
+    def show(self, title: str, dataset_dict: dict, on_select_callback, pal_elements: list | None = None):
         self.on_select = on_select_callback
         self.dataset = dataset_dict
         self.dialog.title = ft.Text(title)

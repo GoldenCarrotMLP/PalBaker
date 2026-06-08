@@ -32,8 +32,8 @@ def main(page: ft.Page):
         on_rebuild_db_callback=mods_view.prompt_build_database
     )
 
-    page.mods_view = mods_view
-    page.creator_view = creator_view
+    page.mods_view = mods_view  # type: ignore
+    page.creator_view = creator_view  # type: ignore
 
     # Autofill settings if empty
     changed = False
@@ -112,12 +112,13 @@ def main(page: ft.Page):
             page.overlay.append(ft.SnackBar(ft.Text(f"Blender set to: {selected}")))
             page.update()
 
+        controls_list: list[ft.Control] = [ft.Text("Please select the Blender version to use:")]
+        for v in blender_versions:
+            controls_list.append(ft.ElevatedButton(content=ft.Text(v), data=v, on_click=on_blender_selected))
+
         dlg = ft.AlertDialog(
             title=ft.Text("Multiple Blender Versions Detected"),
-            content=ft.Column(
-                [ft.Text("Please select the Blender version to use:")] + 
-                [ft.ElevatedButton(content=ft.Text(v), data=v, on_click=on_blender_selected) for v in blender_versions]
-            )
+            content=ft.Column(controls=controls_list)
         )
         page.show_dialog(dlg)
 

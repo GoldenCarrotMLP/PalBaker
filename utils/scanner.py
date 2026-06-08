@@ -5,7 +5,7 @@ from .state import is_ue_modified, is_source_modified
 from .names import get_localized_name, load_names_map
 from .audio_helper import get_pal_sound_metadata
 
-def scan_character_folders(base_path: str, target_folder: str = None) -> dict:
+def scan_character_folders(base_path: str, target_folder: str | None = None) -> dict:
     """Recursively finds all leaf directories containing .blend, .uasset, .psk, or .json files."""
     discovered = {}
     if not base_path or not os.path.exists(base_path):
@@ -37,7 +37,7 @@ def scan_character_folders(base_path: str, target_folder: str = None) -> dict:
                     
     return discovered
 
-def get_mod_info(settings: dict, target_mod: str = None):
+def get_mod_info(settings: dict, target_mod: str | None = None):
     fmodel_base = settings.get("fmodel_output", "")
     uproject = settings.get("uproject", "")
     palworld_exe = settings.get("palworld_exe", "")
@@ -101,6 +101,10 @@ def get_mod_info(settings: dict, target_mod: str = None):
         has_fmodel = bool(fmodel_path) and os.path.exists(fmodel_path)
         
         # Calculate predicted fmodel path if it does not exist on disk yet
+        active_pak_path = ""
+        ue_modified = False
+        ue_modified_files = []
+        source_modified = False
         if not has_fmodel:
             fmodel_path = os.path.normpath(os.path.join(fmodel_monsters, name))
             data["fmodel_path"] = fmodel_path
@@ -232,6 +236,10 @@ def get_mod_info(settings: dict, target_mod: str = None):
         data["sound_metadata"] = sound_meta
 
         # Badges state indicators
+        active_pak_path = ""
+        ue_modified = False
+        ue_modified_files = []
+        source_modified = False
         if not has_fmodel:
             badges.append(("UNEXTRACTED", "#E53935"))
         else:
@@ -255,6 +263,10 @@ def get_mod_info(settings: dict, target_mod: str = None):
 
         # Persistent status checks
         pak_status = "Unpacked"
+        active_pak_path = ""
+        ue_modified = False
+        ue_modified_files = []
+        source_modified = False
         if not has_fmodel:
             pak_status = "Unextracted"
         else:

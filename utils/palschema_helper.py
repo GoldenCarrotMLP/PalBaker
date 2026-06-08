@@ -16,7 +16,7 @@ def get_ue4ss_dir(bin_dir: str) -> str:
     ue4ss_dir_upper = os.path.join(bin_dir, "UE4SS")
     return ue4ss_dir_lower if os.path.exists(ue4ss_dir_lower) else ue4ss_dir_upper
 
-def get_palschema_status(palworld_exe: str) -> dict:
+def get_palschema_status(palworld_exe: str | None) -> dict:
     """Checks if the PalSchema mod is currently installed by verifying its main.dll loader."""
     bin_dir = get_binaries_dir(palworld_exe)
     if not bin_dir:
