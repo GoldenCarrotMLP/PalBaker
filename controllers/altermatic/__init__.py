@@ -19,7 +19,7 @@ class AltermaticController:
         
         self.original_editing_label = ""
 
-    def get_category_from_path(self, path: str) -> str:
+    def get_category_from_path(self, path: str | None) -> str:
         if not path:
             return "Monster"
         parts = path.replace("\\", "/").split("/")

@@ -1,0 +1,15 @@
+{
+    "include": [
+        "."
+    ],
+    "exclude": [
+        "**/__pycache__",
+        "venv",
+        ".venv",
+        "build",
+        "dist"
+    ],
+    "pythonVersion": "3.10",
+    "reportMissingImports": true,
+    "reportAttributeAccessIssue": "warning"
+}

@@ -105,7 +105,7 @@ class CreatorView:
         self.editing_states[pal_id] = not self.editing_states.get(pal_id, False)
         self.refresh_pals()
 
-    def show_search_selector_dialog(self, title: str, dataset_dict: dict, on_select_callback, pal_elements: list = None):
+    def show_search_selector_dialog(self, title: str, dataset_dict: dict, on_select_callback, pal_elements: list | None = None):
         self.search_selector_dialog.show(title, dataset_dict, on_select_callback, pal_elements)
 
     def show_add_dialog(self, e):

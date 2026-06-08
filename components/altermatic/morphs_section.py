@@ -52,7 +52,7 @@ class MorphsSection:
     def update_morph_state(self, morph_name: str, key: str, value):
         self.active_morph_states[morph_name][key] = value
 
-    def render_morph_row_controls(self, morph_name: str, mode: str, preloaded_data: dict = None) -> list[ft.Control]:
+    def render_morph_row_controls(self, morph_name: str, mode: str, preloaded_data: dict | None = None) -> list[ft.Control]:
         controls = []
         state_key = morph_name
 

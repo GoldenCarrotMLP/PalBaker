@@ -35,7 +35,7 @@ class FilterManager:
             self.selected_statuses.discard(status)
         self.apply_filters()
 
-    def refresh_mods(self, scan_disk: bool = True, target_mod: str = None):
+    def refresh_mods(self, scan_disk: bool = True, target_mod: str | None = None):
         self.c.show_mapped = bool(self.c.settings.get("show_mapped", False))
 
         if scan_disk:

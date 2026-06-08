@@ -22,7 +22,7 @@ def get_virtual_path_for_file(absolute_path: str) -> str:
         return f"/Game/{folder_part}"
     return ""
 
-def get_blend_files_for_context(fmodel_altermatic_dir: str, fmodel_dir: str = "") -> list[str]:
+def get_blend_files_for_context(fmodel_altermatic_dir: str | None, fmodel_dir: str | None = "") -> list[str]:
     blend_files = []
     if fmodel_dir and os.path.exists(fmodel_dir):
         for f in os.listdir(fmodel_dir):
@@ -36,7 +36,7 @@ def get_blend_files_for_context(fmodel_altermatic_dir: str, fmodel_dir: str = ""
                 
     return blend_files
 
-def get_available_materials_for_context(fmodel_root: str, fmodel_altermatic_dir: str, character_id: str, category: str = "Monster") -> list[str]:
+def get_available_materials_for_context(fmodel_root: str, fmodel_altermatic_dir: str | None, character_id: str, category: str = "Monster") -> list[str]:
     materials = []
     paths_to_check = []
 

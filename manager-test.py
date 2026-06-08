@@ -339,7 +339,7 @@ def main(page: ft.Page):
 
 
     # --- Auto-Slot Material Override Renderer ---
-    def populate_material_slots_layout(selected_source: str, preloaded_overrides: list = None):
+    def populate_material_slots_layout(selected_source: str, preloaded_overrides: list | None = None):
         """Discovers the skeletal mesh slots and renders visual dropdown overrides for each slot."""
         mat_replaces_col.controls.clear()
         active_material_dropdowns.clear()
@@ -378,7 +378,7 @@ def main(page: ft.Page):
     def update_morph_state(morph_name: str, key: str, value):
         active_morph_states[morph_name][key] = value
 
-    def render_morph_row_controls(morph_name: str, mode: str, preloaded_data: dict = None) -> list[ft.Control]:
+    def render_morph_row_controls(morph_name: str, mode: str, preloaded_data: dict | None = None) -> list[ft.Control]:
         """Dynamically renders context-dependent sliders based on selected behavior mode."""
         controls = []
         state_key = morph_name
@@ -444,7 +444,7 @@ def main(page: ft.Page):
             
         return controls
 
-    def populate_morph_targets_layout(selected_source: str, preloaded_morphs: list = None):
+    def populate_morph_targets_layout(selected_source: str, preloaded_morphs: list | None = None):
         """Discovers active morph targets and renders their control rows."""
         morphs_col.controls.clear()
         active_morph_states.clear()

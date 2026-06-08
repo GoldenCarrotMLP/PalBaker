@@ -1,3 +1,4 @@
+import typing
 # utils/blender_utils/__init__.py
 import sys
 import os
@@ -28,7 +29,7 @@ class BlenderTranslator:
             return func
         return decorator
 
-    def _resolve_op(self, op_name: str, current_version: tuple) -> callable:
+    def _resolve_op(self, op_name: str, current_version: tuple) -> typing.Callable:
         if op_name not in self._registry:
             raise AttributeError(f"Blender Translator Error: Operation '{op_name}' is not registered.")
 

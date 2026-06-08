@@ -84,7 +84,7 @@ class ModsController:
     def update_status_filter(self, status: str, selected: bool):
         self.filter.update_status_filter(status, selected)
         
-    def refresh_mods(self, scan_disk: bool = True, target_mod: str = None):
+    def refresh_mods(self, scan_disk: bool = True, target_mod: str | None = None):
         self.filter.refresh_mods(scan_disk, target_mod)
         
     def apply_filters(self):
