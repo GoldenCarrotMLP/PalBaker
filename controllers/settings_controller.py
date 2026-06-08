@@ -1,5 +1,5 @@
 # controllers/settings_controller.py
-import flet as ft
+import flet as ft  # type: ignore
 import threading
 import asyncio
 from utils.config import save_settings

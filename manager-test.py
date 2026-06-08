@@ -1,7 +1,7 @@
 # manager-test.py
 import json
 import os
-import flet as ft
+import flet as ft  # type: ignore
 
 # --- Bulletproof Version-Safe Dialog Handlers ---
 def show_dialog_safe(page: ft.Page, dialog: ft.AlertDialog):

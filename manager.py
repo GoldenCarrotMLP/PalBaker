@@ -1,5 +1,5 @@
 # manager.py
-import flet as ft
+import flet as ft  # type: ignore
 from utils.config import load_settings, save_settings
 from utils.autofill_helper import detect_unreal_engine, detect_palworld_exe, find_blender_versions
 from views.settings_view import SettingsView  

@@ -1,7 +1,8 @@
 # views/creator_view.py
-import flet as ft
+import flet as ft  # type: ignore
 import os
 from controllers.creator import CreatorController
+from ui_client.dispatcher import PalBakerCLI
 from components.creator.pal_card import PalCreatorCard
 from components.creator.add_dialog import AddPalDialog
 from components.creator.search_selector import SearchSelectorDialog
@@ -12,6 +13,7 @@ class CreatorView:
         self.settings = settings
         
         self.controller = CreatorController(self, settings)
+        self.cli = PalBakerCLI()
 
         # Dynamic dialogs
         self.add_pal_btn = ft.FloatingActionButton(
@@ -114,19 +116,91 @@ class CreatorView:
     def handle_create_pal_confirm(self, pal_id: str, template_id: str):
         self.add_pal_btn.disabled = True
         self.force_update()
-        self.controller.add_custom_pal(pal_id, template_id)
+        self.run_async_task(self._async_create_pal, pal_id, template_id)
+
+    async def _async_create_pal(self, pal_id: str, template_id: str):
+        try:
+            result = await self.cli.creator_add(pal_id, template_id)
+            if result.get("status") == "success":
+                self.show_snackbar(f"Created Pal: {pal_id}", ft.Colors.GREEN)
+                await self._async_refresh_pals()
+            else:
+                self.show_snackbar(f"Error: {result.get('message', 'Unknown error')}", ft.Colors.RED)
+        except Exception as e:
+            self.show_snackbar(f"Error: {str(e)}", ft.Colors.RED)
+        finally:
+            self.add_pal_btn.disabled = False
+            self.force_update()
 
     def handle_save_pal_confirm(self, pal_id: str, updated_data: dict):
         self.editing_states[pal_id] = False
         self.add_pal_btn.disabled = True
         self.force_update()
-        self.controller.save_custom_pal(pal_id, updated_data)
+        self.run_async_task(self._async_save_pal, pal_id, updated_data)
+
+    async def _async_save_pal(self, pal_id: str, updated_data: dict):
+        try:
+            result = await self.cli.creator_update(pal_id, updated_data)
+            if result.get("status") == "success":
+                self.show_snackbar(f"Saved Pal: {pal_id}", ft.Colors.GREEN)
+                await self._async_refresh_pals()
+            else:
+                self.show_snackbar(f"Error: {result.get('message', 'Unknown error')}", ft.Colors.RED)
+        except Exception as e:
+            self.show_snackbar(f"Error: {str(e)}", ft.Colors.RED)
+        finally:
+            self.add_pal_btn.disabled = False
+            self.force_update()
 
     def handle_delete_pal_confirm(self, pal_id: str):
         self.editing_states[pal_id] = False
         self.add_pal_btn.disabled = True
         self.force_update()
-        self.controller.delete_custom_pal(pal_id)
+        self.run_async_task(self._async_delete_pal, pal_id)
+
+    async def _async_delete_pal(self, pal_id: str):
+        try:
+            result = await self.cli.creator_delete(pal_id)
+            if result.get("status") == "success":
+                self.show_snackbar(f"Deleted Pal: {pal_id}", ft.Colors.GREEN)
+                await self._async_refresh_pals()
+            else:
+                self.show_snackbar(f"Error: {result.get('message', 'Unknown error')}", ft.Colors.RED)
+        except Exception as e:
+            self.show_snackbar(f"Error: {str(e)}", ft.Colors.RED)
+        finally:
+            self.add_pal_btn.disabled = False
+            self.force_update()
+
+    def handle_refresh_bp(self, pal_id: str):
+        self.add_pal_btn.disabled = True
+        self.force_update()
+        self.run_async_task(self._async_refresh_bp, pal_id)
+
+    async def _async_refresh_bp(self, pal_id: str):
+        try:
+            result = await self.cli.refresh_actor_blueprint(pal_id)
+            if result.get("status") == "success":
+                self.show_snackbar(f"Refreshed Blueprint: {pal_id}", ft.Colors.GREEN)
+            else:
+                self.show_snackbar(f"Error: {result.get('message', 'Unknown error')}", ft.Colors.RED)
+        except Exception as e:
+            self.show_snackbar(f"Error: {str(e)}", ft.Colors.RED)
+        finally:
+            self.add_pal_btn.disabled = False
+            self.force_update()
+
+    async def _async_refresh_pals(self):
+        """Refresh the pals list from CLI."""
+        try:
+            result = await self.cli.creator_list()
+            if result.get("status") == "success":
+                self.controller.custom_pals = result.get("data", [])
+                self.refresh_pals()
+            else:
+                self.show_snackbar(f"Error refreshing pals: {result.get('message', 'Unknown error')}", ft.Colors.RED)
+        except Exception as e:
+            self.show_snackbar(f"Error: {str(e)}", ft.Colors.RED)
 
     def show_dialog(self, dlg: ft.AlertDialog):
         self.current_dialog = dlg

@@ -1,6 +1,6 @@
-import bpy
+import bpy  # type: ignore
 import os
-import numpy as np
+import numpy as np  # type: ignore
 
 def build_mrao_texture(combine_node, out_filepath):
     """Packs R, G, B inputs into a single texture file using NumPy."""

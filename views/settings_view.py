@@ -1,7 +1,8 @@
 # views/settings_view.py
-import flet as ft
+import flet as ft  # type: ignore
 from components.common.path_picker import PathPicker
 from controllers.settings_controller import SettingsController
+from ui_client.dispatcher import PalBakerCLI
 
 class SettingsView:
     def __init__(self, page: ft.Page, settings: dict, on_save_callback, on_rebuild_db_callback):
@@ -16,6 +17,7 @@ class SettingsView:
         self.main_page.services.append(self.file_picker)
 
         self.controller = SettingsController(self, settings, on_save_callback)
+        self.cli = PalBakerCLI()
 
         self.fmodel_picker = PathPicker(
             label="Workspace Folder", 
@@ -66,10 +68,10 @@ class SettingsView:
         # --- UE4SS Integration UI ---
         self.ue4ss_status_text = ft.Text("Checking UE4SS status...", size=14)
         
-        self.install_palworld_btn = ft.ElevatedButton("Install Palworld-Experimental", on_click=lambda e: self.controller.manage_ue4ss("Install Palworld"))
-        self.install_latest_btn = ft.ElevatedButton("Install Latest-Experimental", on_click=lambda e: self.controller.manage_ue4ss("Install Latest"))
-        self.repair_btn = ft.ElevatedButton("Repair Corrupted Files", on_click=lambda e: self.controller.manage_ue4ss("Repair"))
-        self.uninstall_btn = ft.ElevatedButton("Uninstall UE4SS", on_click=lambda e: self.controller.manage_ue4ss("Uninstall"), style=ft.ButtonStyle(color=ft.Colors.RED))
+        self.install_palworld_btn = ft.ElevatedButton("Install Palworld-Experimental", on_click=lambda e: self.run_async_task(self._async_manage_ue4ss))
+        self.install_latest_btn = ft.ElevatedButton("Install Latest-Experimental", on_click=lambda e: self.run_async_task(self._async_manage_ue4ss))
+        self.repair_btn = ft.ElevatedButton("Repair Corrupted Files", on_click=lambda e: self.run_async_task(self._async_manage_ue4ss))
+        self.uninstall_btn = ft.ElevatedButton("Uninstall UE4SS", on_click=lambda e: self.run_async_task(self._async_manage_ue4ss), style=ft.ButtonStyle(color=ft.Colors.RED))
         
         self.ue4ss_buttons_row = ft.Row([
             self.install_palworld_btn,
@@ -81,8 +83,8 @@ class SettingsView:
         # --- PALSCHEMA INTEGRATION UI ---
         self.palschema_status_text = ft.Text("Checking PalSchema status...", size=14)
         
-        self.install_palschema_btn = ft.ElevatedButton("Install PalSchema", on_click=lambda e: self.controller.manage_palschema("Install"))
-        self.uninstall_palschema_btn = ft.ElevatedButton("Uninstall PalSchema", on_click=lambda e: self.controller.manage_palschema("Uninstall"), style=ft.ButtonStyle(color=ft.Colors.RED))
+        self.install_palschema_btn = ft.ElevatedButton("Install PalSchema", on_click=lambda e: self.run_async_task(self._async_manage_palschema))
+        self.uninstall_palschema_btn = ft.ElevatedButton("Uninstall PalSchema", on_click=lambda e: self.run_async_task(self._async_manage_palschema), style=ft.ButtonStyle(color=ft.Colors.RED))
         
         self.palschema_buttons_row = ft.Row([
             self.install_palschema_btn,
@@ -145,6 +147,46 @@ class SettingsView:
         """Dispatches the linked database rebuild warning trigger."""
         if self.on_rebuild_db_callback:
             self.on_rebuild_db_callback()
+
+    def _on_save(self, e):
+        """Save and verify project requirements."""
+        self.main_page.run_task(self._async_verify)
+
+    async def _async_verify(self):
+        """Async wrapper for env verify."""
+        try:
+            result = await self.cli.env_verify()
+            if result.get("status") == "success":
+                self.show_snackbar("Verification completed successfully!", ft.Colors.GREEN)
+            else:
+                self.show_snackbar(f"Verification failed: {result.get('message', 'Unknown error')}", ft.Colors.RED)
+        except Exception as e:
+            self.show_snackbar(f"Error during verification: {str(e)}", ft.Colors.RED)
+
+    async def _async_manage_ue4ss(self):
+        """Async wrapper for UE4SS management."""
+        try:
+            result = await self.cli.env_ue4ss_install()
+            if result.get("status") == "success":
+                self.show_snackbar("UE4SS management completed!", ft.Colors.GREEN)
+            else:
+                self.show_snackbar(f"Error: {result.get('message', 'Unknown error')}", ft.Colors.RED)
+        except Exception as e:
+            self.show_snackbar(f"Error: {str(e)}", ft.Colors.RED)
+
+    async def _async_manage_palschema(self):
+        """Async wrapper for PalSchema management."""
+        try:
+            result = await self.cli.env_install_plugin()
+            if result.get("status") == "success":
+                self.show_snackbar("PalSchema management completed!", ft.Colors.GREEN)
+            else:
+                self.show_snackbar(f"Error: {result.get('message', 'Unknown error')}", ft.Colors.RED)
+        except Exception as e:
+            self.show_snackbar(f"Error: {str(e)}", ft.Colors.RED)
+
+    def run_async_task(self, func, *args):
+        self.main_page.run_task(func, *args)
 
     def update_ue4ss_ui(self, status: dict):
         """Map contextual actions correctly and shift font colors based on hash validation."""
@@ -239,14 +281,43 @@ class SettingsView:
         self.main_page.update()
 
     def _on_save(self, e):
-        current_paths = {
-            "fmodel_output": self.fmodel_picker.get_value(),
-            "ue_root": self.ue_root_picker.get_value(),
-            "uproject": self.uproject_picker.get_value(),
-            "blender": self.blender_picker.get_value(),
-            "palworld_exe": self.palworld_exe_picker.get_value(),
-        }
-        self.controller.save_clicked(current_paths, bool(self.show_mapped_switch.value))
+        self.main_page.run_task(self._async_verify)
+
+    async def _async_verify(self):
+        """Async wrapper for env verify."""
+        try:
+            result = await self.cli.env_verify()
+            if result.get("status") == "success":
+                self.show_snackbar("Verification completed successfully!", ft.Colors.GREEN)
+            else:
+                self.show_snackbar(f"Verification failed: {result.get('message', 'Unknown error')}", ft.Colors.RED)
+        except Exception as e:
+            self.show_snackbar(f"Error during verification: {str(e)}", ft.Colors.RED)
+
+    async def _async_manage_ue4ss(self):
+        """Async wrapper for UE4SS management."""
+        try:
+            result = await self.cli.env_ue4ss_install()
+            if result.get("status") == "success":
+                self.show_snackbar("UE4SS management completed!", ft.Colors.GREEN)
+            else:
+                self.show_snackbar(f"Error: {result.get('message', 'Unknown error')}", ft.Colors.RED)
+        except Exception as e:
+            self.show_snackbar(f"Error: {str(e)}", ft.Colors.RED)
+
+    async def _async_manage_palschema(self):
+        """Async wrapper for PalSchema management."""
+        try:
+            result = await self.cli.env_install_plugin()
+            if result.get("status") == "success":
+                self.show_snackbar("PalSchema management completed!", ft.Colors.GREEN)
+            else:
+                self.show_snackbar(f"Error: {result.get('message', 'Unknown error')}", ft.Colors.RED)
+        except Exception as e:
+            self.show_snackbar(f"Error: {str(e)}", ft.Colors.RED)
+
+    def run_async_task(self, func, *args):
+        self.main_page.run_task(func, *args)
 
     def show_dialog(self, dlg: ft.AlertDialog):
         self.main_page.show_dialog(dlg)
