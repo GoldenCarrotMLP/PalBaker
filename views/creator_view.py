@@ -1,7 +1,6 @@
 # views/creator_view.py
 import flet as ft  # type: ignore
 import os
-from controllers.creator import CreatorController
 from ui_client.dispatcher import PalBakerCLI
 from components.creator.pal_card import PalCreatorCard
 from components.creator.add_dialog import AddPalDialog
@@ -12,8 +11,19 @@ class CreatorView:
         self.main_page = page
         self.settings = settings
         
-        self.controller = CreatorController(self, settings)
         self.cli = PalBakerCLI()
+        
+        # Local view-managed caches to fully bypass CreatorController instantiation!
+        self.active_skills_cache = {}
+        self.passive_skills_cache = {}
+        self.partner_skills_cache = {}
+        self.coop_passives_cache = {}  
+        self.monster_spawners_cache = {}
+        self.monster_spawners_default_map = {}
+        self.templates_cache = {}
+        self.learnsets_cache = {}
+        self.camera_offsets_cache = {}
+        self.custom_pals = []
 
         # Dynamic dialogs
         self.add_pal_btn = ft.FloatingActionButton(
@@ -45,10 +55,29 @@ class CreatorView:
         )
 
         # Instantiated sub-component dialog views
-        self.add_pal_dialog = AddPalDialog(self.main_page, self.controller.templates_cache, self.handle_create_pal_confirm)
+        self.add_pal_dialog = AddPalDialog(self.main_page, self.templates_cache, self.handle_create_pal_confirm)
         self.search_selector_dialog = SearchSelectorDialog(self.main_page)
 
         self.editing_states = {}
+        
+        # Load index caches asynchronously via UI Dispatcher
+        self.run_async_task(self.load_index_caches)
+
+    async def load_index_caches(self):
+        caches = await self.cli.get_skills_cache()
+        self.main_page.pal_names = caches.get("pal_names", {})
+        self.active_skills_cache.update(caches.get("active_skills", {}))
+        self.passive_skills_cache.update(caches.get("passive_skills", {}))
+        self.coop_passives_cache.update(caches.get("coop_passives", {}))
+        self.partner_skills_cache.update(caches.get("partner_skills", {}))
+        self.templates_cache.update(caches.get("templates", {}))
+        self.learnsets_cache.update(caches.get("learnsets", {}))
+        self.monster_spawners_cache.update(caches.get("monster_spawners", {}))
+        self.monster_spawners_default_map.update(caches.get("monster_spawners_default_map", {}))
+        self.camera_offsets_cache.update(caches.get("camera_offsets", {}))
+        
+        # Load the initial standalone custom Pals list on startup
+        await self._async_refresh_pals()
 
     def run_in_thread(self, func):
         self.main_page.run_thread(func)
@@ -57,15 +86,15 @@ class CreatorView:
         self.main_page.run_task(func, *args)
 
     def refresh_pals(self):
-        self.controller.refresh_pals()
+        self.render_pals(self.custom_pals)
 
     def refresh_creator_mods_ui(self):
-        self.render_pals(self.controller.custom_pals)
+        self.render_pals(self.custom_pals)
 
     def handle_refresh_bp(self, pal_id: str):
         self.add_pal_btn.disabled = True
         self.force_update()
-        self.controller.refresh_actor_blueprint(pal_id)
+        self.run_async_task(self._async_refresh_bp, pal_id)
 
     def render_pals(self, pals_data: list[dict]):
         self.pals_list.controls.clear()
@@ -87,11 +116,11 @@ class CreatorView:
                 page=self.main_page,
                 pal_data=p,
                 settings=self.settings,
-                active_skills=self.controller.active_skills_cache,
-                passive_skills=self.controller.passive_skills_cache,
-                partner_skills=self.controller.partner_skills_cache,
-                coop_passives=self.controller.coop_passives_cache,
-                monster_spawners=self.controller.monster_spawners_cache,
+                active_skills=self.active_skills_cache,
+                passive_skills=self.passive_skills_cache,
+                partner_skills=self.partner_skills_cache,
+                coop_passives=self.coop_passives_cache,
+                monster_spawners=self.monster_spawners_cache,
                 is_expanded=self.editing_states.get(p["CharacterID"], False),
                 on_toggle=self.toggle_card_editor,
                 on_save=self.handle_save_pal_confirm,
@@ -195,7 +224,7 @@ class CreatorView:
         try:
             result = await self.cli.creator_list()
             if result.get("status") == "success":
-                self.controller.custom_pals = result.get("data", [])
+                self.custom_pals = result.get("data", [])
                 self.refresh_pals()
             else:
                 self.show_snackbar(f"Error refreshing pals: {result.get('message', 'Unknown error')}", ft.Colors.RED)

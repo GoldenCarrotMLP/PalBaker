@@ -31,21 +31,7 @@ class PalCreatorCard:
             on_click=lambda e: self.on_toggle(self.pal_id)
         )
 
-        fmodel_base = self.settings.get("fmodel_output", "")
-        
-        custom_icon_path = os.path.normpath(os.path.join(
-            fmodel_base, "Exports", "Pal", "Content", "Pal", "Model", "Character", "Monster", self.pal_id, f"T_{self.pal_id}_icon_normal.png"
-        )) if fmodel_base else ""
-        
-        shared_icon_path = os.path.normpath(os.path.join(
-            fmodel_base, "Exports", "Pal", "Content", "Pal", "Texture", "PalIcon", "Normal", f"T_{self.pal_id}_icon_normal.png"
-        )) if fmodel_base else ""
-        
-        resolved_icon_path = ""
-        if os.path.exists(custom_icon_path):
-            resolved_icon_path = custom_icon_path
-        elif os.path.exists(shared_icon_path):
-            resolved_icon_path = shared_icon_path
+        resolved_icon_path = pal_data.get("resolved_icon_path", "")
             
         if resolved_icon_path:
             avatar = ft.Container(
