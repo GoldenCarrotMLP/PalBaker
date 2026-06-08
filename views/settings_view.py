@@ -4,10 +4,11 @@ from components.common.path_picker import PathPicker
 from ui_client.dispatcher import PalBakerCLI
 
 class SettingsView:
-    def __init__(self, page: ft.Page, settings: dict, on_rebuild_db_callback):
+    def __init__(self, page: ft.Page, settings: dict, on_rebuild_db_callback, on_save_callback=None):
         self.main_page = page
         self.settings = settings
         self.on_rebuild_db_callback = on_rebuild_db_callback
+        self.on_save_callback = on_save_callback
         
         self.dir_picker = ft.FilePicker()
         self.file_picker = ft.FilePicker()
@@ -166,10 +167,12 @@ class SettingsView:
         }
         
         async def save_task():
+            changed = False
             for key, val in current_paths.items():
                 if self.settings.get(key) != val:
                     self.settings[key] = val
                     await self.cli.set_config(key, val)
+                    changed = True
             
             show_mapped_val = bool(self.show_mapped_switch.value)
             if self.settings.get("show_mapped") != show_mapped_val:
@@ -178,6 +181,9 @@ class SettingsView:
                 if hasattr(self.main_page, "mods_view"):
                     self.main_page.mods_view.show_mapped = show_mapped_val
                     self.main_page.mods_view.apply_filters()
+            
+            if changed and self.on_save_callback:
+                self.on_save_callback()
                     
         self.run_async_task(save_task)
 

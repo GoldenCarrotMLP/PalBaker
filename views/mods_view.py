@@ -272,14 +272,28 @@ class ModsView:
 
         if action == "extract_pal":
             try:
+                self.write_log(f"\n>>> EXECUTING [EXTRACT_PAL]: {mod_data['name']}", "stage")
+                if mod_data["name"] in self.cached_components:
+                    card = self.cached_components[mod_data["name"]]
+                    card.set_state(global_building=True, is_active_target=True)
+                    card.progress_bar.value = None # Indeterminate spinner!
+                    card.status_text.value = "Extracting game files..."
+                    self.force_update()
+                
                 response = await self.cli._execute(["mod", "extract", mod_data["name"]])
                 if response.get("status") == "success":
                     self.write_log(f"Extraction completed successfully: {response.get('message')}", "success")
+                    if mod_data["name"] in self.cached_components:
+                        self.cached_components[mod_data["name"]].set_state(global_building=False, is_active_target=False, success=True)
                     self.refresh_mods(scan_disk=True)
                 else:
                     self.write_log(f"Extraction failed: {response.get('message')}", "error")
+                    if mod_data["name"] in self.cached_components:
+                        self.cached_components[mod_data["name"]].set_state(global_building=False, is_active_target=False, success=False)
             except Exception as e:
                 self.write_log(f"Extraction error: {str(e)}", "error")
+                if mod_data["name"] in self.cached_components:
+                    self.cached_components[mod_data["name"]].set_state(global_building=False, is_active_target=False, success=False)
         elif action in ["push", "full"] and mod_data.get("ue_modified"):
             self.prompt_overwrite_warning(mod_data, lambda: self.run_async_task(self._async_execute_pipeline, mod_data, action))
         elif action == "decompile":
@@ -297,24 +311,54 @@ class ModsView:
     async def _async_execute_pipeline(self, mod_data, action):
         """Spawns out-of-process builds and live-streams logs straight through dispatcher.run_pipeline_stream."""
         self.set_log_autoscroll(True)
-        self.write_log(f"\n>>> EXECUTING [{action.upper()}]: {mod_data['name']}", "stage")
         
-        def log_callback(msg, level="standard"):
-            self.write_log(msg, level, flush=False)
-            
-        def progress_callback(percent, msg):
-            self.update_card_progress(mod_data["name"], f"[{percent}%] {msg}", flush=True)
-            
-        def done_callback(success):
-            self.set_log_autoscroll(False)
-            self.reset_card_state(mod_data["name"], success)
-            if success:
-                self.write_log("SUCCESS: Operation completed cleanly.", "success")
-            else:
-                self.write_log("FAILED: Pipeline execution encountered issues.", "error")
-            self.refresh_mods(scan_disk=True)
+        # Determine sequential steps for multi-stage pipelines to completely decouple and modularize processes
+        if action == "cook":
+            steps = ["cook", "pack"]
+        elif action == "full":
+            steps = ["push", "cook", "pack"]
+        else:
+            steps = [action]
 
-        await self.cli.run_pipeline_stream(mod_data["name"], action, log_callback, progress_callback, done_callback)
+        import asyncio
+        success = True
+        
+        for step in steps:
+            # Put the card in an active building state specifically for the current sequential step
+            if mod_data["name"] in self.cached_components:
+                self.cached_components[mod_data["name"]].set_state(global_building=True, is_active_target=True)
+                self.force_update()
+            
+            def log_callback(msg, level="standard"):
+                self.write_log(msg, level, flush=False)
+                
+            def progress_callback(percent, msg):
+                self.update_card_progress(mod_data["name"], f"[{percent}%] {msg}", flush=True)
+                
+            # Create a future to await completion of this individual sub-process
+            loop = asyncio.get_running_loop()
+            step_fut = loop.create_future()
+            
+            def done_callback(step_success):
+                try:
+                    step_fut.set_result(step_success)
+                except Exception:
+                    pass
+            
+            await self.cli.run_pipeline_stream(mod_data["name"], step, log_callback, progress_callback, done_callback)
+            
+            step_success = await step_fut
+            if not step_success:
+                success = False
+                break
+                
+        self.set_log_autoscroll(False)
+        self.reset_card_state(mod_data["name"], success)
+        if success:
+            self.write_log("SUCCESS: Operation completed cleanly.", "success")
+        else:
+            self.write_log("FAILED: Pipeline execution encountered issues.", "error")
+        self.refresh_mods(scan_disk=True)
 
     def update_card_progress(self, mod_name: str, line: str, flush: bool):
         if mod_name in self.cached_components:
@@ -339,6 +383,14 @@ class ModsView:
     async def _async_decompile(self, mod_data, overwrite: bool):
         """Execute decompile pipeline via CLI."""
         try:
+            self.write_log(f"\n>>> EXECUTING [DECOMPILE]: {mod_data['name']}", "stage")
+            if mod_data["name"] in self.cached_components:
+                card = self.cached_components[mod_data["name"]]
+                card.set_state(global_building=True, is_active_target=True)
+                card.progress_bar.value = None # Indeterminate spinner!
+                card.status_text.value = "Decompiling project assets..."
+                self.force_update()
+
             args = ["mod", "decompile", mod_data["name"]]
             if overwrite:
                 args.append("--overwrite")
@@ -347,10 +399,16 @@ class ModsView:
                 self.write_log(f"Decompile completed for {mod_data['name']}", "success")
                 if response.get("summary"):
                     self.write_log(f"Summary: {response.get('summary')}", "standard")
+                if mod_data["name"] in self.cached_components:
+                    self.cached_components[mod_data["name"]].set_state(global_building=False, is_active_target=False, success=True)
             else:
                 self.write_log(f"Decompile failed: {response.get('message', 'Unknown error')}", "error")
+                if mod_data["name"] in self.cached_components:
+                    self.cached_components[mod_data["name"]].set_state(global_building=False, is_active_target=False, success=False)
         except Exception as e:
             self.write_log(f"Error during decompile: {str(e)}", "error")
+            if mod_data["name"] in self.cached_components:
+                self.cached_components[mod_data["name"]].set_state(global_building=False, is_active_target=False, success=False)
 
     def prompt_build_database(self):
         dlg = create_build_database_dialog(

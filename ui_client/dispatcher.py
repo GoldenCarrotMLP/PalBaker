@@ -23,6 +23,11 @@ class PalBakerCLI:
         stdout, stderr = await proc.communicate()
         
         try:
+            lines = stdout.decode().strip().splitlines()
+            for line in reversed(lines):
+                cleaned = line.strip()
+                if cleaned.startswith("{") and cleaned.endswith("}"):
+                    return json.loads(cleaned)
             return json.loads(stdout.decode().strip())
         except json.JSONDecodeError:
             return {"status": "error", "message": f"CLI Error: {stderr.decode()}"}
@@ -43,7 +48,8 @@ class PalBakerCLI:
 
     async def run_pipeline_stream(self, mod_name: str, action: str, log_cb, progress_cb, done_cb):
         """Yields JSONL output line-by-line for live UI updates."""
-        cmd = self.cli_path + ["mod", action, mod_name]
+        cli_action = action.replace("_", "-")
+        cmd = self.cli_path + ["mod", cli_action, mod_name]
         creationflags = subprocess.CREATE_NO_WINDOW if os.name == 'nt' else 0
         proc = await asyncio.create_subprocess_exec(
             *cmd,

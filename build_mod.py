@@ -274,8 +274,19 @@ def main():
         )
         
         if files_found == 0:
-            print("ERROR: No files found to pack. Cook process might have failed.", flush=True)
-            sys.exit(1)
+            # Altermatic vanilla base-mesh mods or standalone audio overrides might have zero compiled .uassets in the .pak, which is completely valid!
+            has_other_outputs = bool(workspace.is_altermatic_active or (hasattr(workspace, 'has_icon') and workspace.has_icon))
+            if not has_other_outputs:
+                # Import audio_overrides check safely
+                from utils.builder.cooker_helper import get_staged_audio_overrides
+                if get_staged_audio_overrides(workspace):
+                    has_other_outputs = True
+            
+            if not has_other_outputs:
+                print("ERROR: No files found to pack. Cook process might have failed.", flush=True)
+                sys.exit(1)
+            else:
+                print("WARNING: No compiled uassets found to pack. Staging non-uasset files (Altermatic configs/audio/icon) separately.", flush=True)
             
         print(f"SUCCESS! Pak created at: {final_pak_path} ({files_found} files)", flush=True)
         for suffix in ["_err_P.pak", "_err_p.pak"]:
