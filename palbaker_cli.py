@@ -320,9 +320,23 @@ def main():
 
         elif args.command == "altermatic":
             settings = load_settings()
-            mods = get_mod_info(settings, args.mod)
+            
+            mod_name = getattr(args, "mod", None)
+            if args.subcommand == "save" and not mod_name:
+                import json as json_lib
+                try:
+                    payload = json_lib.loads(args.data)
+                    mod_name = payload.get("CharacterID")
+                except Exception:
+                    pass
+            
+            if not mod_name:
+                json_print({"status": "error", "message": "Missing target mod name."})
+                sys.exit(1)
+                
+            mods = get_mod_info(settings, mod_name)
             if not mods:
-                json_print({"status": "error", "message": f"Mod {args.mod} not found."})
+                json_print({"status": "error", "message": f"Mod {mod_name} not found."})
                 sys.exit(1)
             mod_data = mods[0]
             
