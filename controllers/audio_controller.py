@@ -102,7 +102,7 @@ class AudioController:
                 ]
                 
                 creation_flags = subprocess.CREATE_NO_WINDOW if os.name == 'nt' else 0
-                subprocess.run(cmd, capture_output=True, creationflags=creation_flags)
+                wwise_res = subprocess.run(cmd, capture_output=True, creationflags=creation_flags)
                 
                 compiled_dir = os.path.join(output_test_dir, "Windows")
                 success_file = False

@@ -1,5 +1,5 @@
 # components/altermatic/dialogs/utils.py
-import flet as ft
+import flet as ft  # type: ignore
 
 def show_dialog_safe(page: ft.Page, dialog: ft.AlertDialog):
     if getattr(dialog, "open", False):
