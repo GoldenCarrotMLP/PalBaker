@@ -5,7 +5,7 @@ import os
 import types
 
 try:
-    import bpy
+    import bpy  # type: ignore
 except ImportError:
     # If imported outside of Blender (e.g., by the PalBaker orchestrator),
     # inject a strictly compliant ModuleType mock into sys.modules.
@@ -13,7 +13,7 @@ except ImportError:
     mock_bpy.app = type("App", (), {"version": (0, 0, 0)})()
     sys.modules["bpy"] = mock_bpy
 
-import bpy
+import bpy  # type: ignore
 
 class BlenderTranslator:
     def __init__(self):

@@ -1,5 +1,5 @@
 # components/mods/dialogs.py
-import flet as ft
+import flet as ft  # type: ignore
 
 def create_overwrite_warning_dialog(files: list, on_confirm, on_cancel) -> ft.AlertDialog:
     files_str = "\n".join([f" • {f}" for f in files])

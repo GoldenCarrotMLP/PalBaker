@@ -1,5 +1,5 @@
 # components/altermatic/dialogs/add_dialog.py
-import flet as ft
+import flet as ft  # type: ignore
 from .utils import show_dialog_safe, close_dialog_safe
 
 class AltermaticAddDialog:

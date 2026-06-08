@@ -1,5 +1,5 @@
 # utils/blender_utils/adapters_v3.py
-import bpy
+import bpy  # type: ignore
 import os
 from . import translator
 
@@ -9,7 +9,7 @@ def ensure_addon_enabled_legacy(addon_name: str):
     Legacy Blender (< 4.2) Addon enabler.
     Directly activates pre-staged addons.
     """
-    import addon_utils
+    import addon_utils  # type: ignore
     resolved_name = translator.execute("get_addon_name")
     
     state = addon_utils.check(resolved_name)

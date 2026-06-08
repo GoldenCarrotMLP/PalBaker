@@ -1,5 +1,5 @@
 # components/creator/learnset_editor.py
-import flet as ft
+import flet as ft  # type: ignore
 
 class LearnsetEditor:
     def __init__(self, page: ft.Page, active_skills_cache: dict, initial_learnset: list, show_search_dialog_callback):
