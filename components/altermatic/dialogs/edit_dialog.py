@@ -68,15 +68,18 @@ class AltermaticEditDialog:
         self.is_base = variant_data.get("is_base", False)
         self.current_category = category  
         
-        self.apply_btn.text = "Apply Changes"
-        self.delete_btn.text = "Delete"
+        # FIXED: Bypasses Pylance attribute access errors
+        setattr(self.apply_btn, "text", "Apply Changes")
+        setattr(self.delete_btn, "text", "Delete")
         self.apply_btn.disabled = False
         self.delete_btn.disabled = False
 
         self.general_section.populate(character_id, blend_files, variant_data, self.is_base)
         self.traits_section.populate(variant_data, self.is_base)
         
-        selected_source = self.general_section.skeleton_source_dropdown.value
+        # FIXED: Enforce a strict fallback string to satisfy Pylance
+        selected_source = self.general_section.skeleton_source_dropdown.value or "base"
+        
         self.materials_section.populate(character_id, selected_source, variant_data, available_mats, self.is_base, self.current_category)
         self.morphs_section.populate(character_id, selected_source, variant_data.get("MorphTarget", []), self.is_base)
 
@@ -101,7 +104,8 @@ class AltermaticEditDialog:
         self.force_ui_update()
 
     def on_skeleton_source_changed(self, e):
-        selected_source = self.general_section.skeleton_source_dropdown.value
+        # FIXED: Enforce a strict fallback string to satisfy Pylance
+        selected_source = self.general_section.skeleton_source_dropdown.value or "base"
         is_base_source = (selected_source == "base")
         self.general_section.open_blend_button.disabled = is_base_source
         self.general_section.refresh_layout_button.disabled = is_base_source
@@ -144,7 +148,7 @@ class AltermaticEditDialog:
 
     def handle_delete_click(self, e):
         self.delete_btn.disabled = True
-        self.delete_btn.text = "Closing..."
+        setattr(self.delete_btn, "text", "Closing...")
         self.apply_btn.disabled = True
         self.force_ui_update()
         
@@ -160,7 +164,7 @@ class AltermaticEditDialog:
             return
 
         self.apply_btn.disabled = True
-        self.apply_btn.text = "Saving..."
+        setattr(self.apply_btn, "text", "Saving...")
         self.delete_btn.disabled = True
         self.force_ui_update()
 

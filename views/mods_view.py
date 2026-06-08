@@ -9,8 +9,8 @@ from components.mods.dialogs import (
     create_decompile_options_dialog,
     create_troubleshooting_advisor_dialog,
     create_build_database_dialog,
-    create_unreal_closed_dialog,            # <-- IMPORTED
-    create_remote_exec_disabled_dialog      # <-- IMPORTED
+    create_unreal_closed_dialog,            
+    create_remote_exec_disabled_dialog      
 )
 from components.altermatic.dialogs import AltermaticEditDialog, AltermaticAddDialog, AltermaticDeleteDialog
 
@@ -296,32 +296,28 @@ class ModsView:
         self.force_update()
 
     def show_dialog(self, dlg: ft.AlertDialog):
+        self.current_dialog = dlg
         if hasattr(self.main_page, "show_dialog"):
-            self.main_page.show_dialog(dlg)
+            getattr(self.main_page, "show_dialog")(dlg)
         elif hasattr(self.main_page, "open"):
-            self.main_page.open(dlg)
+            getattr(self.main_page, "open")(dlg)
         else:
-            self.main_page.dialog = dlg
-            dlg.open = True
+            setattr(self.main_page, "dialog", dlg)
+            setattr(dlg, "open", True)
             self.main_page.update()
 
     def pop_dialog(self):
         if hasattr(self.main_page, "pop_dialog"):
-            try:
-                self.main_page.pop_dialog()
-                return
-            except Exception:
-                pass
-                
-        if hasattr(self.main_page, "close") and hasattr(self.main_page, "dialog") and self.main_page.dialog:
-            try:
-                self.main_page.close(self.main_page.dialog)
-                return
-            except Exception:
-                pass
-                
-        if hasattr(self.main_page, "dialog") and self.main_page.dialog:
-            self.main_page.dialog.open = False
+            try: getattr(self.main_page, "pop_dialog")(); return
+            except Exception: pass
+            
+        dlg = getattr(self, "current_dialog", getattr(self.main_page, "dialog", None))
+        if dlg:
+            if hasattr(self.main_page, "close"):
+                try: getattr(self.main_page, "close")(dlg); return
+                except Exception: pass
+            
+            setattr(dlg, "open", False)
             self.main_page.update()
 
     def show_snackbar(self, message: str, color):

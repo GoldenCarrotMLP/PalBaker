@@ -59,15 +59,15 @@ class AddPalDialog:
             self.selected_parent_text.value = f"Selected: {get_localized_name(self.selected_parent_id[0])} ({self.selected_parent_id[0]})"
         
         self.populate_results("")
-        self.dialog.open = True
+        setattr(self.dialog, "open", True)
         
         try:
             if hasattr(self.page, "show_dialog"):
-                self.page.show_dialog(self.dialog)
+                getattr(self.page, "show_dialog")(self.dialog)
             elif hasattr(self.page, "open"):
-                self.page.open(self.dialog)
+                getattr(self.page, "open")(self.dialog)
             else:
-                self.page.dialog = self.dialog
+                setattr(self.page, "dialog", self.dialog)
                 self.page.update()
         except Exception:
             pass
@@ -102,12 +102,12 @@ class AddPalDialog:
         except Exception: pass
 
     def close_dialog(self, e=None):
-        self.dialog.open = False
+        setattr(self.dialog, "open", False)
         try:
             if hasattr(self.page, "pop_dialog"):
-                self.page.pop_dialog()
+                getattr(self.page, "pop_dialog")()
             elif hasattr(self.page, "close"):
-                self.page.close(self.dialog)
+                getattr(self.page, "close")(self.dialog)
             else:
                 self.page.update()
         except Exception:

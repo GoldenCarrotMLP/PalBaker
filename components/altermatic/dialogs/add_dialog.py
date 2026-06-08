@@ -51,7 +51,8 @@ class AltermaticAddDialog:
         self.clone_source_dropdown.options = dropdown_options
         self.clone_source_dropdown.value = "base"
         
-        self.create_btn.text = "Create"
+        # FIXED: Bypasses Pylance attribute access errors
+        setattr(self.create_btn, "text", "Create")
         self.create_btn.disabled = False
         
         show_dialog_safe(self.page, self.dialog)
@@ -67,7 +68,8 @@ class AltermaticAddDialog:
             return
             
         self.create_btn.disabled = True
-        self.create_btn.text = "Creating..."
+        # FIXED: Bypasses Pylance attribute access errors
+        setattr(self.create_btn, "text", "Creating...")
         try: self.dialog.update()
         except Exception: pass
         
