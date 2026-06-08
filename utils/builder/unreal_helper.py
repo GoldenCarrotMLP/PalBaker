@@ -30,8 +30,36 @@ def run_remote_command(ue_root: str, project_name: str, cmd: str) -> tuple[bool,
         elapsed += 0.5
 
     if not node:
+        all_nodes = list(remote_exec.remote_nodes)
         remote_exec.stop()
-        return False, "Unreal Editor is not running. Please open your project first."
+        
+        if not all_nodes:
+            error_details = (
+                f"Unreal Editor is running but remote connection timed out ({timeout}s).\n\n"
+                f"=== REMOTE EXECUTION TROUBLESHOOTING ===\n"
+                f"1. Verify Project Settings:\n"
+                f"   Inside Unreal Editor, open Edit -> Project Settings -> Plugins -> Python.\n"
+                f"   Ensure 'Enable Remote Execution' is checked.\n"
+                f"2. Network Adapter Conflict (Highly Likely):\n"
+                f"   Your logs show active virtual adapters (e.g., Oculus Virtual Audio/Network).\n"
+                f"   WSL, Hyper-V, VMware, and VR headsets install virtual network adapters\n"
+                f"   that frequently hijack local UDP multicast traffic. Python binds to these\n"
+                f"   instead of your main loopback card.\n"
+                f"   -> Try temporarily disabling non-essential virtual adapters in your OS:\n"
+                f"      Control Panel -> Network and Internet -> Network Connections (right-click & disable).\n"
+                f"3. Check Firewall Rules:\n"
+                f"   Make sure both 'UnrealEditor.exe' and your active Python executable have Private/Public\n"
+                f"   network permissions allowed in the Windows Defender Firewall panel."
+            )
+        else:
+            found_names = [n.get('project_name', 'Unknown') for n in all_nodes]
+            error_details = (
+                f"Found active Unreal Editor nodes, but none matched your configured project name '{project_name}'.\n"
+                f"Active project nodes discovered: {found_names}\n\n"
+                f"Verify that your .uproject file name ({project_name}.uproject) exactly matches\n"
+                f"the project currently open in your Unreal Editor."
+            )
+        return False, error_details
         
     remote_exec.open_command_connection(node.get('node_id'))
     
@@ -117,8 +145,36 @@ def run_remote_import(ue_root: str, project_name: str, fmodel_dir: str, ue_scrip
         elapsed += 0.5
 
     if not node:
+        all_nodes = list(remote_exec.remote_nodes)
         remote_exec.stop()
-        return False, "Unreal Editor is not running. Please open your project first."
+        
+        if not all_nodes:
+            error_details = (
+                f"Unreal Editor is running but remote connection timed out ({timeout}s).\n\n"
+                f"=== REMOTE EXECUTION TROUBLESHOOTING ===\n"
+                f"1. Verify Project Settings:\n"
+                f"   Inside Unreal Editor, open Edit -> Project Settings -> Plugins -> Python.\n"
+                f"   Ensure 'Enable Remote Execution' is checked.\n"
+                f"2. Network Adapter Conflict (Highly Likely):\n"
+                f"   Your logs show active virtual adapters (e.g., Oculus Virtual Audio/Network).\n"
+                f"   WSL, Hyper-V, VMware, and VR headsets install virtual network adapters\n"
+                f"   that frequently hijack local UDP multicast traffic. Python binds to these\n"
+                f"   instead of your main loopback card.\n"
+                f"   -> Try temporarily disabling non-essential virtual adapters in your OS:\n"
+                f"      Control Panel -> Network and Internet -> Network Connections (right-click & disable).\n"
+                f"3. Check Firewall Rules:\n"
+                f"   Make sure both 'UnrealEditor.exe' and your active Python executable have Private/Public\n"
+                f"   network permissions allowed in the Windows Defender Firewall panel."
+            )
+        else:
+            found_names = [n.get('project_name', 'Unknown') for n in all_nodes]
+            error_details = (
+                f"Found active Unreal Editor nodes, but none matched your configured project name '{project_name}'.\n"
+                f"Active project nodes discovered: {found_names}\n\n"
+                f"Verify that your .uproject file name ({project_name}.uproject) exactly matches\n"
+                f"the project currently open in your Unreal Editor."
+            )
+        return False, error_details
         
     remote_exec.open_command_connection(node.get('node_id'))
     

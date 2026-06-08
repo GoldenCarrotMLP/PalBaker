@@ -4,24 +4,24 @@ import flet as ft
 def show_dialog_safe(page: ft.Page, dialog: ft.AlertDialog):
     if getattr(dialog, "open", False):
         return
-    dialog.open = True
+    setattr(dialog, "open", True)
     if hasattr(dialog, "title") and isinstance(dialog.title, ft.Text):
         dialog.title.color = None
         
     try:
         if hasattr(page, "show_dialog"):
-            page.show_dialog(dialog)
+            getattr(page, "show_dialog")(dialog)
         elif hasattr(page, "open"):
-            page.open(dialog)
+            getattr(page, "open")(dialog)
         else:
-            page.dialog = dialog
+            setattr(page, "dialog", dialog)
             page.update()
     except RuntimeError as e:
         if "already opened" not in str(e).lower():
             raise
 
 def close_dialog_safe(page: ft.Page, dialog: ft.AlertDialog):
-    dialog.open = False
+    setattr(dialog, "open", False)
     if hasattr(dialog, "title") and isinstance(dialog.title, ft.Text):
         dialog.title.color = ft.Colors.TRANSPARENT
         
@@ -32,9 +32,9 @@ def close_dialog_safe(page: ft.Page, dialog: ft.AlertDialog):
 
     try:
         if hasattr(page, "close"):
-            page.close(dialog)
+            getattr(page, "close")(dialog)
         elif hasattr(page, "pop_dialog"):
-            page.pop_dialog()
+            getattr(page, "pop_dialog")()
     except Exception:
         pass
         

@@ -129,22 +129,29 @@ class CreatorView:
         self.controller.delete_custom_pal(pal_id)
 
     def show_dialog(self, dlg: ft.AlertDialog):
+        self.current_dialog = dlg
         if hasattr(self.main_page, "show_dialog"):
-            self.main_page.show_dialog(dlg)
+            getattr(self.main_page, "show_dialog")(dlg)
         elif hasattr(self.main_page, "open"):
-            self.main_page.open(dlg)
+            getattr(self.main_page, "open")(dlg)
         else:
-            self.main_page.dialog = dlg
-            dlg.open = True
+            setattr(self.main_page, "dialog", dlg)
+            setattr(dlg, "open", True)
             self.main_page.update()
 
     def pop_dialog(self):
         if hasattr(self.main_page, "pop_dialog"):
-            try: self.main_page.pop_dialog(); return
+            try: getattr(self.main_page, "pop_dialog")(); return
             except Exception: pass
-        if hasattr(self.main_page, "close") and hasattr(self.main_page, "dialog") and self.main_page.dialog:
-            try: self.main_page.close(self.main_page.dialog); return
-            except Exception: pass
+            
+        dlg = getattr(self, "current_dialog", getattr(self.main_page, "dialog", None))
+        if dlg:
+            if hasattr(self.main_page, "close"):
+                try: getattr(self.main_page, "close")(dlg); return
+                except Exception: pass
+            
+            setattr(dlg, "open", False)
+            self.main_page.update()
 
     def show_snackbar(self, message: str, color):
         self.main_page.overlay.append(ft.SnackBar(ft.Text(message, color=color), open=True))

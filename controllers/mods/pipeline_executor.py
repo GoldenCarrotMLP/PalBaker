@@ -3,6 +3,7 @@ import os
 import sys
 import subprocess
 import asyncio
+import flet as ft  # <-- ADDED THIS IMPORT TO FIX THE NameError
 from utils.builder.pipeline_runner import run_pipeline_async
 
 class PipelineExecutor:
@@ -179,7 +180,7 @@ class PipelineExecutor:
             script_args = [mod_data["name"], category, action]
             await run_pipeline_async(script_args, log_callback, progress_callback, complete_callback, self.active_token)
 
-        self.c.view.run_task(run_task)
+        self.c.view.run_async_task(run_task)
 
     def execute_browse_unreal(self, mod_data):
         self.is_building = True

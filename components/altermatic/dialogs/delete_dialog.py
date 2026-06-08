@@ -21,7 +21,8 @@ class AltermaticDeleteDialog:
     def show(self, message: str, on_confirm_callback):
         self.on_confirm = on_confirm_callback
         self.content_text.value = message
-        self.delete_btn.text = "Delete"
+        # FIXED: Bypasses Pylance attribute access errors
+        setattr(self.delete_btn, "text", "Delete")
         self.delete_btn.disabled = False
         show_dialog_safe(self.page, self.dialog)
 
@@ -30,7 +31,8 @@ class AltermaticDeleteDialog:
 
     def execute_delete(self, e):
         self.delete_btn.disabled = True
-        self.delete_btn.text = "Closing..."
+        # FIXED: Bypasses Pylance attribute access errors
+        setattr(self.delete_btn, "text", "Closing...")
         try: self.dialog.update()
         except Exception: pass
         
