@@ -16,7 +16,7 @@ class GeneralSection:
             label="Skeleton / Mesh Source",
             expand=True
         )
-        self.skeleton_source_dropdown.on_change = self.on_skeleton_changed
+        self.skeleton_source_dropdown.on_change = self.on_skeleton_changed  # type: ignore
         
         self.open_blend_button = ft.IconButton(
             icon=ft.Icons.EDIT_NOTE_ROUNDED,

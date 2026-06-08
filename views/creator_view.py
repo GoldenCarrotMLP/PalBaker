@@ -159,7 +159,7 @@ class CreatorView:
 
     def write_log(self, text: str, category: str = "standard"):
         if hasattr(self.main_page, "mods_view"):
-            self.main_page.mods_view.write_log(text, category)
+            self.main_page.mods_view.write_log(text, category)  # type: ignore
 
     def force_update(self):
         try: self.view.update()

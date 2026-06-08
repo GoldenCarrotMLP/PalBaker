@@ -27,7 +27,7 @@ class SearchSelectorDialog:
             options=[ft.dropdown.Option("All")],
             value="All"
         )
-        self.element_filter.on_change = self._on_element_filter_change
+        self.element_filter.on_change = self._on_element_filter_change  # type: ignore
 
         self.category_filter = ft.Dropdown(
             label="Filter by Type",
@@ -35,7 +35,7 @@ class SearchSelectorDialog:
             options=[ft.dropdown.Option("All")],
             value="All"
         )
-        self.category_filter.on_change = self._on_category_filter_change
+        self.category_filter.on_change = self._on_category_filter_change  # type: ignore
 
         self.filters_row = ft.Row([self.element_filter, self.category_filter], visible=False, spacing=10)
         

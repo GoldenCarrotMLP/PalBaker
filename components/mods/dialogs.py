@@ -77,7 +77,7 @@ def create_troubleshooting_advisor_dialog(summary: dict, on_dismiss) -> ft.Alert
 
             cards.append(
                 ft.Container(
-                    content=ft.Column(card_content, spacing=8),
+                    content=ft.Column(card_content, spacing=8),  # type: ignore
                     padding=12,
                     border=ft.Border.all(1, ft.Colors.WHITE24),
                     border_radius=6,

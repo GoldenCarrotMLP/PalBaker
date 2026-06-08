@@ -1,5 +1,5 @@
 # unreal_scripts/rigging.py
-import unreal
+import unreal  # type: ignore
 import os
 
 def apply_rigging(working_dir, ue_path, folder_name, target_asset_path, bone_data_file="bone_data.json", template_id=None, is_custom_pal=False):

@@ -1,5 +1,5 @@
 # unreal_scripts/importer.py
-import unreal
+import unreal  # type: ignore
 import os
 
 def clear_cache(ue_path, fbx_file, folder_name, is_custom_pal=False):

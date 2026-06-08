@@ -9,10 +9,10 @@ def show_dialog_safe(page: ft.Page, dialog: ft.AlertDialog):
     if hasattr(page, "show_dialog"):
         page.show_dialog(dialog)
     elif hasattr(page, "open"):
-        page.open(dialog)
+        page.open(dialog)  # type: ignore
     else:
-        page.dialog = dialog
-        dialog.open = True
+        page.dialog = dialog  # type: ignore
+        dialog.open = True  # type: ignore
         page.update()
 
 def close_dialog_safe(page: ft.Page, dialog: ft.AlertDialog):
@@ -20,9 +20,9 @@ def close_dialog_safe(page: ft.Page, dialog: ft.AlertDialog):
     if hasattr(page, "pop_dialog"):
         page.pop_dialog()
     elif hasattr(page, "close"):
-        page.close(dialog)
+        page.close(dialog)  # type: ignore
     else:
-        dialog.open = False
+        dialog.open = False  # type: ignore
         page.update()
 
 
@@ -345,8 +345,8 @@ def main(page: ft.Page):
         active_material_dropdowns.clear()
 
         current_char_id = active_mod_dropdown.value
-        slots = get_material_slots_for_mesh(current_char_id, selected_source)
-        available_mats = get_available_materials_for_context(current_char_id)
+        slots = get_material_slots_for_mesh(current_char_id or "", selected_source)  # type: ignore
+        available_mats = get_available_materials_for_context(current_char_id or "")  # type: ignore
 
         for idx, slot_name in enumerate(slots):
             dropdown_options = [ft.dropdown.Option("default", "Default (No Override)")]
@@ -433,9 +433,9 @@ def main(page: ft.Page):
             type_dd = ft.Dropdown(
                 value=current_state["type_val"],
                 options=[ft.dropdown.Option("Free"), ft.dropdown.Option("Restrict")],
-                width=140,
-                on_change=lambda e, mn=state_key: update_morph_state(mn, "type_val", e.control.value)
+                width=140
             )
+            type_dd.on_change = lambda e, mn=state_key: update_morph_state(mn, "type_val", e.control.value)  # type: ignore
             controls.append(ft.Column([
                 ft.Row([ft.Text("Min Boundary:", size=11, width=100), min_slider], spacing=5),
                 ft.Row([ft.Text("Max Boundary:", size=11, width=100), max_slider], spacing=5),
@@ -452,7 +452,7 @@ def main(page: ft.Page):
         current_char_id = active_mod_dropdown.value
         current_category = active_category_dropdown.value
         
-        morph_names = get_morph_targets_for_mesh(current_category, current_char_id, selected_source)
+        morph_names = get_morph_targets_for_mesh(current_category or "", current_char_id or "", selected_source)  # type: ignore
         
         preload_map = {}
         if preloaded_morphs:
@@ -485,7 +485,7 @@ def main(page: ft.Page):
                 container.controls = render_morph_row_controls(m_name, e.control.value)
                 dialog.update()
 
-            mode_dd.on_change = handle_mode_change
+            mode_dd.on_change = handle_mode_change  # type: ignore
 
             # Initialize active options
             options_container.controls = render_morph_row_controls(name, initial_mode, preload_data)
@@ -510,8 +510,8 @@ def main(page: ft.Page):
     # Trigger update when the selected skeleton changes
     def on_skeleton_source_changed(e):
         selected_source = skeleton_source_dropdown.value
-        populate_material_slots_layout(selected_source)
-        populate_morph_targets_layout(selected_source)
+        populate_material_slots_layout(selected_source or "")  # type: ignore
+        populate_morph_targets_layout(selected_source or "")  # type: ignore
         dialog.update()
 
 
@@ -528,7 +528,7 @@ def main(page: ft.Page):
         mat_replaces = []
         for idx, dropdown in active_material_dropdowns.items():
             if dropdown.value and dropdown.value != "default":
-                mat_path = resolve_material_path(active_category_dropdown.value, char_id_input.value, dropdown.value)
+                mat_path = resolve_material_path(active_category_dropdown.value or "", char_id_input.value or "", dropdown.value)  # type: ignore
                 mat_replaces.append({
                     "Index": str(idx),
                     "MatPath": mat_path
@@ -603,11 +603,11 @@ def main(page: ft.Page):
             morphs_col,
         ], scroll=ft.ScrollMode.ALWAYS, height=450, width=580)
     )
-    page.dialog = dialog
+    page.dialog = dialog  # type: ignore
 
     # Bind listeners safely after controls instantiation to prevent version/constructor conflicts
-    search_input.on_change = lambda e: refresh_search_results(search_input.value)
-    skeleton_source_dropdown.on_change = on_skeleton_source_changed
+    search_input.on_change = lambda e: refresh_search_results(search_input.value)  # type: ignore
+    skeleton_source_dropdown.on_change = on_skeleton_source_changed  # type: ignore
 
     # --- Variant Manager Operations ---
     def open_builder_modal(index: int = -1):
@@ -618,10 +618,10 @@ def main(page: ft.Page):
         current_category = active_category_dropdown.value
 
         # Pre-fill locked context fields
-        char_id_input.value = current_char_id
+        char_id_input.value = current_char_id or ""  # type: ignore
 
         # Dynamically build skeleton source dropdown choices
-        blend_files = get_blend_files_for_context(current_category, current_char_id)
+        blend_files = get_blend_files_for_context(current_category or "", current_char_id or "")  # type: ignore
         dropdown_options = [ft.dropdown.Option("base", "base (Vanilla Canonical Mesh)")]
         for f in blend_files:
             dropdown_options.append(ft.dropdown.Option(f, f"Blender: {f}"))
@@ -787,8 +787,8 @@ def main(page: ft.Page):
             pass
 
     # Assign event handlers after controls instantiation to prevent version/constructor conflicts
-    active_mod_dropdown.on_change = lambda e: render_grid()
-    active_category_dropdown.on_change = lambda e: render_grid()
+    active_mod_dropdown.on_change = lambda e: render_grid()  # type: ignore
+    active_category_dropdown.on_change = lambda e: render_grid()  # type: ignore
 
     # Populate grid on initialization
     variants_row = ft.Row(wrap=True, spacing=10)
