@@ -108,6 +108,26 @@ function ModCardIcon({ mod }: { mod: ModItem }) {
   )
 }
 
+function getBadgeTooltip(text: string): string {
+  switch (text) {
+    case "UNEXTRACTED":
+      return "This Pal mesh and texture database resides purely inside your game archives. Click Extract to build its workspace folders."
+    case "RAW":
+      return "FModel files extracted, but no Blender (.blend) file has been created yet."
+    case "SOURCE":
+      return "Blender (.blend) source file detected. Mod is actively being worked on."
+    case "UE ASSETS":
+    case "MODIFIED":
+      return "Warning: Files have been manually modified inside Unreal Engine since your last Push!"
+    case "SRC CHANGED":
+      return "Source files (Blender/textures) have been edited since your last Push! It is recommended to run 'Push & Cook & Pack'."
+    case "ALTERMATIC":
+      return "Altermatic dynamic variants are active for this Pal."
+    default:
+      return ""
+  }
+}
+
 export function ModCard({ mod, expanded, onToggle, onAction, onRefresh, showMapped }: Props) {
   const [menuOpen, setMenuOpen] = useState(false)
   const primary = getPrimaryButton(mod)
@@ -137,21 +157,19 @@ export function ModCard({ mod, expanded, onToggle, onAction, onRefresh, showMapp
                 {mod.name}
               </span>
             )}
-            {mod.badges.map((badge, idx) => {
-              const text = Array.isArray(badge) ? badge[0] : badge.text;
-              const tooltip = Array.isArray(badge) ? "" : badge.tooltip;
+            {(mod.badges || []).map((badge, idx) => {
+              const text = badge[0];
+              const colorHex = badge[1];
+              const tooltip = getBadgeTooltip(text);
               return (
                 <span
                   key={text || idx}
                   title={tooltip}
-                  className={cn(
-                    "text-[10px] font-bold px-1.5 py-0.5 rounded border tracking-wide cursor-default select-none",
-                    !Array.isArray(badge) && badge.color,
-                  )}
-                  style={Array.isArray(badge) && badge[1].startsWith('#') ? {
-                    borderColor: badge[1],
-                    color: badge[1],
-                    backgroundColor: `${badge[1]}1A` // 10% opacity
+                  className="text-[10px] font-bold px-1.5 py-0.5 rounded border tracking-wide cursor-default select-none"
+                  style={colorHex && colorHex.startsWith('#') ? {
+                    borderColor: colorHex,
+                    color: colorHex,
+                    backgroundColor: `${colorHex}1A` // 10% opacity
                   } : undefined}
                 >
                   {text}
