@@ -105,12 +105,13 @@ function resolveActiveTags(preset: Preset, customTags: Tag[] | null): Tag[] | nu
 }
 
 function applyFilters(mods: ModItem[], preset: Preset, customTags: Tag[] | null, search: string): ModItem[] {
+  const isCustom = customTags !== null
   const def = PRESETS[preset]
   const tags = resolveActiveTags(preset, customTags)
   const q = search.trim().toLowerCase()
 
   return mods.filter((mod) => {
-    if (def.statusMatch && !def.statusMatch(mod)) return false
+    if (!isCustom && def.statusMatch && !def.statusMatch(mod)) return false
     if (tags && tags.length > 0 && !tags.some((t) => modMatchesTag(mod, t))) return false
     if (q && !mod.name.toLowerCase().includes(q) && !(mod.localized_name?.toLowerCase().includes(q))) return false
     return true
@@ -276,7 +277,7 @@ export function ModManagerPage() {
         {/* Preset chips */}
         {PRESET_ORDER.map((p) => {
           const def = PRESETS[p]
-          const isActive = activePreset === p
+          const isActive = activePreset === p && !isCustom
           const chipClass = PRESET_CHIP_CLASS[p]
           return (
             <button
