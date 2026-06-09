@@ -59,6 +59,7 @@ pub fn run() {
             commands::manager_list,
             commands::creator_list,
             commands::env_status,
+            commands::env_launch_unreal,
             commands::get_spawners,
             commands::creator_save,
             commands::creator_delete,
