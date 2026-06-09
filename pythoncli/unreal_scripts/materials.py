@@ -175,11 +175,11 @@ def build_materials(ue_path, json_path, textures, target_asset_path):
                             unreal.MaterialEditingLibrary.set_material_instance_texture_parameter_value(mi_asset, unreal.Name(param_name), loaded_tex)
                             print(f"  Bound {param_name}: {tex_name}")
                         else:
-                            print(f"  ⚠️ Warning: Skipping collision binding: '{tex_name}' loaded as {type(loaded_tex).__name__} (expected Texture)")
+                            print(f"  [!] Warning: Skipping collision binding: '{tex_name}' loaded as {type(loaded_tex).__name__} (expected Texture)")
             else:
                 # FIXED: If a material slot exists in the sidecar but has an empty texture block,
                 # immediately run our suffix-matching heuristics inside this specific slot.
-                print(f"  ⚠️ No mapped textures found in sidecar for {mat_name}. Reverting to heuristic search...", flush=True)
+                print(f"  [!] No mapped textures found in sidecar for {mat_name}. Reverting to heuristic search...", flush=True)
                 
                 tex_b = find_best_texture_match(mat_name, textures, "B")
                 if tex_b:
