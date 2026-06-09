@@ -1,7 +1,7 @@
 "use client"
 
 import { useState, useMemo, useEffect, useRef } from "react"
-import { ChevronDown, SlidersHorizontal } from "lucide-react"
+import { ChevronDown, SlidersHorizontal, Plus } from "lucide-react"
 import { useNav } from "@/lib/nav-context"
 import { ModManagerAPI, SystemSettingsAPI } from "@/lib/data-service"
 import { type ModItem } from "@/lib/mock-data"
@@ -10,19 +10,30 @@ import { cn } from "@/lib/utils"
 
 // ── Tag definitions ────────────────────────────────────────────────────────────
 // A "tag" is a boolean predicate on a ModItem.
-type Tag = "source" | "ue" | "altermatic"
+type Tag = "unextracted" | "raw" | "source" | "ue_assets" | "modified" | "src_changed" | "altermatic"
 
 const TAG_LABELS: Record<Tag, string> = {
-  source:    "Source Files",
-  ue:        "UE Assets",
-  altermatic: "Altermatic",
+  unextracted: "Unextracted",
+  raw:         "Raw",
+  source:      "Source Files",
+  ue_assets:   "UE Assets",
+  modified:    "Modified",
+  src_changed: "Src Changed",
+  altermatic:  "Altermatic",
 }
 
 function modMatchesTag(mod: ModItem, tag: Tag): boolean {
-  if (tag === "source")    return mod.has_fmodel || mod.has_blend
-  if (tag === "ue")        return mod.has_ue
-  if (tag === "altermatic") return mod.is_altermatic_active
-  return false
+  const tagToBadge: Record<Tag, string> = {
+    unextracted: "UNEXTRACTED",
+    raw:         "RAW",
+    source:      "SOURCE",
+    ue_assets:   "UE ASSETS",
+    modified:    "MODIFIED",
+    src_changed: "SRC CHANGED",
+    altermatic:  "ALTERMATIC",
+  }
+  const badgeLabel = tagToBadge[tag]
+  return (mod.badges || []).some((b) => b && b[0] && b[0].toUpperCase() === badgeLabel)
 }
 
 // ── Preset definitions ────────────────────────────────────────────────────────
@@ -42,25 +53,25 @@ const PRESETS: Record<Preset, PresetDef> = {
     label: "Live Workspace",
     description: "Mods actively being worked on — have source or UE assets",
     statusMatch: null,
-    activeTags:  ["source", "ue"],
+    activeTags:  ["raw", "source", "ue_assets", "modified", "src_changed", "altermatic"],
   },
   unextracted: {
     label: "Unextracted",
     description: "Raw imports — no fmodel or blend file yet",
-    statusMatch: (m) => m.pak_status === "Unextracted",
-    activeTags:  null,
+    statusMatch: null,
+    activeTags:  ["unextracted"],
   },
   "in-progress": {
     label: "In Progress",
     description: "Have source files but not yet pushed to Unreal",
-    statusMatch: (m) => m.has_fmodel && !m.has_ue,
-    activeTags:  ["source"],
+    statusMatch: null,
+    activeTags:  ["raw", "source"],
   },
   ready: {
     label: "Ready",
     description: "In Unreal, source unchanged — ready to cook or pack",
-    statusMatch: (m) => m.has_ue && !m.source_modified,
-    activeTags:  ["ue"],
+    statusMatch: null,
+    activeTags:  ["ue_assets"],
   },
   done: {
     label: "Done",
@@ -310,8 +321,21 @@ export function ModManagerPage() {
       {loading ? (
         <div className="text-muted-foreground text-sm text-center py-12">Loading...</div>
       ) : filtered.length === 0 ? (
-        <div className="text-muted-foreground text-sm text-center py-12">
-          No mods match the current filter.
+        <div className="flex flex-col items-center justify-center border border-dashed border-border rounded-xl p-12 text-center bg-muted/10 gap-4">
+          <p className="text-muted-foreground text-sm max-w-sm leading-relaxed">
+            {activePreset === "workspace" && !isCustom
+              ? "No active development workspace mods found yet! Your workspace is clean and ready."
+              : "No mods match the current filter criteria."}
+          </p>
+          {activePreset === "workspace" && !isCustom && (
+            <button
+              onClick={() => selectPreset("unextracted")}
+              className="flex items-center gap-1.5 px-4 py-2 rounded-lg bg-primary text-primary-foreground text-xs font-semibold hover:bg-primary/90 shadow transition-colors"
+            >
+              <Plus className="size-3.5" />
+              Add New Pal
+            </button>
+          )}
         </div>
       ) : (
         <div className="flex flex-col gap-3">
