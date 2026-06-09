@@ -38,12 +38,14 @@ export interface SoundEntry {
 export interface AltermaticVariant {
   label: string
   is_base: boolean
+  SkeletonSource?: string
   Gender: string        // "None" | "Male" | "Female"
   IsRarePal: boolean
+  SkinName?: string
   ReqTrait: string[]
   PrefTrait: string[]
-  MatReplace: string[]
-  MorphTarget: string[]
+  MatReplace: any[]
+  MorphTarget: any[]
 }
 
 export interface ModBadge {
@@ -283,20 +285,28 @@ export interface WorkSuitability {
 export interface CreatorPal {
   CharacterID: string
   TemplateID: string
-  palId: string
-  speciesName: string
-  elementTypes: string[]
-  hp: number
-  attack: number
-  defense: number
-  workSpeed: number
-  workSuitabilities: WorkSuitability
+  Name: string
+  Description: string
+  ElementType1: string
+  ElementType2: string
+  BaseHP: number
+  BaseAtk: number
+  BaseDef: number
+  BaseWorkSpeed: number
+  WorkSuitabilities: Record<string, number>
   Learnset: LearnsetEntry[]
-  spawnX: number
-  spawnY: number
-  levelMin: number
-  levelMax: number
-  groupSize: number
+  SpawnLocationID?: string
+  SpawnMinLevel?: number
+  SpawnMaxLevel?: number
+  SpawnMinGroup?: number
+  SpawnMaxGroup?: number
+  ZukanIndex?: number
+  ZukanIndexSuffix?: string
+  resolved_icon_path?: string
+  // Legacy fields for mock fallback compatibility
+  palId?: string
+  speciesName?: string
+  parentTemplate?: string
 }
 
 // Alias for data-service.ts
@@ -306,36 +316,42 @@ export type EnvStatusType = typeof mockEnvStatus
 export const mockCreatorPals: CreatorPal[] = [
   {
     CharacterID: "Furret",
-    TemplateID: "Anubis",
-    palId: "001-B",
-    speciesName: "Anubis Prime",
-    elementTypes: ["Ground"],
-    hp: 120,
-    attack: 85,
-    defense: 70,
-    workSpeed: 150,
-    workSuitabilities: {
-      Kindling: true,
-      Planting: false,
-      Handiwork: true,
-      Watering: false,
-      Gathering: false,
-      Lumbering: true,
-      Mining: true,
-      Medicine: false,
+    TemplateID: "WeaselDragon",
+    Name: "Furret",
+    Description: "A custom standalone Pal cloned from WeaselDragon.",
+    ElementType1: "EPalElementType::Normal",
+    ElementType2: "EPalElementType::None",
+    BaseHP: 100,
+    BaseAtk: 100,
+    BaseDef: 80,
+    BaseWorkSpeed: 70,
+    WorkSuitabilities: {
+      WorkSuitability_EmitFlame: 0,
+      WorkSuitability_Watering: 0,
+      WorkSuitability_Seeding: 0,
+      WorkSuitability_GenerateElectricity: 0,
+      WorkSuitability_Handcraft: 0,
+      WorkSuitability_Collection: 1,
+      WorkSuitability_Deforest: 0,
+      WorkSuitability_Mining: 0,
+      WorkSuitability_OilExtraction: 0,
+      WorkSuitability_ProductMedicine: 0,
+      WorkSuitability_Cool: 1,
+      WorkSuitability_Transport: 0,
+      WorkSuitability_MonsterFarm: 0,
     },
     Learnset: [
-      { Level: 1,  WazaID: "SandBlast"   },
-      { Level: 7,  WazaID: "PowerShot"   },
-      { Level: 15, WazaID: "StoneBlast"  },
-      { Level: 30, WazaID: "SandTornado" },
+      { Level: 1,  WazaID: "AirCanon" },
+      { Level: 7,  WazaID: "AirCanon" },
+      { Level: 15, WazaID: "DragonWave" },
     ],
-    spawnX: 240,
-    spawnY: -120,
-    levelMin: 15,
-    levelMax: 25,
-    groupSize: 3,
-    parentTemplate: "Anubis",
+    SpawnLocationID: "1_1_plain_begginer",
+    SpawnMinLevel: 2,
+    SpawnMaxLevel: 5,
+    SpawnMinGroup: 1,
+    SpawnMaxGroup: 3,
+    ZukanIndex: 55,
+    ZukanIndexSuffix: "C",
   },
 ]
 
@@ -399,33 +415,41 @@ export const mockCreatorList: CreatorItem[] = [
   {
     CharacterID: "Anubis_Prime",
     TemplateID: "Anubis",
-    palId: "001-B",
-    speciesName: "Anubis Prime",
-    elementTypes: ["Ground", "Fire"],
-    hp: 100,
-    attack: 85,
-    defense: 75,
-    workSpeed: 150,
-    workSuitabilities: {
-      Kindling: true,
-      Planting: false,
-      Handiwork: true,
-      Watering: false,
-      Gathering: false,
-      Lumbering: true,
-      Mining: true,
-      Medicine: false,
+    Name: "Anubis Prime",
+    Description: "An upgraded, standalone form of Anubis specialized in fire and combat maneuvers.",
+    ElementType1: "EPalElementType::Earth",
+    ElementType2: "EPalElementType::Fire",
+    BaseHP: 100,
+    BaseAtk: 85,
+    BaseDef: 75,
+    BaseWorkSpeed: 150,
+    WorkSuitabilities: {
+      WorkSuitability_EmitFlame: 1,
+      WorkSuitability_Watering: 0,
+      WorkSuitability_Seeding: 0,
+      WorkSuitability_GenerateElectricity: 0,
+      WorkSuitability_Handcraft: 1,
+      WorkSuitability_Collection: 0,
+      WorkSuitability_Deforest: 1,
+      WorkSuitability_Mining: 1,
+      WorkSuitability_OilExtraction: 0,
+      WorkSuitability_ProductMedicine: 0,
+      WorkSuitability_Cool: 0,
+      WorkSuitability_Transport: 0,
+      WorkSuitability_MonsterFarm: 0,
     },
     Learnset: [
       { Level: 1, WazaID: "StoneShotgun" },
       { Level: 22, WazaID: "Unique_Anubis_LowRoundKick" },
       { Level: 50, WazaID: "RockLance" },
     ],
-    spawnX: 240,
-    spawnY: -120,
-    levelMin: 15,
-    levelMax: 25,
-    groupSize: 4,
+    SpawnLocationID: "1_1_plain_begginer",
+    SpawnMinLevel: 15,
+    SpawnMaxLevel: 25,
+    SpawnMinGroup: 1,
+    SpawnMaxGroup: 4,
+    ZukanIndex: 1,
+    ZukanIndexSuffix: "B",
   },
 ]
 

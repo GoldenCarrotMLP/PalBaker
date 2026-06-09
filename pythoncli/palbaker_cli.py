@@ -437,16 +437,21 @@ def main():
                     json_print({"status": "error", "message": "Workspace Folder not set in Settings."})
                     sys.exit(1)
                 
-                if source == "base":
-                    blend_path = os.path.normpath(os.path.join(
-                        fmodel_root, "Exports", "Pal", "Content", "Pal", "Model", "Character", category,
-                        mod_data["name"], f"{mod_data['name']}.blend"
-                    ))
+                altermatic_path = os.path.normpath(os.path.join(
+                    fmodel_root, "Exports", "Pal", "Content", "Palbaker", "Model", "Character", category,
+                    mod_data["name"], source
+                ))
+                vanilla_path = os.path.normpath(os.path.join(
+                    fmodel_root, "Exports", "Pal", "Content", "Pal", "Model", "Character", category,
+                    mod_data["name"], f"{mod_data['name']}.blend" if source == "base" else source
+                ))
+                
+                if os.path.exists(altermatic_path):
+                    blend_path = altermatic_path
+                elif os.path.exists(vanilla_path):
+                    blend_path = vanilla_path
                 else:
-                    blend_path = os.path.normpath(os.path.join(
-                        fmodel_root, "Exports", "Pal", "Content", "Palbaker", "Model", "Character", category,
-                        mod_data["name"], source
-                    ))
+                    blend_path = altermatic_path # fallback to show path in error
 
                 blender_exe = settings.get("blender")
                 if not blender_exe or not os.path.exists(blender_exe):
