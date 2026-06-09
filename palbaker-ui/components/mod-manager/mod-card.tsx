@@ -90,7 +90,7 @@ export function ModCard({ mod, expanded, onToggle, onAction, onRefresh, showMapp
   // Right-click context menu items — file explorer + Unreal browser actions
   const contextItems: ContextMenuEntry[] = [
     {
-      label: "Open source files in Explorer",
+      label: "Open .blend files in Explorer",
       icon: <Folder className="size-3.5" />,
       disabled: !mod.has_fmodel,
     },
@@ -113,7 +113,7 @@ export function ModCard({ mod, expanded, onToggle, onAction, onRefresh, showMapp
   ]
 
   const contextActionMap: Record<string, string> = {
-    "Open source files in Explorer": "open_source",
+    "Open .blend files in Explorer": "open_source",
     "Open Unreal assets in Explorer": "open_ue",
     "Open PAK in Explorer": "open_pak",
     "Show in Unreal Content Browser": "browse_unreal",
@@ -214,7 +214,7 @@ export function ModCard({ mod, expanded, onToggle, onAction, onRefresh, showMapp
                     { label: "Pack (Package only)",       action: "pack_only",  disabled: !mod.has_ue },
                     { label: "Cook & Pack (Skip Import)", action: "cook",       disabled: !mod.has_ue },
                     { label: "Push & Cook & Pack",        action: "full",       disabled: !mod.has_fmodel || !mod.has_blend },
-                    { label: "Generate Sources",          action: "decompile",  disabled: !mod.has_ue },
+                    { label: "Generate .blend from UE",          action: "decompile",  disabled: !mod.has_ue },
                   ].map(({ label, action, disabled }) => (
                     <button
                       key={action}

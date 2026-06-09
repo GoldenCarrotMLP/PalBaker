@@ -65,7 +65,7 @@ export function CriesPanel({ mod, onRefresh, onNotify }: Props) {
         <p className="text-muted-foreground text-xs italic">
           {mod.has_fmodel
             ? "No mapped audio database found for this Pal."
-            : "Audio replacement requires raw FModel files. Click 'Create .blend file' or 'Generate Sources' first."}
+            : "Audio replacement requires raw FModel files. Click 'Create .blend file' or 'Generate .blend from UE' first."}
         </p>
       ) : (
         <div className="grid grid-cols-2 gap-2">
