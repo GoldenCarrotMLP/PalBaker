@@ -121,6 +121,7 @@ export function ModManagerPage() {
   // null = using preset's default tags; Tag[] = user has customised
   const [customTags, setCustomTags]   = useState<Tag[] | null>(null)
   const [advancedOpen, setAdvancedOpen] = useState(false)
+  const [unrealModalOpen, setUnrealModalOpen] = useState(false)
   const advancedRef = useRef<HTMLDivElement>(null)
 
   // Derived: the effective active tags for display in the advanced panel
@@ -184,7 +185,19 @@ export function ModManagerPage() {
         showNotification(res.message || `Opened folder successfully!`, "success", "Explorer Action")
       } catch (err: any) {
         console.error("Action failed:", err)
-        showNotification(err.message || String(err), "error", "Operation Failed")
+        let isUnrealClosed = false
+        try {
+          const parsed = JSON.parse(String(err))
+          if (parsed.error_code === "UNREAL_CLOSED") {
+            isUnrealClosed = true
+          }
+        } catch (e) {}
+
+        if (isUnrealClosed) {
+          setUnrealModalOpen(true)
+        } else {
+          showNotification(err.message || String(err), "error", "Operation Failed")
+        }
       }
       return
     }
@@ -197,7 +210,19 @@ export function ModManagerPage() {
       showNotification(res.message || "Action executed successfully!", "success", "Pipeline Success")
     } catch (err: any) {
       console.error("Action failed:", err)
-      showNotification(err.message || String(err), "error", "Pipeline Failed")
+      let isUnrealClosed = false
+      try {
+        const parsed = JSON.parse(String(err))
+        if (parsed.error_code === "UNREAL_CLOSED") {
+          isUnrealClosed = true
+        }
+      } catch (e) {}
+
+      if (isUnrealClosed) {
+        setUnrealModalOpen(true)
+      } else {
+        showNotification(err.message || String(err), "error", "Pipeline Failed")
+      }
     } finally {
       setLoading(false)
     }
@@ -348,6 +373,29 @@ export function ModManagerPage() {
         </div>
       )}
       <NotificationToast notifications={notifications} onDismiss={dismissNotification} />
+
+      {/* ── Unreal Closed Modal ── */}
+      {unrealModalOpen && (
+        <div className="fixed inset-0 z-[150] flex items-center justify-center bg-black/70 backdrop-blur-sm">
+          <div className="bg-background border border-border w-full max-w-md p-6 rounded-lg shadow-2xl flex flex-col gap-4">
+            <div className="flex items-center gap-3 text-status-warning">
+              <span className="text-xl">⚠️</span>
+              <h3 className="text-lg font-semibold tracking-wide">Unreal Editor Closed</h3>
+            </div>
+            <p className="text-sm text-muted-foreground leading-relaxed">
+              Unreal Editor is not running! Please open your project in Unreal Editor before running this action.
+            </p>
+            <div className="flex justify-end gap-3 mt-2">
+              <button
+                onClick={() => setUnrealModalOpen(false)}
+                className="bg-primary/20 hover:bg-primary/30 border border-primary/40 hover:border-primary/60 text-primary-foreground font-semibold py-2 px-5 rounded-md transition-colors text-sm"
+              >
+                Okay, I'll open it!
+              </button>
+            </div>
+          </div>
+        </div>
+      )}
     </div>
   )
 }
