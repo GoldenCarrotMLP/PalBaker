@@ -18,7 +18,7 @@ export default function RootLayout({ children }: { children: React.ReactNode }) 
   return (
     <html lang="en" className={`bg-background ${inter.variable} ${geistMono.variable} font-sans`}>
       <body className="antialiased">
-        <TooltipProvider delayDuration={300}>
+        <TooltipProvider>
           <AppShell>{children}</AppShell>
         </TooltipProvider>
       </body>

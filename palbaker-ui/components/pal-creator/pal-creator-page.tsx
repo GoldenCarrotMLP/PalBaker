@@ -316,7 +316,7 @@ function StatSlider({
         min={min}
         max={max}
         step={1}
-        onValueChange={([v]) => onChange(v)}
+        onValueChange={(vals) => onChange(Array.isArray(vals) ? (vals as number[])[0] : Number(vals))}
         className="[&_[role=slider]]:bg-primary [&_[role=slider]]:border-primary [&_.bg-primary]:bg-primary"
       />
       <div className="bg-muted/60 border border-border rounded px-2 py-1 text-primary text-xs font-mono text-center">
