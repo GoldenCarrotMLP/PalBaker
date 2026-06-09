@@ -53,7 +53,7 @@ const PRESETS: Record<Preset, PresetDef> = {
     label: "Live Workspace",
     description: "Mods actively being worked on — have source or UE assets",
     statusMatch: null,
-    activeTags:  ["raw", "source", "ue_assets", "modified", "src_changed", "altermatic"],
+    activeTags:  ["raw", "source", "ue_assets","altermatic"],
   },
   unextracted: {
     label: "Unextracted",
@@ -65,7 +65,7 @@ const PRESETS: Record<Preset, PresetDef> = {
     label: "In Progress",
     description: "Have source files but not yet pushed to Unreal",
     statusMatch: null,
-    activeTags:  ["raw", "source"],
+    activeTags:  [ "modified", "src_changed" ],
   },
   ready: {
     label: "Ready",
