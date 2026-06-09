@@ -1,16 +1,31 @@
 "use client"
 
-import { useState } from "react"
 import { Plus } from "lucide-react"
 import { type ModItem } from "@/lib/mock-data"
+import { ModManagerAPI } from "@/lib/data-service"
 import { VariantChip } from "./variant-chip"
 
-interface AltermaticPanelProps {
+interface Props {
   mod: ModItem
+  enabled: boolean
+  onToggle: (val: boolean) => void
+  onOpenAdd: () => void
+  onOpenEdit: (variant: ModItem["altermatic_variants"][number], index: number) => void
+  onNotify: (msg: string, type: "success" | "info" | "error" | "warning", title?: string) => void
+  onRefresh: () => void
 }
 
-export function AltermaticPanel({ mod }: AltermaticPanelProps) {
-  const [enabled, setEnabled] = useState(mod.is_altermatic_active)
+export function AltermaticPanel({ mod, enabled, onToggle, onOpenAdd, onOpenEdit, onNotify, onRefresh }: Props) {
+  const handleToggle = async (val: boolean) => {
+    try {
+      await ModManagerAPI.altermaticToggle(mod.name, val)
+      onToggle(val)
+      onNotify(`Altermatic framework ${val ? "enabled" : "disabled"}.`, "success")
+      onRefresh()
+    } catch (err) {
+      onNotify(`Failed to toggle Altermatic: ${err}`, "error", "Operation Failed")
+    }
+  }
 
   return (
     <div className="flex flex-col gap-2 min-w-[220px] shrink-0">
@@ -24,7 +39,7 @@ export function AltermaticPanel({ mod }: AltermaticPanelProps) {
             <input
               type="checkbox"
               checked={enabled}
-              onChange={(e) => setEnabled(e.target.checked)}
+              onChange={(e) => handleToggle(e.target.checked)}
               className="sr-only peer"
             />
             <div className="w-9 h-5 bg-muted border border-border peer-checked:bg-primary rounded-full transition-colors" />
@@ -35,16 +50,24 @@ export function AltermaticPanel({ mod }: AltermaticPanelProps) {
 
       {enabled && (
         <div className="flex flex-col gap-2">
-          {mod.altermatic_variants.length === 0 ? (
+          {(mod.altermatic_variants || []).length === 0 ? (
             <p className="text-muted-foreground text-xs italic">No custom variants added yet.</p>
           ) : (
             <div className="flex flex-wrap gap-2">
-              {mod.altermatic_variants.map((v, i) => (
-                <VariantChip key={i} variant={v} modName={mod.name} />
+              {(mod.altermatic_variants || []).map((v, i) => (
+                <VariantChip
+                  key={i}
+                  variant={v}
+                  modName={mod.name}
+                  onClick={() => onOpenEdit(v, i)}
+                />
               ))}
             </div>
           )}
-          <button className="flex items-center justify-center gap-1.5 border border-dashed border-border rounded px-3 py-2 text-xs text-muted-foreground hover:text-foreground hover:border-primary/50 transition-colors mt-1">
+          <button
+            onClick={onOpenAdd}
+            className="flex items-center justify-center gap-1.5 border border-dashed border-border rounded px-3 py-2 text-xs text-muted-foreground hover:text-foreground hover:border-primary/50 transition-colors mt-1 cursor-pointer"
+          >
             <Plus className="size-3.5" />
             ADD VARIANT
           </button>
