@@ -1,72 +1,137 @@
 "use client"
 
-import { useState, useMemo, useEffect } from "react"
+import { useState, useMemo, useEffect, useRef } from "react"
+import { ChevronDown, SlidersHorizontal } from "lucide-react"
 import { useNav } from "@/lib/nav-context"
 import { ModManagerAPI, SystemSettingsAPI } from "@/lib/data-service"
-import { mockModList, type ModItem, type PakStatus } from "@/lib/mock-data"
+import { type ModItem } from "@/lib/mock-data"
 import { ModCard } from "@/components/mod-manager/mod-card"
 import { cn } from "@/lib/utils"
 
-// Filter chips mirror the status states from mod_card.py
-type FilterStatus = "All" | PakStatus
+// ── Tag definitions ────────────────────────────────────────────────────────────
+// A "tag" is a boolean predicate on a ModItem.
+type Tag = "source" | "ue" | "altermatic"
 
-const STATUS_FILTERS: { status: FilterStatus; label: string; chipClass: string }[] = [
-  { status: "All",          label: "All",          chipClass: "bg-muted text-foreground border-border"                                    },
-  { status: "Unextracted",  label: "Unextracted",  chipClass: "bg-status-error/15  text-status-error   border-status-error/40"             },
-  { status: "Unpacked",     label: "Unpacked",     chipClass: "bg-muted            text-muted-foreground border-border"                   },
-  { status: "Outdated",     label: "Outdated",     chipClass: "bg-primary/10       text-primary         border-primary/30"                 },
-  { status: "Packed",       label: "Packed",       chipClass: "bg-status-success/10 text-status-success  border-status-success/30"         },
-  { status: "SrcChanged",   label: "Src Changed",  chipClass: "bg-status-warning/15 text-status-warning  border-status-warning/40"         },
-]
-
-function StatusFilterChip({
-  label,
-  chipClass,
-  active,
-  count,
-  onClick,
-}: {
-  label: string
-  chipClass: string
-  active: boolean
-  count: number
-  onClick: () => void
-}) {
-  return (
-    <button
-      onClick={onClick}
-      className={cn(
-        "flex items-center gap-1.5 px-2.5 py-1 rounded border text-xs font-semibold tracking-wide transition-all",
-        chipClass,
-        active ? "opacity-100 ring-1 ring-current" : "opacity-50 hover:opacity-80",
-      )}
-    >
-      {label}
-      <span className={cn(
-        "text-[10px] font-bold px-1 py-0.5 rounded",
-        active ? "bg-current/20" : "bg-current/10",
-      )}>
-        {count}
-      </span>
-    </button>
-  )
+const TAG_LABELS: Record<Tag, string> = {
+  source:    "Source Files",
+  ue:        "UE Assets",
+  altermatic: "Altermatic",
 }
 
+function modMatchesTag(mod: ModItem, tag: Tag): boolean {
+  if (tag === "source")    return mod.has_fmodel || mod.has_blend
+  if (tag === "ue")        return mod.has_ue
+  if (tag === "altermatic") return mod.is_altermatic_active
+  return false
+}
+
+// ── Preset definitions ────────────────────────────────────────────────────────
+// Each preset maps to a pak_status filter + an optional tag filter set.
+// activeTags: null = no tag filtering (show all). Set = must match at least one.
+type Preset = "workspace" | "unextracted" | "in-progress" | "ready" | "done" | "all"
+
+interface PresetDef {
+  label:       string
+  description: string
+  statusMatch: ((mod: ModItem) => boolean) | null  // null = no status filter
+  activeTags:  Tag[] | null                         // null = no tag filter
+}
+
+const PRESETS: Record<Preset, PresetDef> = {
+  workspace: {
+    label: "Live Workspace",
+    description: "Mods actively being worked on — have source or UE assets",
+    statusMatch: null,
+    activeTags:  ["source", "ue"],
+  },
+  unextracted: {
+    label: "Unextracted",
+    description: "Raw imports — no fmodel or blend file yet",
+    statusMatch: (m) => m.pak_status === "Unextracted",
+    activeTags:  null,
+  },
+  "in-progress": {
+    label: "In Progress",
+    description: "Have source files but not yet pushed to Unreal",
+    statusMatch: (m) => m.has_fmodel && !m.has_ue,
+    activeTags:  ["source"],
+  },
+  ready: {
+    label: "Ready",
+    description: "In Unreal, source unchanged — ready to cook or pack",
+    statusMatch: (m) => m.has_ue && !m.source_modified,
+    activeTags:  ["ue"],
+  },
+  done: {
+    label: "Done",
+    description: "Packed and verified",
+    statusMatch: (m) => m.pak_status === "Packed",
+    activeTags:  null,
+  },
+  all: {
+    label: "All",
+    description: "Show every mod regardless of state",
+    statusMatch: null,
+    activeTags:  null,
+  },
+}
+
+const PRESET_ORDER: Preset[] = ["workspace", "unextracted", "in-progress", "ready", "done", "all"]
+
+const PRESET_CHIP_CLASS: Record<Preset, string> = {
+  workspace:    "border-primary/40 text-primary",
+  unextracted:  "border-status-error/40 text-status-error",
+  "in-progress":"border-status-warning/40 text-status-warning",
+  ready:        "border-primary/40 text-primary",
+  done:         "border-status-success/40 text-status-success",
+  all:          "border-border text-foreground",
+}
+
+// ── Helpers ────────────────────────────────────────────────────────────────────
+function resolveActiveTags(preset: Preset, customTags: Tag[] | null): Tag[] | null {
+  // If user has broken out into custom mode, use their tags
+  if (customTags !== null) return customTags
+  return PRESETS[preset].activeTags
+}
+
+function applyFilters(mods: ModItem[], preset: Preset, customTags: Tag[] | null, search: string): ModItem[] {
+  const def = PRESETS[preset]
+  const tags = resolveActiveTags(preset, customTags)
+  const q = search.trim().toLowerCase()
+
+  return mods.filter((mod) => {
+    if (def.statusMatch && !def.statusMatch(mod)) return false
+    if (tags && tags.length > 0 && !tags.some((t) => modMatchesTag(mod, t))) return false
+    if (q && !mod.name.toLowerCase().includes(q) && !(mod.localized_name?.toLowerCase().includes(q))) return false
+    return true
+  })
+}
+
+// ── Component ──────────────────────────────────────────────────────────────────
 export function ModManagerPage() {
   const { search: searchQuery } = useNav()
-  const [mods, setMods] = useState<ModItem[]>([])
-  const [expandedId, setExpandedId] = useState<string | null>(null)
-  const [activeFilter, setActiveFilter] = useState<FilterStatus>("All")
-  const [loading, setLoading] = useState(true)
-  const [showMapped, setShowMapped] = useState(false)
+  const [mods, setMods]               = useState<ModItem[]>([])
+  const [expandedId, setExpandedId]   = useState<string | null>(null)
+  const [loading, setLoading]         = useState(true)
+  const [showMapped, setShowMapped]   = useState(false)
+  const [activePreset, setActivePreset] = useState<Preset>("workspace")
+  // null = using preset's default tags; Tag[] = user has customised
+  const [customTags, setCustomTags]   = useState<Tag[] | null>(null)
+  const [advancedOpen, setAdvancedOpen] = useState(false)
+  const advancedRef = useRef<HTMLDivElement>(null)
+
+  // Derived: the effective active tags for display in the advanced panel
+  const effectiveTags = resolveActiveTags(activePreset, customTags)
+  const isCustom = customTags !== null
 
   async function loadMods() {
     try {
       setLoading(true)
-      const data = await ModManagerAPI.list()
+      const [data, config] = await Promise.all([
+        ModManagerAPI.list(),
+        SystemSettingsAPI.getConfig(),
+      ])
       setMods(data)
-
-      const config = await SystemSettingsAPI.getConfig()
       setShowMapped(config.show_mapped !== false)
     } catch (err) {
       console.error("Failed to load mods:", err)
@@ -75,12 +140,36 @@ export function ModManagerPage() {
     }
   }
 
-  useEffect(() => {
-    loadMods()
-  }, [])
+  useEffect(() => { loadMods() }, [])
 
-  function toggleExpand(id: string) {
-    setExpandedId((prev) => (prev === id ? null : id))
+  // Close advanced panel on outside click
+  useEffect(() => {
+    function onClickOutside(e: MouseEvent) {
+      if (advancedRef.current && !advancedRef.current.contains(e.target as Node)) {
+        setAdvancedOpen(false)
+      }
+    }
+    if (advancedOpen) document.addEventListener("mousedown", onClickOutside)
+    return () => document.removeEventListener("mousedown", onClickOutside)
+  }, [advancedOpen])
+
+  function selectPreset(p: Preset) {
+    setActivePreset(p)
+    setCustomTags(null) // reset any custom tag overrides
+  }
+
+  function toggleCustomTag(tag: Tag) {
+    // First toggle: snapshot the preset's default tags into customTags
+    const base = effectiveTags ?? []
+    const current = customTags ?? base
+    const next = current.includes(tag)
+      ? current.filter((t) => t !== tag)
+      : [...current, tag]
+    setCustomTags(next)
+  }
+
+  function resetToPreset() {
+    setCustomTags(null)
   }
 
   async function handleAction(mod: ModItem, action: string) {
@@ -98,65 +187,147 @@ export function ModManagerPage() {
     }
   }
 
-  // Count per status for filter chips
-  const statusCounts = useMemo(() => {
-    const counts: Record<string, number> = { All: mods.length }
-    for (const mod of mods) {
-      counts[mod.pak_status] = (counts[mod.pak_status] ?? 0) + 1
+  const filtered = useMemo(
+    () => applyFilters(mods, activePreset, customTags, searchQuery),
+    [mods, activePreset, customTags, searchQuery],
+  )
+
+  // Count per preset for badge display
+  const presetCounts = useMemo(() => {
+    const counts: Partial<Record<Preset, number>> = {}
+    for (const p of PRESET_ORDER) {
+      counts[p] = applyFilters(mods, p, null, "").length
     }
     return counts
   }, [mods])
 
-  // Apply both search and status filter
-  const filtered = useMemo(() => {
-    const q = searchQuery.trim().toLowerCase()
-    return mods.filter((mod) => {
-      const matchesStatus = activeFilter === "All" || mod.pak_status === activeFilter
-      const matchesSearch = !q || 
-        mod.name.toLowerCase().includes(q) || 
-        (mod.localized_name && mod.localized_name.toLowerCase().includes(q))
-      return matchesStatus && matchesSearch
-    })
-  }, [mods, activeFilter, searchQuery])
-
   return (
     <div className="flex flex-col gap-4">
-      {/* Filter bar */}
-      <div className="flex items-center gap-2 flex-wrap">
-        {STATUS_FILTERS.map(({ status, label, chipClass }) => (
-          <StatusFilterChip
-            key={status}
-            label={label}
-            chipClass={chipClass}
-            active={activeFilter === status}
-            count={statusCounts[status] ?? 0}
-            onClick={() => setActiveFilter(status)}
-          />
-        ))}
 
+      {/* ── Filter bar ── */}
+      <div className="flex items-center gap-2 flex-wrap">
+
+        {/* Preset chips */}
+        {PRESET_ORDER.map((p) => {
+          const def = PRESETS[p]
+          const isActive = activePreset === p
+          const chipClass = PRESET_CHIP_CLASS[p]
+          return (
+            <button
+              key={p}
+              title={def.description}
+              onClick={() => selectPreset(p)}
+              className={cn(
+                "flex items-center gap-1.5 px-2.5 py-1 rounded border text-xs font-semibold tracking-wide transition-all",
+                chipClass,
+                isActive
+                  ? "opacity-100 ring-1 ring-current bg-current/10"
+                  : "opacity-40 hover:opacity-70 bg-transparent",
+              )}
+            >
+              {def.label}
+              <span className="text-[10px] font-bold opacity-70">
+                {presetCounts[p] ?? 0}
+              </span>
+            </button>
+          )
+        })}
+
+        {/* Divider */}
+        <div className="w-px h-4 bg-border mx-1" />
+
+        {/* Advanced / Tags toggle */}
+        <div className="relative" ref={advancedRef}>
+          <button
+            onClick={() => setAdvancedOpen((v) => !v)}
+            className={cn(
+              "flex items-center gap-1.5 px-2.5 py-1 rounded border text-xs font-medium transition-all",
+              isCustom
+                ? "border-primary/50 text-primary bg-primary/10"
+                : "border-border text-muted-foreground hover:text-foreground hover:border-border/80",
+            )}
+          >
+            <SlidersHorizontal className="size-3" />
+            {isCustom ? "Custom" : "Advanced"}
+            {isCustom && (
+              <span className="text-[10px] bg-primary/20 text-primary rounded px-1">
+                {(effectiveTags ?? []).length}
+              </span>
+            )}
+            <ChevronDown className={cn("size-3 transition-transform", advancedOpen && "rotate-180")} />
+          </button>
+
+          {/* Dropdown panel */}
+          {advancedOpen && (
+            <div className="absolute top-full left-0 mt-1.5 z-50 bg-card border border-border rounded-lg shadow-xl p-3 min-w-[220px] flex flex-col gap-3">
+              <p className="text-[10px] text-muted-foreground uppercase tracking-widest font-semibold">
+                Asset type filter
+              </p>
+              <div className="flex flex-col gap-1.5">
+                {(Object.keys(TAG_LABELS) as Tag[]).map((tag) => {
+                  const active = (effectiveTags ?? []).includes(tag)
+                  return (
+                    <button
+                      key={tag}
+                      onClick={() => toggleCustomTag(tag)}
+                      className={cn(
+                        "flex items-center gap-2 px-2.5 py-1.5 rounded border text-xs font-medium transition-all text-left",
+                        active
+                          ? "border-primary/50 bg-primary/10 text-primary"
+                          : "border-border text-muted-foreground hover:text-foreground",
+                      )}
+                    >
+                      <span className={cn(
+                        "size-3 rounded-sm border flex items-center justify-center flex-shrink-0",
+                        active ? "bg-primary border-primary" : "border-border",
+                      )}>
+                        {active && (
+                          <svg viewBox="0 0 8 8" className="size-2 text-primary-foreground" fill="currentColor">
+                            <path d="M1 4l2 2 4-4" stroke="currentColor" strokeWidth="1.5" fill="none" strokeLinecap="round"/>
+                          </svg>
+                        )}
+                      </span>
+                      {TAG_LABELS[tag]}
+                    </button>
+                  )
+                })}
+              </div>
+              {isCustom && (
+                <button
+                  onClick={() => { resetToPreset(); setAdvancedOpen(false) }}
+                  className="text-[10px] text-muted-foreground hover:text-foreground underline text-left transition-colors"
+                >
+                  Reset to preset defaults
+                </button>
+              )}
+            </div>
+          )}
+        </div>
 
       </div>
 
-      {/* Mod list */}
-      {filtered.length === 0 ? (
+      {/* ── Mod list ── */}
+      {loading ? (
+        <div className="text-muted-foreground text-sm text-center py-12">Loading...</div>
+      ) : filtered.length === 0 ? (
         <div className="text-muted-foreground text-sm text-center py-12">
           No mods match the current filter.
         </div>
       ) : (
         <div className="flex flex-col gap-3">
           {filtered.map((mod) => {
-            const itemKey = mod.id || mod.name;
+            const itemKey = mod.id || mod.name
             return (
               <ModCard
                 key={itemKey}
                 mod={mod}
                 expanded={expandedId === itemKey}
-                onToggle={() => toggleExpand(itemKey)}
+                onToggle={() => setExpandedId((p) => (p === itemKey ? null : itemKey))}
                 onAction={handleAction}
                 onRefresh={loadMods}
                 showMapped={showMapped}
               />
-            );
+            )
           })}
         </div>
       )}
