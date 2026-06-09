@@ -12,18 +12,26 @@ import { NotificationToast } from "./mod-card-expanded/notification-toast"
 
 // ── Tag definitions ────────────────────────────────────────────────────────────
 // A "tag" is a boolean predicate on a ModItem.
-type Tag = "source" | "ue" | "altermatic"
+type Tag = "unextracted" | "raw" | "source" | "ue" | "altermatic" | "source_changed" | "modified"
 
 const TAG_LABELS: Record<Tag, string> = {
-  source:    ".blend",
-  ue:        "UE Assets",
+  unextracted: "Unextracted",
+  raw: "Raw Unpacked",
+  source: ".blend",
+  ue: "UE Assets",
   altermatic: "Altermatic",
+  source_changed: ".blend Changed",
+  modified: "Modified (Unreal)",
 }
 
 function modMatchesTag(mod: ModItem, tag: Tag): boolean {
-  if (tag === "source")    return mod.has_fmodel || mod.has_blend
-  if (tag === "ue")        return mod.has_ue
-  if (tag === "altermatic") return mod.is_altermatic_active
+  if (tag === "unextracted")    return !mod.has_fmodel
+  if (tag === "raw")            return mod.has_fmodel && !mod.has_blend
+  if (tag === "source")         return mod.has_blend
+  if (tag === "ue")             return mod.has_ue
+  if (tag === "altermatic")     return mod.is_altermatic_active
+  if (tag === "source_changed") return mod.source_modified
+  if (tag === "modified")       return !!mod.ue_modified
   return false
 }
 
@@ -44,7 +52,7 @@ const PRESETS: Record<Preset, PresetDef> = {
     label: "Live Workspace",
     description: "Mods actively being worked on — have source or UE assets",
     statusMatch: null,
-    activeTags:  ["source", "ue"],
+    activeTags:  ["raw", "source", "ue"],
   },
   unextracted: {
     label: "Unextracted",
@@ -56,7 +64,7 @@ const PRESETS: Record<Preset, PresetDef> = {
     label: "In Progress",
     description: "Have source files but not yet pushed to Unreal",
     statusMatch: (m) => m.has_fmodel && !m.has_ue,
-    activeTags:  ["source"],
+    activeTags:  ["raw", "source"],
   },
   ready: {
     label: "Ready",

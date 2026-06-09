@@ -66,6 +66,7 @@ export interface ModItem {
   has_blend: boolean
   has_ue: boolean
   source_modified: boolean
+  ue_modified?: boolean
   has_icon: boolean
   icon_path: string
   badges: ModBadge[]
