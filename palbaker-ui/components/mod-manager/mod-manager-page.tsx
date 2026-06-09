@@ -27,14 +27,17 @@ const BASE_TAGS: Tag[] = ["unextracted", "raw", "source", "ue_assets"]
 const MODIFIER_TAGS: Tag[] = ["altermatic", "src_changed", "modified"]
 
 function modMatchesTag(mod: ModItem, tag: Tag): boolean {
-  if (tag === "unextracted")    return !mod.has_fmodel
-  if (tag === "raw")            return mod.has_fmodel && !mod.has_blend
-  if (tag === "source")         return mod.has_blend
-  if (tag === "ue_assets")             return mod.has_ue
-  if (tag === "altermatic")     return mod.is_altermatic_active
-  if (tag === "src_changed") return mod.source_modified
-  if (tag === "modified")       return !!mod.ue_modified
-  return false
+  const tagToBadge: Record<Tag, string> = {
+    unextracted: "UNEXTRACTED",
+    raw:         "RAW",
+    source:      "SOURCE",
+    ue_assets:   "UE ASSETS",
+    modified:    "MODIFIED",
+    src_changed: "SRC CHANGED",
+    altermatic:  "ALTERMATIC",
+  }
+  const badgeLabel = tagToBadge[tag]
+  return (mod.badges || []).some((b) => b && b[0] && b[0].toUpperCase() === badgeLabel)
 }
 
 // ── Preset definitions ────────────────────────────────────────────────────────
