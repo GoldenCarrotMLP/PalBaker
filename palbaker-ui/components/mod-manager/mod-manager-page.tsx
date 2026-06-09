@@ -1,6 +1,7 @@
 "use client"
 
 import { useState, useMemo } from "react"
+import { useNav } from "@/lib/nav-context"
 import { mockModList, type ModItem, type PakStatus } from "@/lib/mock-data"
 import { ModCard } from "@/components/mod-manager/mod-card"
 import { cn } from "@/lib/utils"
@@ -51,10 +52,10 @@ function StatusFilterChip({
 }
 
 export function ModManagerPage() {
+  const { search: searchQuery } = useNav()
   const [mods, setMods] = useState<ModItem[]>(mockModList)
   const [expandedId, setExpandedId] = useState<string | null>(null)
   const [activeFilter, setActiveFilter] = useState<FilterStatus>("All")
-  const [searchQuery, setSearchQuery] = useState("")
 
   function toggleExpand(id: string) {
     setExpandedId((prev) => (prev === id ? null : id))
@@ -98,19 +99,7 @@ export function ModManagerPage() {
           />
         ))}
 
-        {/* Inline search */}
-        <div className="relative ml-auto flex items-center">
-          <input
-            type="text"
-            value={searchQuery}
-            onChange={(e) => setSearchQuery(e.target.value)}
-            placeholder="Filter mods..."
-            className="w-44 bg-muted/50 border border-border rounded-md pl-8 pr-3 py-1 text-xs text-foreground placeholder:text-muted-foreground focus:outline-none focus:ring-1 focus:ring-primary"
-          />
-          <svg className="absolute left-2 size-3.5 text-muted-foreground pointer-events-none" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2}>
-            <path strokeLinecap="round" strokeLinejoin="round" d="M21 21l-4.35-4.35M17 11A6 6 0 1 1 5 11a6 6 0 0 1 12 0z" />
-          </svg>
-        </div>
+
       </div>
 
       {/* Mod list */}
