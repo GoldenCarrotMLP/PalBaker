@@ -38,6 +38,57 @@ def json_print(data):
 def error_print(message):
     json_print({"status": "error", "message": message})
 
+def system_open_path(path: str, is_file: bool = False):
+    if not path:
+        return False, "Empty path"
+    
+    # Check if we are inside WSL and the path points to a Windows mount
+    is_wsl = False
+    if sys.platform == "linux" and (os.path.exists("/proc/sys/fs/binfmt_misc/WSLPersonalities") or "WSL_DISTRO_NAME" in os.environ):
+        is_wsl = True
+
+    if is_wsl:
+        import subprocess
+        try:
+            # Under WSL, we can call explorer.exe directly with a path
+            # Running `wslpath -w <path>` converts it perfectly to a Windows path
+            windows_path = subprocess.check_output(["wslpath", "-w", path], text=True).strip()
+            if is_file:
+                subprocess.Popen(["explorer.exe", "/select,", windows_path])
+            else:
+                subprocess.Popen(["explorer.exe", windows_path])
+            return True, f"Opened in Windows Explorer: {windows_path}"
+        except Exception as e:
+            try:
+                subprocess.Popen(["xdg-open", path if not is_file else os.path.dirname(path)])
+                return True, "Opened via xdg-open fallback"
+            except Exception as ex:
+                return False, f"WSL open failed: {ex}"
+    else:
+        # Standard native host execution
+        import subprocess
+        if not os.path.exists(path):
+            return False, f"Path does not exist: {path}"
+        try:
+            if is_file:
+                if os.name == 'nt':
+                    subprocess.run(['explorer.exe', f'/select,{os.path.normpath(path)}'])
+                elif sys.platform == 'darwin':
+                    subprocess.Popen(['open', '-R', path])
+                else:
+                    parent_dir = os.path.dirname(path)
+                    subprocess.Popen(['xdg-open', parent_dir])
+            else:
+                if os.name == 'nt':
+                    os.startfile(path)
+                elif sys.platform == 'darwin':
+                    subprocess.Popen(['open', path])
+                else:
+                    subprocess.Popen(['xdg-open', path])
+            return True, "Path opened successfully"
+        except Exception as e:
+            return False, f"Error opening path: {e}"
+
 def main():
     parser = argparse.ArgumentParser(description="PalBaker Headless CLI")
     subparsers = parser.add_subparsers(dest="command", required=True)
@@ -55,7 +106,7 @@ def main():
 
     # mod
     mod_parser = subparsers.add_parser("mod", help="Pipeline execution")
-    mod_parser.add_argument("action", choices=["extract", "create-blend", "push", "cook", "pack", "full", "decompile", "set-icon", "browse-ue"])
+    mod_parser.add_argument("action", choices=["extract", "create-blend", "push", "cook", "pack", "full", "decompile", "set-icon", "browse-ue", "open-source", "open-ue", "open-pak"])
     mod_parser.add_argument("mod", help="Internal name of the Pal")
     mod_parser.add_argument("--overwrite", action="store_true", help="Overwrite existing .blend files during decompile")
     mod_parser.add_argument("--path", help="Path to icon file (used with set-icon)")
@@ -289,6 +340,36 @@ def main():
                 run_remote_command(settings["ue_root"], target_project_name, python_cmd) # FIXED: Pass arguments correctly
                 focus_unreal_window(target_project_name)
                 json_print({"status": "success", "message": f"Focused Unreal content browser to {mod_data['name']}"})
+            elif args.action == "open-source":
+                path = mod_data.get("fmodel_path") or mod_data.get("fmodel_altermatic_path")
+                if path:
+                    success, msg = system_open_path(path, is_file=False)
+                    if success:
+                        json_print({"status": "success", "message": f"Opened source folder for {args.mod}."})
+                    else:
+                        error_print(msg)
+                else:
+                    error_print("Source folder does not exist for this mod.")
+            elif args.action == "open-ue":
+                path = mod_data.get("ue_path")
+                if path:
+                    success, msg = system_open_path(path, is_file=False)
+                    if success:
+                        json_print({"status": "success", "message": f"Opened Unreal folder for {args.mod}."})
+                    else:
+                        error_print(msg)
+                else:
+                    error_print("Unreal assets folder does not exist for this mod.")
+            elif args.action == "open-pak":
+                path = mod_data.get("pak_path")
+                if path:
+                    success, msg = system_open_path(path, is_file=True)
+                    if success:
+                        json_print({"status": "success", "message": f"Opened PAK folder for {args.mod}."})
+                    else:
+                        error_print(msg)
+                else:
+                    error_print("PAK file does not exist for this mod.")
             else:
                 # Delegate to build_mod.py
                 if args.action in ["push", "full"] and not is_unreal_running():
