@@ -297,8 +297,11 @@ export interface CreatorPal {
   levelMin: number
   levelMax: number
   groupSize: number
-  parentTemplate: string
 }
+
+// Alias for data-service.ts
+export type CreatorItem = CreatorPal
+export type EnvStatusType = typeof mockEnvStatus
 
 export const mockCreatorPals: CreatorPal[] = [
   {
@@ -390,3 +393,39 @@ export const CONSOLE_LOGS: LogEntry[] = [
   { time: "14:22:04", level: "SUCCESS", msg: "System Environment Validated." },
   { time: "09:41:22", level: "SUCCESS", msg: "Package 'Anubis_Model_v4' linked to Unreal Engine 5.3 project." },
 ]
+
+// ── Creator list (mock) ──────────────────────────────────────────────────────────
+export const mockCreatorList: CreatorItem[] = [
+  {
+    CharacterID: "Anubis_Prime",
+    TemplateID: "Anubis",
+    palId: "001-B",
+    speciesName: "Anubis Prime",
+    elementTypes: ["Ground", "Fire"],
+    hp: 100,
+    attack: 85,
+    defense: 75,
+    workSpeed: 150,
+    workSuitabilities: {
+      Kindling: true,
+      Planting: false,
+      Handiwork: true,
+      Watering: false,
+      Gathering: false,
+      Lumbering: true,
+      Mining: true,
+      Medicine: false,
+    },
+    Learnset: [
+      { Level: 1, WazaID: "StoneShotgun" },
+      { Level: 22, WazaID: "Unique_Anubis_LowRoundKick" },
+      { Level: 50, WazaID: "RockLance" },
+    ],
+    spawnX: 240,
+    spawnY: -120,
+    levelMin: 15,
+    levelMax: 25,
+    groupSize: 4,
+  },
+]
+
