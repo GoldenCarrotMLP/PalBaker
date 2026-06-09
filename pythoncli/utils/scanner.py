@@ -268,10 +268,6 @@ def get_mod_info(settings: dict, target_mod: str | None = None):
 
         # Persistent status checks
         pak_status = "Unpacked"
-        active_pak_path = ""
-        ue_modified = False
-        ue_modified_files = []
-        source_modified = False
         if not has_fmodel:
             pak_status = "Unextracted"
         else:
