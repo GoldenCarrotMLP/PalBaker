@@ -36,7 +36,7 @@ const PAGE_INFO: Record<Page, { title: string; subtitle: string; searchPlacehold
 }
 
 export function AppShell() {
-  const { page, setPage } = useNav()
+  const { page, setPage, search, setSearch } = useNav()
   const info = PAGE_INFO[page]
 
   return (
@@ -102,6 +102,8 @@ export function AppShell() {
             <div className="relative hidden md:flex items-center">
               <input
                 type="text"
+                value={search}
+                onChange={(e) => setSearch(e.target.value)}
                 placeholder={info.searchPlaceholder}
                 className="w-52 bg-muted/50 border border-border rounded-md pl-9 pr-3 py-1.5 text-sm text-foreground placeholder:text-muted-foreground focus:outline-none focus:ring-1 focus:ring-primary"
               />
