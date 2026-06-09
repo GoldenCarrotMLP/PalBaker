@@ -20,7 +20,7 @@ def run_pipeline():
     working_dir = globals().get('TARGET_FOLDER', os.getcwd())
     config_path = os.path.join(working_dir, "import_config.json")
     
-    with open(config_path, "r") as f:
+    with open(config_path, "r", encoding="utf-8") as f:
         config = json.load(f)
 
     ue_path = config["ue_target_path"]
