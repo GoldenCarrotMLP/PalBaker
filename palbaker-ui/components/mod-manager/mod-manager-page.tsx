@@ -7,6 +7,8 @@ import { ModManagerAPI, SystemSettingsAPI } from "@/lib/data-service"
 import { type ModItem } from "@/lib/mock-data"
 import { ModCard } from "@/components/mod-manager/mod-card"
 import { cn } from "@/lib/utils"
+import { useNotifications } from "./mod-card-expanded/use-notifications"
+import { NotificationToast } from "./mod-card-expanded/notification-toast"
 
 // ── Tag definitions ────────────────────────────────────────────────────────────
 // A "tag" is a boolean predicate on a ModItem.
@@ -110,6 +112,7 @@ function applyFilters(mods: ModItem[], preset: Preset, customTags: Tag[] | null,
 // ── Component ──────────────────────────────────────────────────────────────────
 export function ModManagerPage() {
   const { search: searchQuery } = useNav()
+  const { notifications, showNotification, dismissNotification } = useNotifications()
   const [mods, setMods]               = useState<ModItem[]>([])
   const [expandedId, setExpandedId]   = useState<string | null>(null)
   const [loading, setLoading]         = useState(true)
@@ -173,15 +176,28 @@ export function ModManagerPage() {
   }
 
   async function handleAction(mod: ModItem, action: string) {
+    const isNavigation = ["open_source", "open_ue", "open_pak", "browse_unreal"].includes(action)
+    
+    if (isNavigation) {
+      try {
+        const res = await ModManagerAPI.runAction(mod.name, action)
+        showNotification(res.message || `Opened folder successfully!`, "success", "Explorer Action")
+      } catch (err: any) {
+        console.error("Action failed:", err)
+        showNotification(err.message || String(err), "error", "Operation Failed")
+      }
+      return
+    }
+
     try {
       setLoading(true)
       const res = await ModManagerAPI.runAction(mod.name, action)
       const data = await ModManagerAPI.list()
       setMods(data)
-      alert(res.message || res.status || "Action executed successfully!")
-    } catch (err) {
+      showNotification(res.message || "Action executed successfully!", "success", "Pipeline Success")
+    } catch (err: any) {
       console.error("Action failed:", err)
-      alert(`Action failed: ${err}`)
+      showNotification(err.message || String(err), "error", "Pipeline Failed")
     } finally {
       setLoading(false)
     }
@@ -331,6 +347,7 @@ export function ModManagerPage() {
           })}
         </div>
       )}
+      <NotificationToast notifications={notifications} onDismiss={dismissNotification} />
     </div>
   )
 }
