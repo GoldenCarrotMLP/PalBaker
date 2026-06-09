@@ -200,6 +200,10 @@ pub async fn run_mod_action(
         "full" => "full",
         "decompile" => "decompile",
         "browse_ue" => "browse-ue",
+        "browse_unreal" => "browse-ue",
+        "open_source" => "open-source",
+        "open_ue" => "open-ue",
+        "open_pak" => "open-pak",
         other => other,
     };
 
