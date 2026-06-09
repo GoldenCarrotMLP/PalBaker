@@ -52,7 +52,19 @@ export const ModManagerAPI = {
       try {
         return await invoke("run_mod_action", { modName, action })
       } catch (err) {
-        console.error("run_mod_action failed:", err)
+        let isUnrealClosed = false
+        try {
+          const parsed = JSON.parse(String(err))
+          if (parsed.error_code === "UNREAL_CLOSED") {
+            isUnrealClosed = true
+          }
+        } catch (e) {}
+
+        if (!isUnrealClosed) {
+          console.error("run_mod_action failed:", err)
+        } else {
+          console.warn("run_mod_action failed gracefully: Unreal Editor is closed.")
+        }
         throw err;
       }
     }
@@ -464,5 +476,17 @@ export const UnrealHealthAPI = {
       diagnostic_code: "FULLY_CONNECTED",
       message: "Mocked offline connection active."
     }
+  },
+
+  async launchUnreal(): Promise<any> {
+    if (USE_LIVE_DATA) {
+      try {
+        return await invoke("env_launch_unreal")
+      } catch (err) {
+        console.error("env_launch_unreal failed:", err)
+        throw err
+      }
+    }
+    return { status: "success", message: "Mocked launch Unreal Editor." }
   }
 }

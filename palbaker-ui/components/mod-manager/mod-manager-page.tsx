@@ -3,7 +3,7 @@
 import { useState, useMemo, useEffect, useRef } from "react"
 import { ChevronDown, SlidersHorizontal } from "lucide-react"
 import { useNav } from "@/lib/nav-context"
-import { ModManagerAPI, SystemSettingsAPI } from "@/lib/data-service"
+import { ModManagerAPI, SystemSettingsAPI, UnrealHealthAPI } from "@/lib/data-service"
 import { type ModItem } from "@/lib/mock-data"
 import { ModCard } from "@/components/mod-manager/mod-card"
 import { cn } from "@/lib/utils"
@@ -124,6 +124,21 @@ export function ModManagerPage() {
   const [unrealModalOpen, setUnrealModalOpen] = useState(false)
   const advancedRef = useRef<HTMLDivElement>(null)
 
+  async function handleLaunchUnreal() {
+    setUnrealModalOpen(false)
+    try {
+      showNotification("Triggering Unreal Editor launch, please wait...", "info", "Launch Unreal")
+      const res = await UnrealHealthAPI.launchUnreal()
+      if (res.status === "success") {
+        showNotification("Unreal Editor launch successfully triggered!", "success", "Launch Unreal")
+      } else {
+        showNotification(res.message || "Failed to launch Unreal Editor.", "error", "Launch Unreal")
+      }
+    } catch (err: any) {
+      showNotification(String(err), "error", "Launch Unreal")
+    }
+  }
+
   // Derived: the effective active tags for display in the advanced panel
   const effectiveTags = resolveActiveTags(activePreset, customTags)
   const isCustom = customTags !== null
@@ -184,7 +199,6 @@ export function ModManagerPage() {
         const res = await ModManagerAPI.runAction(mod.name, action)
         showNotification(res.message || `Opened folder successfully!`, "success", "Explorer Action")
       } catch (err: any) {
-        console.error("Action failed:", err)
         let isUnrealClosed = false
         try {
           const parsed = JSON.parse(String(err))
@@ -194,8 +208,10 @@ export function ModManagerPage() {
         } catch (e) {}
 
         if (isUnrealClosed) {
+          console.warn("Navigation failed gracefully: Unreal Editor is closed.")
           setUnrealModalOpen(true)
         } else {
+          console.error("Action failed:", err)
           showNotification(err.message || String(err), "error", "Operation Failed")
         }
       }
@@ -209,7 +225,6 @@ export function ModManagerPage() {
       setMods(data)
       showNotification(res.message || "Action executed successfully!", "success", "Pipeline Success")
     } catch (err: any) {
-      console.error("Action failed:", err)
       let isUnrealClosed = false
       try {
         const parsed = JSON.parse(String(err))
@@ -219,8 +234,10 @@ export function ModManagerPage() {
       } catch (e) {}
 
       if (isUnrealClosed) {
+        console.warn("Action failed gracefully: Unreal Editor is closed.")
         setUnrealModalOpen(true)
       } else {
+        console.error("Action failed:", err)
         showNotification(err.message || String(err), "error", "Pipeline Failed")
       }
     } finally {
@@ -376,21 +393,27 @@ export function ModManagerPage() {
 
       {/* ── Unreal Closed Modal ── */}
       {unrealModalOpen && (
-        <div className="fixed inset-0 z-[150] flex items-center justify-center bg-black/70 backdrop-blur-sm">
-          <div className="bg-background border border-border w-full max-w-md p-6 rounded-lg shadow-2xl flex flex-col gap-4">
+        <div className="fixed inset-0 z-[150] flex items-center justify-center bg-black/70 backdrop-blur-sm animate-fade-in">
+          <div className="bg-background border border-border w-full max-w-md p-6 rounded-lg shadow-2xl flex flex-col gap-4 animate-scale-up">
             <div className="flex items-center gap-3 text-status-warning">
               <span className="text-xl">⚠️</span>
               <h3 className="text-lg font-semibold tracking-wide">Unreal Editor Closed</h3>
             </div>
             <p className="text-sm text-muted-foreground leading-relaxed">
-              Unreal Editor is not running! Please open your project in Unreal Editor before running this action.
+              Unreal Editor is not running! Would you like to open your project in Unreal Editor now?
             </p>
             <div className="flex justify-end gap-3 mt-2">
               <button
                 onClick={() => setUnrealModalOpen(false)}
+                className="hover:bg-muted text-muted-foreground font-semibold py-2 px-4 rounded-md transition-colors text-sm"
+              >
+                Cancel
+              </button>
+              <button
+                onClick={handleLaunchUnreal}
                 className="bg-primary/20 hover:bg-primary/30 border border-primary/40 hover:border-primary/60 text-primary-foreground font-semibold py-2 px-5 rounded-md transition-colors text-sm"
               >
-                Okay, I'll open it!
+                Okay, open Unreal!
               </button>
             </div>
           </div>

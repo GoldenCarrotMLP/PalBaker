@@ -145,6 +145,17 @@ pub async fn env_status(app: AppHandle, state: State<'_, AppState>) -> Result<Va
 }
 
 #[tauri::command]
+pub async fn env_launch_unreal(
+    app: AppHandle,
+    state: State<'_, AppState>,
+) -> Result<Value, String> {
+    let raw = run_cli(&app, &state, &["env", "launch-unreal"])?;
+    let parsed: Value = serde_json::from_str(&raw)
+        .unwrap_or(serde_json::json!({ "status": "success", "message": raw }));
+    Ok(parsed)
+}
+
+#[tauri::command]
 pub async fn get_spawners(app: AppHandle, state: State<'_, AppState>) -> Result<Value, String> {
     let raw = run_cli(&app, &state, &["manager", "get-caches"])?;
     let parsed: Value = serde_json::from_str(&raw)
