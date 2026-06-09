@@ -48,11 +48,7 @@ export interface AltermaticVariant {
   MorphTarget: any[]
 }
 
-export interface ModBadge {
-  text: string
-  color: string   // Tailwind bg class
-  tooltip: string
-}
+export type ModBadge = [string, string]
 
 export interface ModItem {
   id: string
@@ -91,8 +87,8 @@ export const mockModList: ModItem[] = [
     has_icon: true,
     icon_path: "",
     badges: [
-      { text: ".blend Changed", color: "bg-status-warning/20 text-status-warning border-status-warning/50", tooltip: "Source files have been edited since your last Push. Run 'Push & Cook & Pack'." },
-      { text: "ALTERMATIC", color: "bg-primary/15 text-primary border-primary/40", tooltip: "Altermatic dynamic variants are active for this Pal." },
+      ["SRC CHANGED", "#0D47A1"],
+      ["ALTERMATIC", "#008080"],
     ],
     sound_metadata: {
       Normal: { media_id: 100000001, wav_name: "VO_Anubis_01_Normal.wav", wem_relative_path: "Pal/Content/WwiseAudio/Media/100000001.wem" },
@@ -124,7 +120,7 @@ export const mockModList: ModItem[] = [
     has_icon: false,
     icon_path: "",
     badges: [
-      { text: "RAW", color: "bg-muted text-muted-foreground border-border", tooltip: "FModel files extracted, but no Blender (.blend) file has been created yet." },
+      ["RAW", "#333333"],
     ],
     sound_metadata: {},
     audio_overrides: {},
@@ -145,7 +141,7 @@ export const mockModList: ModItem[] = [
     has_icon: false,
     icon_path: "",
     badges: [
-      { text: ".blend", color: "bg-primary/10 text-primary border-primary/30", tooltip: "Blender (.blend) source file detected. Mod is actively being worked on." },
+      ["SOURCE", "#2196F3"],
     ],
     sound_metadata: {},
     audio_overrides: {},
@@ -166,7 +162,7 @@ export const mockModList: ModItem[] = [
     has_icon: false,
     icon_path: "",
     badges: [
-      { text: "UE ASSETS", color: "bg-status-success/10 text-status-success border-status-success/30", tooltip: "Files are compiled in Unreal Engine." },
+      ["UE ASSETS", "#FF9800"],
     ],
     sound_metadata: {
       Normal: { media_id: 200000001, wav_name: "VO_Jetragon_01_Normal.wav", wem_relative_path: "Pal/Content/WwiseAudio/Media/200000001.wem" },
@@ -191,8 +187,8 @@ export const mockModList: ModItem[] = [
     has_icon: false,
     icon_path: "",
     badges: [
-      { text: ".blend Changed", color: "bg-status-warning/20 text-status-warning border-status-warning/50", tooltip: "Source files have been edited since your last Push. Run 'Push & Cook & Pack'." },
-      { text: "MODIFIED", color: "bg-status-warning/15 text-status-warning border-status-warning/40", tooltip: "Files have been manually modified inside Unreal Engine since your last Push." },
+      ["SRC CHANGED", "#0D47A1"],
+      ["MODIFIED", "#D32F2F"],
     ],
     sound_metadata: {},
     audio_overrides: {},
