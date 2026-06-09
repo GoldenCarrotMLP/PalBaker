@@ -19,6 +19,10 @@
 * **Structure**: Badges/Tags are represented as `[string, string]` tuples: `[label: string, hexColor: string]` (e.g., `["UNEXTRACTED", "#E53935"]`).
 * **Implementation**: The frontend `ModBadge` is a strict alias: `export type ModBadge = [string, string]`. Avoid object shapes on the client.
 
+### 📂 File Explorer Actions & WSL Path Translation
+* **The Rule**: File/folder open actions must use the unified `system_open_path` routing inside `palbaker_cli.py`.
+* **The Practice**: Translates WSL-style Linux paths (`/mnt/c/...`) into native Windows paths (`C:\...`) using `wslpath -w` and forwards them to host `explorer.exe` (with optional `/select,` file highlighting) so desktop actions remain completely seamless across WSL.
+
 ---
 
 ## 💖 Personal & Sanctuary Notes
