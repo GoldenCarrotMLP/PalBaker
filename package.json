@@ -5,11 +5,7 @@
   "scripts": {
     "dev": "pnpm --filter palbaker-ui dev",
     "build": "pnpm --filter palbaker-ui build",
-    "start": "pnpm --filter palbaker-ui start"
-  },
-  "dependencies": {
-    "lucide-react": "^1.17.0",
-    "next": "16.2.6",
-    "react": "19.2.4"
+    "start": "pnpm --filter palbaker-ui start",
+    "tauri": "pnpm --filter palbaker-ui tauri"
   }
 }
