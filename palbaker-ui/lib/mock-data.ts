@@ -91,7 +91,7 @@ export const mockModList: ModItem[] = [
     has_icon: true,
     icon_path: "",
     badges: [
-      { text: "SRC CHANGED", color: "bg-status-warning/20 text-status-warning border-status-warning/50", tooltip: "Source files have been edited since your last Push. Run 'Push & Cook & Pack'." },
+      { text: ".blend Changed", color: "bg-status-warning/20 text-status-warning border-status-warning/50", tooltip: "Source files have been edited since your last Push. Run 'Push & Cook & Pack'." },
       { text: "ALTERMATIC", color: "bg-primary/15 text-primary border-primary/40", tooltip: "Altermatic dynamic variants are active for this Pal." },
     ],
     sound_metadata: {
@@ -145,7 +145,7 @@ export const mockModList: ModItem[] = [
     has_icon: false,
     icon_path: "",
     badges: [
-      { text: "SOURCE", color: "bg-primary/10 text-primary border-primary/30", tooltip: "Blender (.blend) source file detected. Mod is actively being worked on." },
+      { text: ".blend", color: "bg-primary/10 text-primary border-primary/30", tooltip: "Blender (.blend) source file detected. Mod is actively being worked on." },
     ],
     sound_metadata: {},
     audio_overrides: {},
@@ -191,7 +191,7 @@ export const mockModList: ModItem[] = [
     has_icon: false,
     icon_path: "",
     badges: [
-      { text: "SRC CHANGED", color: "bg-status-warning/20 text-status-warning border-status-warning/50", tooltip: "Source files have been edited since your last Push. Run 'Push & Cook & Pack'." },
+      { text: ".blend Changed", color: "bg-status-warning/20 text-status-warning border-status-warning/50", tooltip: "Source files have been edited since your last Push. Run 'Push & Cook & Pack'." },
       { text: "MODIFIED", color: "bg-status-warning/15 text-status-warning border-status-warning/40", tooltip: "Files have been manually modified inside Unreal Engine since your last Push." },
     ],
     sound_metadata: {},

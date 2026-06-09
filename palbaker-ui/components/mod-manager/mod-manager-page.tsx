@@ -12,28 +12,28 @@ import { NotificationToast } from "./mod-card-expanded/notification-toast"
 
 // ── Tag definitions ────────────────────────────────────────────────────────────
 // A "tag" is a boolean predicate on a ModItem.
-type Tag = "unextracted" | "raw" | "source" | "ue" | "altermatic" | "source_changed" | "modified"
+type Tag = "unextracted" | "raw" | "blend" | "ue" | "altermatic" | "blend_changed" | "modified"
 
 const TAG_LABELS: Record<Tag, string> = {
   unextracted: "Unextracted",
   raw: "Raw Unpacked",
-  source: ".blend",
+  blend: ".blend",
   ue: "UE Assets",
   altermatic: "Altermatic",
-  source_changed: ".blend Changed",
+  blend_changed: ".blend Changed",
   modified: "Modified (Unreal)",
 }
 
-const BASE_TAGS: Tag[] = ["unextracted", "raw", "source", "ue"]
-const MODIFIER_TAGS: Tag[] = ["altermatic", "source_changed", "modified"]
+const BASE_TAGS: Tag[] = ["unextracted", "raw", "blend", "ue"]
+const MODIFIER_TAGS: Tag[] = ["altermatic", "blend_changed", "modified"]
 
 function modMatchesTag(mod: ModItem, tag: Tag): boolean {
   if (tag === "unextracted")    return !mod.has_fmodel
   if (tag === "raw")            return mod.has_fmodel && !mod.has_blend
-  if (tag === "source")         return mod.has_blend
+  if (tag === "blend")         return mod.has_blend
   if (tag === "ue")             return mod.has_ue
   if (tag === "altermatic")     return mod.is_altermatic_active
-  if (tag === "source_changed") return mod.source_modified
+  if (tag === "blend_changed") return mod.source_modified
   if (tag === "modified")       return !!mod.ue_modified
   return false
 }
@@ -53,9 +53,9 @@ interface PresetDef {
 const PRESETS: Record<Preset, PresetDef> = {
   workspace: {
     label: "Live Workspace",
-    description: "Mods actively being worked on — have source or UE assets",
+    description: "Mods actively being worked on — have .blend or UE assets",
     statusMatch: null,
-    activeTags:  ["raw", "source", "ue"],
+    activeTags:  ["raw", "blend", "ue"],
   },
   unextracted: {
     label: "Unextracted",
@@ -65,13 +65,13 @@ const PRESETS: Record<Preset, PresetDef> = {
   },
   "in-progress": {
     label: "In Progress",
-    description: "Have source files but not yet pushed to Unreal",
+    description: "Have .blend files but not yet pushed to Unreal",
     statusMatch: (m) => m.has_fmodel && !m.has_ue,
-    activeTags:  ["raw", "source"],
+    activeTags:  ["raw", "blend"],
   },
   ready: {
     label: "Ready",
-    description: "In Unreal, source unchanged — ready to cook or pack",
+    description: "In Unreal, .blend unchanged — ready to cook or pack",
     statusMatch: (m) => m.has_ue && !m.source_modified,
     activeTags:  ["ue"],
   },
