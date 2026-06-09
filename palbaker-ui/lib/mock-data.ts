@@ -11,6 +11,16 @@ export const mockConfig = {
   fmodel_output:  "H:\\SteamLibrary\\steamapps\\common\\Palworld\\Output",
 }
 
+// ── Spawner cache (from pythoncli/deps/monster_spawners_cache.json) ────────────
+export const mockSpawnerCache: Record<string, string> = {
+  "11_1_testarea_1 (Cattiva, Chikipi, Foxparks, Hoocrates)": "11_1_testarea_1",
+  "1_10_plain_F_Boss_Anubis (Boss_Anubis)": "1_10_plain_F_Boss_Anubis",
+  "1_10_plain_F_Boss_BlueDragon (BOSS_BlueDragon)": "1_10_plain_F_Boss_BlueDragon",
+  "2_2_forestsnow_1 (Chillet, Foxcicle, Kitsun, Mimog)": "2_2_forestsnow_1",
+  "3_1_volcano_1 (Blazehowl Noct, Flambelle, Kelpsea Ignis, Mimog)": "3_1_volcano_1",
+  "4_1_dessert_1 (Cawgnito, Dazzi, Dinossom Lux, Leezpunk)": "4_1_dessert_1",
+}
+
 // ── Pak status mirrors mod_card.py ModItem badge logic ─────────────────────────
 export type PakStatus =
   | "Unextracted"    // has_fmodel=false — red EXTRACT PAL

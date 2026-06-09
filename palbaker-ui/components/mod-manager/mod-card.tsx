@@ -91,7 +91,7 @@ export function ModCard({ mod, expanded, onToggle, onAction }: Props) {
           <div className="font-semibold text-foreground text-sm leading-snug">{mod.name}</div>
           <div className="flex items-center gap-2 mt-0.5 flex-wrap">
             <span className="text-muted-foreground text-xs">
-              Modified {mod.modified} &bull; Source: {mod.source_ext}
+              Modified {mod.modified}
             </span>
             {mod.badges.map((badge) => (
               <span
