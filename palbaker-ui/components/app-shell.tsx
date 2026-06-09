@@ -67,13 +67,6 @@ export function AppShell({ children }: { children: React.ReactNode }) {
           })}
         </nav>
 
-        {/* Push to Unreal CTA */}
-        <div className="px-3 pb-4">
-          <button className="w-full py-2.5 rounded-md bg-primary text-primary-foreground text-sm font-bold tracking-wider uppercase hover:opacity-90 transition-opacity">
-            Push to Unreal
-          </button>
-        </div>
-
         <Separator className="opacity-50" />
 
         {/* Bottom links */}
