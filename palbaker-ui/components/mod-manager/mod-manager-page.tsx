@@ -24,6 +24,9 @@ const TAG_LABELS: Record<Tag, string> = {
   modified: "Modified (Unreal)",
 }
 
+const BASE_TAGS: Tag[] = ["unextracted", "raw", "source", "ue"]
+const MODIFIER_TAGS: Tag[] = ["altermatic", "source_changed", "modified"]
+
 function modMatchesTag(mod: ModItem, tag: Tag): boolean {
   if (tag === "unextracted")    return !mod.has_fmodel
   if (tag === "raw")            return mod.has_fmodel && !mod.has_blend
@@ -107,12 +110,18 @@ function resolveActiveTags(preset: Preset, customTags: Tag[] | null): Tag[] | nu
 function applyFilters(mods: ModItem[], preset: Preset, customTags: Tag[] | null, search: string): ModItem[] {
   const isCustom = customTags !== null
   const def = PRESETS[preset]
-  const tags = resolveActiveTags(preset, customTags)
+  const tags = resolveActiveTags(preset, customTags) || []
   const q = search.trim().toLowerCase()
+
+  const activeBase = tags.filter(t => BASE_TAGS.includes(t))
+  const activeMods = tags.filter(t => MODIFIER_TAGS.includes(t))
 
   return mods.filter((mod) => {
     if (!isCustom && def.statusMatch && !def.statusMatch(mod)) return false
-    if (tags && tags.length > 0 && !tags.some((t) => modMatchesTag(mod, t))) return false
+    
+    if (activeBase.length > 0 && !activeBase.some((t) => modMatchesTag(mod, t))) return false
+    if (activeMods.length > 0 && !activeMods.every((t) => modMatchesTag(mod, t))) return false
+    
     if (q && !mod.name.toLowerCase().includes(q) && !(mod.localized_name?.toLowerCase().includes(q))) return false
     return true
   })
