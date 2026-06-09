@@ -26,8 +26,15 @@ fn emit_log(app: &AppHandle, level: &str, msg: &str) {
 }
 
 fn run_cli(app: &AppHandle, state: &AppState, args: &[&str]) -> Result<String, String> {
-    let command_str = format!("python palbaker_cli.py {}", args.join(" "));
-    emit_log(app, "INFO", &format!("Running backend command: {}", command_str));
+    let args_joined = args.join(" ");
+    let silence = args_joined.contains("ping")
+        || args_joined.contains("config get")
+        || args_joined.contains("manager list");
+
+    let command_str = format!("python palbaker_cli.py {}", args_joined);
+    if !silence {
+        emit_log(app, "INFO", &format!("Running backend command: {}", command_str));
+    }
 
     // Determine the working directory for the python process
     let work_dir = state.cli_path.parent()
@@ -44,7 +51,9 @@ fn run_cli(app: &AppHandle, state: &AppState, args: &[&str]) -> Result<String, S
         .spawn()
         .map_err(|e| {
             let err_msg = format!("Failed to spawn Python process: {}", e);
-            emit_log(app, "ERROR", &err_msg);
+            if !silence {
+                emit_log(app, "ERROR", &err_msg);
+            }
             err_msg
         })?;
 
@@ -60,9 +69,9 @@ fn run_cli(app: &AppHandle, state: &AppState, args: &[&str]) -> Result<String, S
         let reader = BufReader::new(stdout_stream);
         for line in reader.lines() {
             if let Ok(l) = line {
-                // If it is JSON or includes JSON markers, keep it quiet unless needed
-                // We'll stream all output lines as logs to the build console in real-time
-                emit_log(&app_clone, "INFO", &l);
+                if !silence {
+                    emit_log(&app_clone, "INFO", &l);
+                }
                 if let Ok(mut acc) = stdout_acc_clone.lock() {
                     acc.push_str(&l);
                     acc.push('\n');
@@ -76,7 +85,9 @@ fn run_cli(app: &AppHandle, state: &AppState, args: &[&str]) -> Result<String, S
         let reader = BufReader::new(stderr_stream);
         for line in reader.lines() {
             if let Ok(l) = line {
-                emit_log(&app_clone2, "ERROR", &l);
+                if !silence {
+                    emit_log(&app_clone2, "ERROR", &l);
+                }
             }
         }
     });
@@ -99,7 +110,9 @@ fn run_cli(app: &AppHandle, state: &AppState, args: &[&str]) -> Result<String, S
         return Err(err_msg);
     }
 
-    emit_log(app, "SUCCESS", &format!("Command completed successfully: {}", command_str));
+    if !silence {
+        emit_log(app, "SUCCESS", &format!("Command completed successfully: {}", command_str));
+    }
     Ok(stdout_str)
 }
 
