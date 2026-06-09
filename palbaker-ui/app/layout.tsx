@@ -1,4 +1,4 @@
-import type { Metadata } from "next"
+import type { Metadata, Viewport } from "next"
 import { Inter } from "next/font/google"
 import { Geist_Mono } from "next/font/google"
 import "./globals.css"
@@ -12,6 +12,9 @@ const geistMono = Geist_Mono({ subsets: ["latin"], variable: "--font-mono" })
 export const metadata: Metadata = {
   title: "PalBaker v2.4.0-stable",
   description: "Automated modding toolchain for Palworld — asset extraction, Blender pipeline, UE5 integration.",
+}
+
+export const viewport: Viewport = {
   themeColor: "#031427",
 }
 
