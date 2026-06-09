@@ -1,0 +1,223 @@
+{
+    "config_get": {
+        "status": "success",
+        "data": {
+            "fmodel_output": "H:\\SteamLibrary\\steamapps\\common\\Palworld\\Output",
+            "palworld_exe": "H:\\SteamLibrary\\steamapps\\common\\Palworld\\Palworld.exe",
+            "workspace": "H:\\SteamLibrary\\steamapps\\common\\Palworld\\Output\\Exports\\Pal\\Content\\Pal\\Model\\Character\\Pending Monster\\BlueberryFairy"
+        }
+    },
+    "manager_list": {
+        "status": "success",
+        "data": [
+            {
+                "name": "0576 Gothitelle",
+                "sound_metadata": {},
+                "localized_name": "0576 Gothitelle"
+            },
+            {
+                "name": "IceDeer",
+                "sound_metadata": {
+                    "Death": {
+                        "media_id": 1045178007,
+                        "wav_name": "VO_IceDeer_06_Death.wav",
+                        "wem_relative_path": "Pal/Content/WwiseAudio/Media/1045178007.wem"
+                    },
+                    "Pain": {
+                        "media_id": 318650996,
+                        "wav_name": "VO_IceDeer_05_Pain.wav",
+                        "wem_relative_path": "Pal/Content/WwiseAudio/Media/318650996.wem"
+                    },
+                    "Anger": {
+                        "media_id": 306183132,
+                        "wav_name": "VO_IceDeer_03_Anger.wav",
+                        "wem_relative_path": "Pal/Content/WwiseAudio/Media/306183132.wem"
+                    }
+                },
+                "localized_name": "Reindrix"
+            },
+            {
+                "name": "Yeti",
+                "sound_metadata": {
+                    "Death": {
+                        "media_id": 607537661,
+                        "wav_name": "VO_Yeti_06_Death.wav",
+                        "wem_relative_path": "Pal/Content/WwiseAudio/Media/607537661.wem"
+                    },
+                    "Pain": {
+                        "media_id": 1021213305,
+                        "wav_name": "VO_Yeti_05_Pain.wav",
+                        "wem_relative_path": "Pal/Content/WwiseAudio/Media/1021213305.wem"
+                    },
+                    "Anger": {
+                        "media_id": 439260821,
+                        "wav_name": "VO_Yeti_03_Anger.wav",
+                        "wem_relative_path": "Pal/Content/WwiseAudio/Media/439260821.wem"
+                    }
+                },
+                "localized_name": "Wumpo"
+            }
+        ]
+    },
+    "manager_list_unextracted": {
+        "status": "success",
+        "data": [
+            {
+                "name": "0576 Gothitelle",
+                "sound_metadata": {},
+                "localized_name": "0576 Gothitelle"
+            },
+            {
+                "name": "SK_NPC_Male_DesertPeople01",
+                "sound_metadata": {},
+                "localized_name": "SK_NPC_Male_DesertPeople01"
+            },
+            {
+                "name": "zarude",
+                "sound_metadata": {},
+                "localized_name": "zarude"
+            }
+        ]
+    },
+    "manager_get_caches": {
+        "status": "success",
+        "data": {
+            "active_skills": {
+                "TidalWave": {
+                    "id": "TidalWave",
+                    "element": "Water",
+                    "category": "Shot"
+                },
+                "Unique_MoonQueen_MoonBlade": {
+                    "id": "Unique_MoonQueen_MoonBlade",
+                    "element": "Normal",
+                    "category": "Shot"
+                },
+                "Unique_LegendDeer_RadiantPurge_Otomo": {
+                    "id": "Unique_LegendDeer_RadiantPurge_Otomo",
+                    "element": "Normal",
+                    "category": "Shot"
+                }
+            },
+            "learnsets": {
+                "Anubis": [
+                    {
+                        "Level": 1,
+                        "WazaID": "StoneShotgun"
+                    },
+                    {
+                        "Level": 22,
+                        "WazaID": "Unique_Anubis_LowRoundKick"
+                    },
+                    {
+                        "Level": 50,
+                        "WazaID": "RockLance"
+                    }
+                ],
+                "BOSS_KingAlpaca": [
+                    {
+                        "Level": 1,
+                        "WazaID": "MudShot"
+                    },
+                    {
+                        "Level": 22,
+                        "WazaID": "Unique_KingAlpaca_BodyPress"
+                    },
+                    {
+                        "Level": 50,
+                        "WazaID": "HyperBeam"
+                    }
+                ],
+                "BOSS_LegendDeer": [
+                    {
+                        "Level": 1,
+                        "WazaID": "PowerShot"
+                    },
+                    {
+                        "Level": 22,
+                        "WazaID": "RadiantBarrage"
+                    },
+                    {
+                        "Level": 50,
+                        "WazaID": "Unique_LegendDeer_RadiantPurge_Otomo"
+                    }
+                ]
+            },
+            "traits_db": {
+                "Health Up Lv. 1": "HP_ACC_up1",
+                "ElementAddDrop_Aqua_2_PAL": "ElementAddDrop_Aqua_2_PAL",
+                "Blood Is Fuel": "OctaviaArmorVampire"
+            }
+        }
+    },
+    "creator_list": {
+        "status": "success",
+        "data": [
+            {
+                "CharacterID": "Furret",
+                "Learnset": [
+                    {
+                        "Level": 1,
+                        "WazaID": "AirCanon"
+                    },
+                    {
+                        "Level": 22,
+                        "WazaID": "Unique_PinkCat_CatPunch"
+                    },
+                    {
+                        "Level": 50,
+                        "WazaID": "DragonMeteor"
+                    }
+                ],
+                "resolved_icon_path": "H:\\SteamLibrary\\steamapps\\common\\Palworld\\Output\\Exports\\Pal\\Content\\Pal\\Model\\Character\\Monster\\Furret\\T_Furret_icon_normal.png"
+            }
+        ]
+    },
+    "env_status": {
+        "status": "success",
+        "palschema": {
+            "status": "Installed"
+        },
+        "remote_exec_enabled": true
+    },
+    "env_verify": {
+        "status": "success",
+        "data": {
+            "error": null,
+            "needs_remote_exec_enable": false,
+            "missing_assets": []
+        },
+        "message": "Verification completed."
+    },
+    "env_autodetect": {
+        "status": "success",
+        "palworld_exe": "H:\\SteamLibrary\\steamapps\\common\\PalServer\\Pal\\Binaries\\Win64\\PalServer-Win64-Shipping.exe",
+        "blender_versions": []
+    },
+    "altermatic_list": {
+        "status": "success",
+        "data": [
+            {
+                "SkeletonSource": "Furret.blend",
+                "base_type": "vanilla",
+                "has_base_blend": true
+            },
+            {
+                "SkeletonSource": "Furret.blend",
+                "base_type": "custom",
+                "has_base_blend": true
+            }
+        ]
+    },
+    "altermatic_metadata": {
+        "status": "success",
+        "blend_files": [
+            "Furret.blend"
+        ],
+        "category": "Monster"
+    },
+    "altermatic_sidecar": {
+        "status": "error",
+        "message": "Blend file base not found on disk."
+    }
+}
