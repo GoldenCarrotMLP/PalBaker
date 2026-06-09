@@ -26,7 +26,7 @@ class ModsView:
         self.show_mapped = bool(settings.get("show_mapped", False))
         self.search_query = ""
         self.show_unextracted = False
-        self.selected_badges = set()
+        self.selected_badges = {"SOURCE", "UE ASSETS"}
         self.selected_statuses = set()
 
         self.traits_db = {}
@@ -57,13 +57,23 @@ class ModsView:
             on_change=lambda e: self.toggle_unextracted(self.show_unextracted_switch.value)
         )
         
+        self.unextracted_chip = ft.Chip(label=ft.Text("UNEXTRACTED"), on_select=lambda e: self.update_badge_filter("UNEXTRACTED", e.control.selected))
+        self.raw_chip = ft.Chip(label=ft.Text("RAW"), on_select=lambda e: self.update_badge_filter("RAW", e.control.selected))
+        self.source_chip = ft.Chip(label=ft.Text("SOURCE"), selected=True, on_select=lambda e: self.update_badge_filter("SOURCE", e.control.selected))
+        self.ue_assets_chip = ft.Chip(label=ft.Text("UE ASSETS"), selected=True, on_select=lambda e: self.update_badge_filter("UE ASSETS", e.control.selected))
+        self.modified_chip = ft.Chip(label=ft.Text("MODIFIED"), on_select=lambda e: self.update_badge_filter("MODIFIED", e.control.selected))
+        self.src_changed_chip = ft.Chip(label=ft.Text("SRC CHANGED"), on_select=lambda e: self.update_badge_filter("SRC CHANGED", e.control.selected))
+        self.altermatic_chip = ft.Chip(label=ft.Text("ALTERMATIC"), on_select=lambda e: self.update_badge_filter("ALTERMATIC", e.control.selected))
+
         self.badge_chips = ft.Row([
             ft.Text("Tags:", weight=ft.FontWeight.BOLD),
-            ft.Chip(label=ft.Text("RAW"), on_select=lambda e: self.update_badge_filter("RAW", e.control.selected)),
-            ft.Chip(label=ft.Text("SOURCE"), on_select=lambda e: self.update_badge_filter("SOURCE", e.control.selected)),
-            ft.Chip(label=ft.Text("UE ASSETS"), on_select=lambda e: self.update_badge_filter("UE ASSETS", e.control.selected)),
-            ft.Chip(label=ft.Text("MODIFIED"), on_select=lambda e: self.update_badge_filter("MODIFIED", e.control.selected)),
-            ft.Chip(label=ft.Text("ALTERMATIC"), on_select=lambda e: self.update_badge_filter("ALTERMATIC", e.control.selected)),
+            self.unextracted_chip,
+            self.raw_chip,
+            self.source_chip,
+            self.ue_assets_chip,
+            self.modified_chip,
+            self.src_changed_chip,
+            self.altermatic_chip,
         ], spacing=10)
 
         self.status_chips = ft.Row([
@@ -571,9 +581,41 @@ class ModsView:
             self.log_view.controls = self.log_view.controls[-100:]
         if flush: self.force_update()
 
-    def render_empty(self):
+    def render_empty(self, show_add_new_pal_btn=False):
         self.mods_list.controls.clear()
         self.mods_list.controls.append(ft.Text("No mods match active filters.", color=ft.Colors.YELLOW_400))
+        
+        if show_add_new_pal_btn:
+            def on_add_new_pal_clicked(e):
+                self.selected_badges.clear()
+                self.selected_badges.add("UNEXTRACTED")
+                
+                self.unextracted_chip.selected = True
+                self.raw_chip.selected = False
+                self.source_chip.selected = False
+                self.ue_assets_chip.selected = False
+                self.modified_chip.selected = False
+                self.src_changed_chip.selected = False
+                self.altermatic_chip.selected = False
+                
+                try:
+                    self.badge_chips.update()
+                except Exception:
+                    pass
+                self.apply_filters()
+                
+            self.mods_list.controls.append(
+                ft.Container(
+                    content=ft.ElevatedButton(
+                        text="Add New Pal",
+                        icon=ft.Icons.ADD,
+                        on_click=on_add_new_pal_clicked,
+                        color=ft.Colors.WHITE,
+                        bgcolor=ft.Colors.BLUE_900
+                    ),
+                    padding=10
+                )
+            )
         try:
             self.mods_list.update()
         except Exception:
@@ -695,7 +737,8 @@ class ModsView:
         filtered_mods = []
         for mod in self.raw_mods:
             if not self.show_unextracted and mod["pak_status"] == "Unextracted":
-                continue
+                if "UNEXTRACTED" not in self.selected_badges:
+                    continue
 
             search_lower = self.search_query.lower()
             name_match = (search_lower in mod["name"].lower()) or (search_lower in mod["localized_name"].lower())
@@ -704,7 +747,7 @@ class ModsView:
 
             if self.selected_badges:
                 mod_badges = {b[0] for b in mod["badges"]}
-                if not self.selected_badges.issubset(mod_badges): 
+                if not self.selected_badges.intersection(mod_badges): 
                     continue
 
             if self.selected_statuses:
@@ -715,8 +758,10 @@ class ModsView:
 
         filtered_mods.sort(key=lambda x: str(x["localized_name"] if self.show_mapped else x["name"]).lower())
 
+        both_selected = "SOURCE" in self.selected_badges and "UE ASSETS" in self.selected_badges
+
         if not filtered_mods:
-            self.render_empty()
+            self.render_empty(show_add_new_pal_btn=both_selected)
         else:
             self.render_mods(filtered_mods, global_building=False, active_mod_name="")
 
