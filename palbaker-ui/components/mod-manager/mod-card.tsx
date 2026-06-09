@@ -3,6 +3,7 @@
 import { useState } from "react"
 import { cn } from "@/lib/utils"
 import { type ModItem } from "@/lib/mock-data"
+import { convertFileSrc } from "@tauri-apps/api/core"
 import {
   ChevronUp,
   ChevronDown,
@@ -20,6 +21,8 @@ interface Props {
   expanded: boolean
   onToggle: () => void
   onAction: (mod: ModItem, action: string) => void
+  onRefresh: () => void
+  showMapped?: boolean
 }
 
 // Mirrors mod_card.py ModItem.update_primary_button_config()
@@ -68,7 +71,44 @@ function StatusIcon({ mod }: { mod: ModItem }) {
   return <Circle className="size-4 text-muted-foreground shrink-0" />
 }
 
-export function ModCard({ mod, expanded, onToggle, onAction }: Props) {
+function ModCardIcon({ mod }: { mod: ModItem }) {
+  const [failed, setFailed] = useState(false)
+
+  const getStatusDot = () => {
+    if (!mod.has_fmodel) return "bg-status-error"
+    if (mod.source_modified) return "bg-status-warning"
+    if (mod.has_ue) return "bg-status-success"
+    if (mod.has_blend) return "bg-primary"
+    return "bg-muted-foreground"
+  }
+
+  if (mod.has_icon && mod.icon_path && !failed) {
+    const isLive = typeof window !== "undefined" && (window as any).__TAURI_INTERNALS__ !== undefined
+    const src = isLive
+      ? convertFileSrc(mod.icon_path)
+      : mod.icon_path.startsWith("http") ? mod.icon_path : `https://asset.localhost/${mod.icon_path}`
+      
+    return (
+      <div className="size-8 rounded border border-border bg-muted/40 flex items-center justify-center shrink-0 overflow-hidden relative">
+        <img
+          src={src}
+          alt={mod.name}
+          className="size-full object-cover"
+          onError={() => setFailed(true)}
+        />
+        <span className={cn("absolute bottom-0.5 right-0.5 size-2 rounded-full border border-card shadow-sm", getStatusDot())} />
+      </div>
+    )
+  }
+
+  return (
+    <div className="size-8 flex items-center justify-center shrink-0">
+      <StatusIcon mod={mod} />
+    </div>
+  )
+}
+
+export function ModCard({ mod, expanded, onToggle, onAction, onRefresh, showMapped }: Props) {
   const [menuOpen, setMenuOpen] = useState(false)
   const primary = getPrimaryButton(mod)
 
@@ -84,27 +124,40 @@ export function ModCard({ mod, expanded, onToggle, onAction }: Props) {
     >
       {/* Main row */}
       <div className="flex items-center gap-3 px-4 py-3.5">
-        <StatusIcon mod={mod} />
+        <ModCardIcon mod={mod} />
 
         {/* Name + meta */}
         <div className="flex-1 min-w-0">
-          <div className="font-semibold text-foreground text-sm leading-snug">{mod.name}</div>
+          <div className="font-semibold text-foreground text-sm leading-snug">
+            {showMapped ? (mod.localized_name || mod.name) : mod.name}
+          </div>
           <div className="flex items-center gap-2 mt-0.5 flex-wrap">
-            <span className="text-muted-foreground text-xs">
-              Modified {mod.modified}
-            </span>
-            {mod.badges.map((badge) => (
-              <span
-                key={badge.text}
-                title={badge.tooltip}
-                className={cn(
-                  "text-[10px] font-bold px-1.5 py-0.5 rounded border tracking-wide cursor-default select-none",
-                  badge.color,
-                )}
-              >
-                {badge.text}
+            {showMapped && (
+              <span className="text-muted-foreground text-xs">
+                {mod.name}
               </span>
-            ))}
+            )}
+            {mod.badges.map((badge, idx) => {
+              const text = Array.isArray(badge) ? badge[0] : badge.text;
+              const tooltip = Array.isArray(badge) ? "" : badge.tooltip;
+              return (
+                <span
+                  key={text || idx}
+                  title={tooltip}
+                  className={cn(
+                    "text-[10px] font-bold px-1.5 py-0.5 rounded border tracking-wide cursor-default select-none",
+                    !Array.isArray(badge) && badge.color,
+                  )}
+                  style={Array.isArray(badge) && badge[1].startsWith('#') ? {
+                    borderColor: badge[1],
+                    color: badge[1],
+                    backgroundColor: `${badge[1]}1A` // 10% opacity
+                  } : undefined}
+                >
+                  {text}
+                </span>
+              );
+            })}
           </div>
         </div>
 
@@ -193,7 +246,7 @@ export function ModCard({ mod, expanded, onToggle, onAction }: Props) {
       </div>
 
       {/* Expanded detail panel */}
-      {expanded && <ModCardExpanded mod={mod} />}
+      {expanded && <ModCardExpanded mod={mod} onRefresh={onRefresh} />}
     </div>
   )
 }

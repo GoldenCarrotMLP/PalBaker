@@ -3,7 +3,7 @@
   "version": "0.1.0",
   "identifier": "com.palbaker.app",
   "build": {
-    "beforeDevCommand": "TAURI_ENV_DEBUG=true TAURI_MODE=true pnpm dev",
+    "beforeDevCommand": "pnpm dlx cross-env TAURI_ENV_DEBUG=true TAURI_MODE=true pnpm dev",
     "beforeBuildCommand": "pnpm build",
     "devUrl": "http://localhost:3000",
     "frontendDist": "../out"
@@ -22,7 +22,13 @@
       }
     ],
     "security": {
-      "csp": null
+      "csp": "default-src 'self' ipc: http://ipc.localhost; img-src 'self' asset: http://asset.localhost data:; media-src 'self' asset: http://asset.localhost;",
+      "assetProtocol": {
+        "enable": true,
+        "scope": {
+          "allow": ["**/*"]
+        }
+      }
     }
   },
   "bundle": {

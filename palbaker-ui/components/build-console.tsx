@@ -1,9 +1,10 @@
 "use client"
 
-import { useState } from "react"
+import { useState, useEffect } from "react"
 import { Terminal, ChevronUp, ChevronDown, X } from "lucide-react"
 import { cn } from "@/lib/utils"
-import { CONSOLE_LOGS } from "@/lib/mock-data"
+import { CONSOLE_LOGS, type LogEntry } from "@/lib/mock-data"
+import { BuildConsoleAPI } from "@/lib/data-service"
 
 const LEVEL_COLORS = {
   SUCCESS: "text-status-success",
@@ -14,7 +15,31 @@ const LEVEL_COLORS = {
 
 export function BuildConsole() {
   const [expanded, setExpanded] = useState(false)
-  const latest = CONSOLE_LOGS[0]
+  const [logs, setLogs] = useState<LogEntry[]>([])
+
+  useEffect(() => {
+    const isLive = typeof window !== "undefined" && (window as any).__TAURI_INTERNALS__ !== undefined
+    if (isLive) {
+      setLogs([
+        {
+          time: new Date().toLocaleTimeString("en-US", { hour12: false }),
+          level: "INFO",
+          msg: "Terminal connected to Tauri backend. Listening for subprocess logs...",
+        }
+      ])
+    } else {
+      setLogs(CONSOLE_LOGS)
+    }
+  }, [])
+
+  useEffect(() => {
+    const unsubscribe = BuildConsoleAPI.subscribe((newLog) => {
+      setLogs((prev) => [newLog, ...prev])
+    })
+    return () => unsubscribe()
+  }, [])
+
+  const latest = logs[0] || { time: "00:00:00", level: "INFO" as const, msg: "Terminal Ready." }
 
   return (
     <div className="shrink-0 border-t border-border bg-console-bg">
@@ -35,7 +60,7 @@ export function BuildConsole() {
           {latest.msg}
         </span>
         <div className="flex items-center gap-3 ml-2 shrink-0">
-          <span className="text-muted-foreground text-xs font-mono">BUFFER: 4.2KB</span>
+          <span className="text-muted-foreground text-xs font-mono">BUFFER: {(JSON.stringify(logs).length / 1024).toFixed(1)}KB</span>
           <span className="text-muted-foreground text-xs font-mono">
             STATUS: <span className="text-status-success">READY</span>
           </span>
@@ -51,7 +76,7 @@ export function BuildConsole() {
       {expanded && (
         <div className="border-t border-border px-4 py-3 max-h-48 overflow-y-auto">
           <div className="flex flex-col gap-1">
-            {CONSOLE_LOGS.map((log, i) => (
+            {logs.map((log, i) => (
               <div key={i} className="flex items-start gap-3 text-xs font-mono">
                 <span className="text-muted-foreground shrink-0">[{log.time}]</span>
                 <span className={cn("shrink-0 font-semibold w-[52px]", LEVEL_COLORS[log.level] ?? "text-foreground")}>

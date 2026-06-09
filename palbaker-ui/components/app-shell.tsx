@@ -1,11 +1,13 @@
 "use client"
 
+import { useState, useEffect } from "react"
 import { cn } from "@/lib/utils"
 import { useNav, type Page } from "@/lib/nav-context"
 import { BuildConsole } from "@/components/build-console"
 import { ModManagerPage } from "@/components/mod-manager/mod-manager-page"
 import { PalCreatorPage } from "@/components/pal-creator/pal-creator-page"
 import { SystemSettingsPage } from "@/components/system-settings/system-settings-page"
+import { SystemSettingsAPI } from "@/lib/data-service"
 import {
   LayoutGrid,
   PawPrint,
@@ -38,6 +40,19 @@ const PAGE_INFO: Record<Page, { title: string; subtitle: string; searchPlacehold
 export function AppShell() {
   const { page, setPage, search, setSearch } = useNav()
   const info = PAGE_INFO[page]
+  const [version, setVersion] = useState("v2.4.0-experimental")
+
+  useEffect(() => {
+    async function loadVersion() {
+      try {
+        const v = await SystemSettingsAPI.getAppVersion()
+        setVersion(v)
+      } catch (err) {
+        console.error("Failed to load app version:", err)
+      }
+    }
+    loadVersion()
+  }, [])
 
   return (
     <div className="flex h-screen w-full overflow-hidden bg-background">
@@ -46,7 +61,7 @@ export function AppShell() {
         {/* Logo */}
         <div className="px-5 pt-6 pb-5">
           <div className="text-primary font-bold text-xl leading-none tracking-wide">PALBAKER</div>
-          <div className="text-muted-foreground text-xs mt-1 font-mono">v2.4.0-stable</div>
+          <div className="text-muted-foreground text-xs mt-1 font-mono">{version}</div>
         </div>
 
         <Separator className="opacity-50" />
@@ -123,11 +138,17 @@ export function AppShell() {
           </div>
         </header>
 
-        {/* Page content — rendered via state, no URL routing */}
+        {/* Page content — kept mounted to preserve form state and prevent IPC refetching */}
         <main className="flex-1 overflow-y-auto px-6 py-5">
-          {page === "mod-manager"     && <ModManagerPage />}
-          {page === "pal-creator"     && <PalCreatorPage />}
-          {page === "system-settings" && <SystemSettingsPage />}
+          <div className={cn(page !== "mod-manager" && "hidden")}>
+            <ModManagerPage />
+          </div>
+          <div className={cn(page !== "pal-creator" && "hidden")}>
+            <PalCreatorPage />
+          </div>
+          <div className={cn(page !== "system-settings" && "hidden")}>
+            <SystemSettingsPage />
+          </div>
         </main>
 
         <BuildConsole />

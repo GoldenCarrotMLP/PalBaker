@@ -1,7 +1,8 @@
 "use client"
 
-import { useState } from "react"
+import { useState, useEffect } from "react"
 import { mockConfig, mockEnvStatus } from "@/lib/mock-data"
+import { SystemSettingsAPI } from "@/lib/data-service"
 import { Separator } from "@/components/ui/separator"
 import { Badge } from "@/components/ui/badge"
 import { Folder, RefreshCw } from "lucide-react"
@@ -25,10 +26,52 @@ const PIPELINE_COLORS: Record<string, string> = {
 
 export function SystemSettingsPage() {
   const [config, setConfig] = useState(mockConfig)
+  const [envStatus, setEnvStatus] = useState<any>(mockEnvStatus)
   const [showMappedNames, setShowMappedNames] = useState(true)
 
-  function updateConfig(key: keyof typeof mockConfig, value: string) {
+  useEffect(() => {
+    async function loadEnvStatusAndConfig() {
+      try {
+        const status = await SystemSettingsAPI.getEnvStatus()
+        setEnvStatus(status)
+
+        const liveConfig = await SystemSettingsAPI.getConfig()
+        setConfig({
+          workspace: liveConfig.workspace || "",
+          ue_root: liveConfig.ue_root || "",
+          uproject_path: liveConfig.uproject || "",
+          blender_exe: liveConfig.blender || "",
+          palworld_exe: liveConfig.palworld_exe || "",
+          fmodel_output: liveConfig.fmodel_output || "",
+        })
+        setShowMappedNames(liveConfig.show_mapped !== false)
+      } catch (err) {
+        console.error("Failed to load env status or config:", err)
+      }
+    }
+    loadEnvStatusAndConfig()
+  }, [])
+
+  async function updateConfig(key: keyof typeof mockConfig, value: string) {
     setConfig((c) => ({ ...c, [key]: value }))
+    try {
+      const backendKey =
+        key === "uproject_path" ? "uproject" :
+        key === "blender_exe" ? "blender" :
+        key;
+      await SystemSettingsAPI.setConfig(backendKey, value)
+    } catch (err) {
+      console.error("Failed to update config key:", err)
+    }
+  }
+
+  async function handleShowMappedToggle(checked: boolean) {
+    setShowMappedNames(checked)
+    try {
+      await SystemSettingsAPI.setConfig("show_mapped", checked ? "True" : "False")
+    } catch (err) {
+      console.error("Failed to update show_mapped setting:", err)
+    }
   }
 
   return (
@@ -42,7 +85,12 @@ export function SystemSettingsPage() {
 
         <div className="grid grid-cols-2 gap-x-8 gap-y-5">
           <PathField
-            label="WORKSPACE ROOT"
+            label="WORKSPACE ROOT (FMODEL OUTPUT)"
+            value={config.fmodel_output}
+            onChange={(v) => updateConfig("fmodel_output", v)}
+          />
+          <PathField
+            label="STANDALONE EXPORT DIR"
             value={config.workspace}
             onChange={(v) => updateConfig("workspace", v)}
           />
@@ -92,7 +140,7 @@ export function SystemSettingsPage() {
                 <input
                   type="checkbox"
                   checked={showMappedNames}
-                  onChange={(e) => setShowMappedNames(e.target.checked)}
+                  onChange={(e) => handleShowMappedToggle(e.target.checked)}
                   className="sr-only peer"
                 />
                 <div className="w-11 h-6 bg-muted border border-border peer-checked:bg-status-success rounded-full transition-colors" />
@@ -153,7 +201,7 @@ export function SystemSettingsPage() {
 
         <div className="grid grid-cols-4 gap-3">
           {PIPELINE_ITEMS.map(({ key, label }) => {
-            const status = mockEnvStatus.pipeline[key as PipelineKey]
+            const status = (envStatus.pipeline && envStatus.pipeline[key as PipelineKey]) || "IDLE"
             return (
               <div key={key} className="bg-muted/40 rounded border border-border p-4">
                 <div className="text-muted-foreground text-xs font-semibold uppercase tracking-wider mb-2">{label}</div>
