@@ -15,7 +15,7 @@ import { NotificationToast } from "./mod-card-expanded/notification-toast"
 type Tag = "source" | "ue" | "altermatic"
 
 const TAG_LABELS: Record<Tag, string> = {
-  source:    "Source Files",
+  source:    ".blend",
   ue:        "UE Assets",
   altermatic: "Altermatic",
 }
@@ -411,7 +411,7 @@ export function ModManagerPage() {
               </button>
               <button
                 onClick={handleLaunchUnreal}
-                className="bg-primary/20 hover:bg-primary/30 border border-primary/40 hover:border-primary/60 text-primary-foreground font-semibold py-2 px-5 rounded-md transition-colors text-sm"
+                className="bg-primary/20 hover:bg-primary/30 border border-primary/40 hover:border-primary/60 text-primary font-semibold py-2 px-5 rounded-md transition-colors text-sm"
               >
                 Okay, open Unreal!
               </button>
