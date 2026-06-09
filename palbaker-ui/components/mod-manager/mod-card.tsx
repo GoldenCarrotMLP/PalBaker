@@ -82,6 +82,26 @@ function ModCardIcon({ mod }: { mod: ModItem }) {
   )
 }
 
+function getBadgeTooltip(text: string): string {
+  switch (text) {
+    case "UNEXTRACTED":
+      return "This Pal mesh and texture database resides purely inside your game archives. Click Extract to build its workspace folders."
+    case "RAW":
+      return "FModel files extracted, but no Blender (.blend) file has been created yet."
+    case "SOURCE":
+      return "Blender (.blend) source file detected. Mod is actively being worked on."
+    case "UE ASSETS":
+    case "MODIFIED":
+      return "Warning: Files have been manually modified inside Unreal Engine since your last Push!"
+    case "SRC CHANGED":
+      return "Source files (Blender/textures) have been edited since your last Push! It is recommended to run 'Push & Cook & Pack'."
+    case "ALTERMATIC":
+      return "Altermatic dynamic variants are active for this Pal."
+    default:
+      return ""
+  }
+}
+
 export function ModCard({ mod, expanded, onToggle, onAction, onRefresh, showMapped }: Props) {
   const [menuOpen, setMenuOpen] = useState(false)
   const [ctxMenu, setCtxMenu] = useState<{ x: number; y: number } | null>(null)
@@ -90,7 +110,7 @@ export function ModCard({ mod, expanded, onToggle, onAction, onRefresh, showMapp
   // Right-click context menu items — file explorer + Unreal browser actions
   const contextItems: ContextMenuEntry[] = [
     {
-      label: "Open .blend files in Explorer",
+      label: "Open source files in Explorer",
       icon: <Folder className="size-3.5" />,
       disabled: !mod.has_fmodel,
     },
@@ -113,7 +133,7 @@ export function ModCard({ mod, expanded, onToggle, onAction, onRefresh, showMapp
   ]
 
   const contextActionMap: Record<string, string> = {
-    "Open .blend files in Explorer": "open_source",
+    "Open source files in Explorer": "open_source",
     "Open Unreal assets in Explorer": "open_ue",
     "Open PAK in Explorer": "open_pak",
     "Show in Unreal Content Browser": "browse_unreal",
@@ -148,20 +168,18 @@ export function ModCard({ mod, expanded, onToggle, onAction, onRefresh, showMapp
                 <span className="text-muted-foreground text-xs">{mod.name}</span>
               )}
               {mod.badges.map((badge, idx) => {
-                const text = Array.isArray(badge) ? badge[0] : badge.text
-                const tooltip = Array.isArray(badge) ? "" : badge.tooltip
+                const text = badge[0]
+                const colorHex = badge[1]
+                const tooltip = getBadgeTooltip(text)
                 return (
                   <span
                     key={text || idx}
                     title={tooltip}
-                    className={cn(
-                      "text-[10px] font-bold px-1.5 py-0.5 rounded border tracking-wide cursor-default select-none",
-                      !Array.isArray(badge) && badge.color,
-                    )}
-                    style={Array.isArray(badge) && badge[1].startsWith('#') ? {
-                      borderColor: badge[1],
-                      color: badge[1],
-                      backgroundColor: `${badge[1]}1A`,
+                    className="text-[10px] font-bold px-1.5 py-0.5 rounded border tracking-wide cursor-default select-none"
+                    style={colorHex && colorHex.startsWith('#') ? {
+                      borderColor: colorHex,
+                      color: colorHex,
+                      backgroundColor: `${colorHex}1A`,
                     } : undefined}
                   >
                     {text}
@@ -214,7 +232,7 @@ export function ModCard({ mod, expanded, onToggle, onAction, onRefresh, showMapp
                     { label: "Pack (Package only)",       action: "pack_only",  disabled: !mod.has_ue },
                     { label: "Cook & Pack (Skip Import)", action: "cook",       disabled: !mod.has_ue },
                     { label: "Push & Cook & Pack",        action: "full",       disabled: !mod.has_fmodel || !mod.has_blend },
-                    { label: "Generate .blend from UE",          action: "decompile",  disabled: !mod.has_ue },
+                    { label: "Generate Sources",          action: "decompile",  disabled: !mod.has_ue },
                   ].map(({ label, action, disabled }) => (
                     <button
                       key={action}

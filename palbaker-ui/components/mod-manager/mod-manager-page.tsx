@@ -1,7 +1,7 @@
 "use client"
 
 import { useState, useMemo, useEffect, useRef } from "react"
-import { ChevronDown, SlidersHorizontal } from "lucide-react"
+import { ChevronDown, SlidersHorizontal, Plus } from "lucide-react"
 import { useNav } from "@/lib/nav-context"
 import { ModManagerAPI, SystemSettingsAPI, UnrealHealthAPI } from "@/lib/data-service"
 import { type ModItem } from "@/lib/mock-data"
@@ -12,28 +12,27 @@ import { NotificationToast } from "./mod-card-expanded/notification-toast"
 
 // ── Tag definitions ────────────────────────────────────────────────────────────
 // A "tag" is a boolean predicate on a ModItem.
-type Tag = "unextracted" | "raw" | "blend" | "ue" | "altermatic" | "blend_changed" | "modified"
-
+type Tag = "unextracted" | "raw" | "source" | "ue_assets" | "altermatic" | "src_changed" | "modified"
 const TAG_LABELS: Record<Tag, string> = {
   unextracted: "Unextracted",
   raw: "Raw Unpacked",
-  blend: ".blend",
-  ue: "UE Assets",
+  source: "Source Files",
+  ue_assets: "UE Assets",
   altermatic: "Altermatic",
-  blend_changed: ".blend Changed",
+  src_changed: "Src Changed",
   modified: "Modified (Unreal)",
 }
 
-const BASE_TAGS: Tag[] = ["unextracted", "raw", "blend", "ue"]
-const MODIFIER_TAGS: Tag[] = ["altermatic", "blend_changed", "modified"]
+const BASE_TAGS: Tag[] = ["unextracted", "raw", "source", "ue_assets"]
+const MODIFIER_TAGS: Tag[] = ["altermatic", "src_changed", "modified"]
 
 function modMatchesTag(mod: ModItem, tag: Tag): boolean {
   if (tag === "unextracted")    return !mod.has_fmodel
   if (tag === "raw")            return mod.has_fmodel && !mod.has_blend
-  if (tag === "blend")         return mod.has_blend
-  if (tag === "ue")             return mod.has_ue
+  if (tag === "source")         return mod.has_blend
+  if (tag === "ue_assets")             return mod.has_ue
   if (tag === "altermatic")     return mod.is_altermatic_active
-  if (tag === "blend_changed") return mod.source_modified
+  if (tag === "src_changed") return mod.source_modified
   if (tag === "modified")       return !!mod.ue_modified
   return false
 }
@@ -53,27 +52,27 @@ interface PresetDef {
 const PRESETS: Record<Preset, PresetDef> = {
   workspace: {
     label: "Live Workspace",
-    description: "Mods actively being worked on — have .blend or UE assets",
+    description: "Mods actively being worked on — have source or UE assets",
     statusMatch: null,
-    activeTags:  ["raw", "blend", "ue"],
+    activeTags:  ["raw", "source", "ue_assets"],
   },
   unextracted: {
     label: "Unextracted",
     description: "Raw imports — no fmodel or blend file yet",
-    statusMatch: (m) => m.pak_status === "Unextracted",
-    activeTags:  null,
+    statusMatch: null,
+    activeTags:  ["unextracted"],
   },
   "in-progress": {
     label: "In Progress",
-    description: "Have .blend files but not yet pushed to Unreal",
-    statusMatch: (m) => m.has_fmodel && !m.has_ue,
-    activeTags:  ["raw", "blend"],
+    description: "Have source files but not yet pushed to Unreal",
+    statusMatch: null,
+    activeTags:  ["raw", "source"],
   },
   ready: {
     label: "Ready",
-    description: "In Unreal, .blend unchanged — ready to cook or pack",
-    statusMatch: (m) => m.has_ue && !m.source_modified,
-    activeTags:  ["ue"],
+    description: "In Unreal, source unchanged — ready to cook or pack",
+    statusMatch: null,
+    activeTags:  ["ue_assets"],
   },
   done: {
     label: "Done",
@@ -386,8 +385,21 @@ export function ModManagerPage() {
       {loading ? (
         <div className="text-muted-foreground text-sm text-center py-12">Loading...</div>
       ) : filtered.length === 0 ? (
-        <div className="text-muted-foreground text-sm text-center py-12">
-          No mods match the current filter.
+        <div className="flex flex-col items-center justify-center border border-dashed border-border rounded-xl p-12 text-center bg-muted/10 gap-4">
+          <p className="text-muted-foreground text-sm max-w-sm leading-relaxed">
+            {activePreset === "workspace" && !isCustom
+              ? "No active development workspace mods found yet! Your workspace is clean and ready."
+              : "No mods match the current filter criteria."}
+          </p>
+          {activePreset === "workspace" && !isCustom && (
+            <button
+              onClick={() => selectPreset("unextracted")}
+              className="flex items-center gap-1.5 px-4 py-2 rounded-lg bg-primary text-primary-foreground text-xs font-semibold hover:bg-primary/90 shadow transition-colors"
+            >
+              <Plus className="size-3.5" />
+              Add New Pal
+            </button>
+          )}
         </div>
       ) : (
         <div className="flex flex-col gap-3">
