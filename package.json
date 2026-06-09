@@ -7,5 +7,8 @@
     "build": "pnpm --filter palbaker-ui build",
     "start": "pnpm --filter palbaker-ui start",
     "tauri": "pnpm --filter palbaker-ui tauri"
+  },
+  "dependencies": {
+    "next": "16.2.6"
   }
 }
