@@ -1,0 +1,58 @@
+# ============================================================
+# Monorepo root
+# ============================================================
+
+# pnpm / npm / yarn
+node_modules/
+.pnp
+.pnp.*
+.yarn/*
+!.yarn/patches
+!.yarn/plugins
+!.yarn/releases
+!.yarn/versions
+pnpm-debug.log*
+npm-debug.log*
+yarn-debug.log*
+yarn-error.log*
+
+# ============================================================
+# Next.js (palbaker-ui)
+# ============================================================
+palbaker-ui/.next/
+palbaker-ui/out/
+palbaker-ui/build/
+palbaker-ui/coverage/
+palbaker-ui/*.tsbuildinfo
+palbaker-ui/next-env.d.ts
+palbaker-ui/.env*
+
+# ============================================================
+# Tauri / Rust (palbaker-ui/src-tauri)
+# ============================================================
+palbaker-ui/src-tauri/target/
+palbaker-ui/src-tauri/gen/
+
+# ============================================================
+# Python (pythoncli)
+# ============================================================
+pythoncli/__pycache__/
+pythoncli/**/__pycache__/
+pythoncli/*.py[cod]
+pythoncli/**/*.py[cod]
+pythoncli/.venv/
+pythoncli/venv/
+pythoncli/*.egg-info/
+pythoncli/dist/
+pythoncli/.pytest_cache/
+
+# ============================================================
+# OS / editor
+# ============================================================
+.DS_Store
+Thumbs.db
+*.pem
+.idea/
+.vscode/
+*.suo
+*.user
