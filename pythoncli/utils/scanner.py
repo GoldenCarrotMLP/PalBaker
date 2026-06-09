@@ -93,12 +93,17 @@ def get_mod_info(settings: dict, target_mod: str | None = None):
         swap_json_dir = os.path.join(os.path.dirname(palworld_exe), "Pal", "Content", "Paks", "~Mods", "SwapJSON")
 
     for name, data in monsters.items():
-        badges = []
         fmodel_path = data["fmodel_path"]
+        has_fmodel = bool(fmodel_path) and os.path.exists(fmodel_path)
+        
+        # If it is not extracted, but is neither a vanilla Pal nor a custom creator Pal, skip it
+        is_vanilla_or_creator = (name in names_map) or (name in custom_pals)
+        if not has_fmodel and not is_vanilla_or_creator:
+            continue
+
+        badges = []
         fmodel_altermatic_path = data["fmodel_altermatic_path"]
         ue_path = data["ue_path"]
-        
-        has_fmodel = bool(fmodel_path) and os.path.exists(fmodel_path)
         
         # Calculate predicted fmodel path if it does not exist on disk yet
         active_pak_path = ""

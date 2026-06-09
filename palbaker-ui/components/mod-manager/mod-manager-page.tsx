@@ -1,7 +1,8 @@
 "use client"
 
-import { useState, useMemo } from "react"
+import { useState, useMemo, useEffect } from "react"
 import { useNav } from "@/lib/nav-context"
+import { ModManagerAPI, SystemSettingsAPI } from "@/lib/data-service"
 import { mockModList, type ModItem, type PakStatus } from "@/lib/mock-data"
 import { ModCard } from "@/components/mod-manager/mod-card"
 import { cn } from "@/lib/utils"
@@ -53,16 +54,48 @@ function StatusFilterChip({
 
 export function ModManagerPage() {
   const { search: searchQuery } = useNav()
-  const [mods, setMods] = useState<ModItem[]>(mockModList)
+  const [mods, setMods] = useState<ModItem[]>([])
   const [expandedId, setExpandedId] = useState<string | null>(null)
   const [activeFilter, setActiveFilter] = useState<FilterStatus>("All")
+  const [loading, setLoading] = useState(true)
+  const [showMapped, setShowMapped] = useState(false)
+
+  async function loadMods() {
+    try {
+      setLoading(true)
+      const data = await ModManagerAPI.list()
+      setMods(data)
+
+      const config = await SystemSettingsAPI.getConfig()
+      setShowMapped(config.show_mapped !== false)
+    } catch (err) {
+      console.error("Failed to load mods:", err)
+    } finally {
+      setLoading(false)
+    }
+  }
+
+  useEffect(() => {
+    loadMods()
+  }, [])
 
   function toggleExpand(id: string) {
     setExpandedId((prev) => (prev === id ? null : id))
   }
 
-  function handleAction(mod: ModItem, action: string) {
-    console.log("[action]", mod.name, action)
+  async function handleAction(mod: ModItem, action: string) {
+    try {
+      setLoading(true)
+      const res = await ModManagerAPI.runAction(mod.name, action)
+      const data = await ModManagerAPI.list()
+      setMods(data)
+      alert(res.message || res.status || "Action executed successfully!")
+    } catch (err) {
+      console.error("Action failed:", err)
+      alert(`Action failed: ${err}`)
+    } finally {
+      setLoading(false)
+    }
   }
 
   // Count per status for filter chips
@@ -79,7 +112,9 @@ export function ModManagerPage() {
     const q = searchQuery.trim().toLowerCase()
     return mods.filter((mod) => {
       const matchesStatus = activeFilter === "All" || mod.pak_status === activeFilter
-      const matchesSearch = !q || mod.name.toLowerCase().includes(q)
+      const matchesSearch = !q || 
+        mod.name.toLowerCase().includes(q) || 
+        (mod.localized_name && mod.localized_name.toLowerCase().includes(q))
       return matchesStatus && matchesSearch
     })
   }, [mods, activeFilter, searchQuery])
@@ -109,15 +144,20 @@ export function ModManagerPage() {
         </div>
       ) : (
         <div className="flex flex-col gap-3">
-          {filtered.map((mod) => (
-            <ModCard
-              key={mod.id}
-              mod={mod}
-              expanded={expandedId === mod.id}
-              onToggle={() => toggleExpand(mod.id)}
-              onAction={handleAction}
-            />
-          ))}
+          {filtered.map((mod) => {
+            const itemKey = mod.id || mod.name;
+            return (
+              <ModCard
+                key={itemKey}
+                mod={mod}
+                expanded={expandedId === itemKey}
+                onToggle={() => toggleExpand(itemKey)}
+                onAction={handleAction}
+                onRefresh={loadMods}
+                showMapped={showMapped}
+              />
+            );
+          })}
         </div>
       )}
     </div>

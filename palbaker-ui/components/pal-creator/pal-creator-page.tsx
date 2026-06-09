@@ -1,6 +1,7 @@
 "use client"
 
 import { useState, useRef, useEffect } from "react"
+import { PalCreatorAPI } from "@/lib/data-service"
 import {
   mockCreatorPals,
   mockPalTemplates,
@@ -162,8 +163,9 @@ function SearchSelectorDialog({ title, dataset, palElements, onSelect, onClose }
 
 // ── Main page with list view ────────────────────────────────────────────────────
 export function PalCreatorPage() {
-  const [pals, setPals] = useState<CreatorPal[]>(mockCreatorPals)
+  const [pals, setPals] = useState<CreatorPal[]>([])
   const [expandedId, setExpandedId] = useState<string | null>(null)
+  const [loading, setLoading] = useState(true)
   const [dialog, setDialog] = useState<{
     title: string
     dataset: Record<string, any>
@@ -171,38 +173,69 @@ export function PalCreatorPage() {
     palElements?: string[]
   } | null>(null)
 
+  useEffect(() => {
+    async function loadPals() {
+      try {
+        setLoading(true)
+        const data = await PalCreatorAPI.list()
+        // If data items are CreatorItem[], we cast them or match their representation
+        setPals(data as unknown as CreatorPal[])
+      } catch (err) {
+        console.error("Failed to load custom Pals:", err)
+      } finally {
+        setLoading(false)
+      }
+    }
+    loadPals()
+  }, [])
+
   function updatePal(id: string, patch: Partial<CreatorPal>) {
     setPals((list) => list.map((p) => (p.CharacterID === id ? { ...p, ...patch } : p)))
+  }
+
+  function savePal(oldId: string, saved: CreatorPal) {
+    setPals((list) => list.map((p) => (p.CharacterID === oldId ? saved : p)))
+  }
+
+  function deletePal(id: string) {
+    setPals((list) => list.filter((p) => p.CharacterID !== id))
   }
 
   function addPal() {
     const newPal: CreatorPal = {
       CharacterID: `NewPal_${Date.now()}`,
       TemplateID: "Anubis",
-      palId: "",
-      speciesName: "",
-      elementTypes: ["", ""],
-      hp: 100,
-      attack: 50,
-      defense: 50,
-      workSpeed: 100,
-      workSuitabilities: {
-        Kindling: false,
-        Planting: false,
-        Handiwork: false,
-        Watering: false,
-        Gathering: false,
-        Lumbering: false,
-        Mining: false,
-        Medicine: false,
+      Name: "",
+      Description: "",
+      ElementType1: "EPalElementType::Normal",
+      ElementType2: "EPalElementType::None",
+      BaseHP: 100,
+      BaseAtk: 50,
+      BaseDef: 50,
+      BaseWorkSpeed: 100,
+      WorkSuitabilities: {
+        WorkSuitability_EmitFlame: 0,
+        WorkSuitability_Watering: 0,
+        WorkSuitability_Seeding: 0,
+        WorkSuitability_GenerateElectricity: 0,
+        WorkSuitability_Handcraft: 0,
+        WorkSuitability_Collection: 0,
+        WorkSuitability_Deforest: 0,
+        WorkSuitability_Mining: 0,
+        WorkSuitability_OilExtraction: 0,
+        WorkSuitability_ProductMedicine: 0,
+        WorkSuitability_Cool: 0,
+        WorkSuitability_Transport: 0,
+        WorkSuitability_MonsterFarm: 0,
       },
       Learnset: [],
-      spawnX: 0,
-      spawnY: 0,
-      levelMin: 1,
-      levelMax: 50,
-      groupSize: 1,
-      parentTemplate: "Anubis",
+      SpawnLocationID: "",
+      SpawnMinLevel: 1,
+      SpawnMaxLevel: 50,
+      SpawnMinGroup: 1,
+      SpawnMaxGroup: 1,
+      ZukanIndex: 1,
+      ZukanIndexSuffix: "",
     }
     setPals((list) => [...list, newPal])
   }
@@ -244,6 +277,8 @@ export function PalCreatorPage() {
               onOpenDialog={(title, dataset, onSelect, palElements) =>
                 setDialog({ title, dataset, onSelect, palElements })
               }
+              onSave={savePal}
+              onDelete={deletePal}
             />
           ))}
         </div>
@@ -253,23 +288,65 @@ export function PalCreatorPage() {
 }
 
 // ── List row (collapsed) ────────────────────────────────────────────────────────
+const cleanElement = (raw: string) => {
+  if (!raw) return "Normal"
+  const part = raw.split("::")[1] || "Normal"
+  if (part === "Leaf") return "Grass"
+  if (part === "Electricity") return "Electric"
+  if (part === "Earth") return "Ground"
+  if (part === "None") return ""
+  return part
+}
+
+const WORK_SUITABILITY_MAP: Record<string, string> = {
+  Kindling: "WorkSuitability_EmitFlame",
+  Planting: "WorkSuitability_Seeding",
+  Handiwork: "WorkSuitability_Handcraft",
+  Watering: "WorkSuitability_Watering",
+  Gathering: "WorkSuitability_Collection",
+  Lumbering: "WorkSuitability_Deforest",
+  Mining: "WorkSuitability_Mining",
+  Medicine: "WorkSuitability_ProductMedicine",
+}
+
+const ELEMENT_OPTIONS = [
+  ["EPalElementType::None", "None"],
+  ["EPalElementType::Normal", "Neutral"],
+  ["EPalElementType::Fire", "Fire"],
+  ["EPalElementType::Water", "Water"],
+  ["EPalElementType::Leaf", "Grass"],
+  ["EPalElementType::Electricity", "Electric"],
+  ["EPalElementType::Ice", "Ice"],
+  ["EPalElementType::Earth", "Ground"],
+  ["EPalElementType::Dark", "Dark"],
+  ["EPalElementType::Dragon", "Dragon"],
+]
+
 function PalListRow({
   pal,
   expanded,
   onToggle,
   onUpdate,
   onOpenDialog,
+  onSave,
+  onDelete,
 }: {
   pal: CreatorPal
   expanded: boolean
   onToggle: () => void
   onUpdate: (patch: Partial<CreatorPal>) => void
   onOpenDialog: (title: string, dataset: Record<string, any>, onSelect: (id: string, label: string) => void, palElements?: string[]) => void
+  onSave: (oldId: string, saved: CreatorPal) => void
+  onDelete: (id: string) => void
 }) {
-  const el1 = pal.elementTypes[0] || "?"
-  const el2 = pal.elementTypes[1]
+  const el1 = cleanElement(pal.ElementType1) || "Normal"
+  const el2 = cleanElement(pal.ElementType2)
   const el1Color = ELEMENT_COLORS[el1] ?? ELEMENT_COLORS["Normal"]
   const el2Color = el2 ? (ELEMENT_COLORS[el2] ?? ELEMENT_COLORS["Normal"]) : "bg-muted text-muted-foreground"
+
+  const zukanStr = pal.ZukanIndex !== undefined 
+    ? `${String(pal.ZukanIndex).padStart(3, "0")}${pal.ZukanIndexSuffix ? `-${pal.ZukanIndexSuffix}` : ""}`
+    : "—"
 
   return (
     <div className="bg-card">
@@ -282,9 +359,9 @@ function PalListRow({
           className={cn("size-4 text-muted-foreground transition-transform", expanded && "rotate-90")}
         />
         <div className="flex-1 text-left min-w-0">
-          <div className="text-foreground font-semibold text-sm">{pal.speciesName || "(Unnamed)"}</div>
+          <div className="text-foreground font-semibold text-sm">{pal.Name || pal.CharacterID || "(Unnamed)"}</div>
           <div className="flex items-center gap-2 mt-0.5">
-            <span className="text-muted-foreground text-xs">ID: {pal.palId || "—"}</span>
+            <span className="text-muted-foreground text-xs">INDEX: {zukanStr}</span>
             <Badge variant="outline" className={cn("text-[10px] font-bold h-5", el1Color)}>
               {el1.toUpperCase()}
             </Badge>
@@ -293,15 +370,21 @@ function PalListRow({
                 {el2.toUpperCase()}
               </Badge>
             )}
-            <span className="text-muted-foreground text-xs">• {pal.Learnset.length} moves</span>
+            <span className="text-muted-foreground text-xs">• {(pal.Learnset || []).length} moves</span>
           </div>
         </div>
-        <span className="text-muted-foreground text-xs">{pal.parentTemplate}</span>
+        <span className="text-muted-foreground text-xs font-mono">{pal.TemplateID}</span>
       </button>
 
       {/* Expanded details */}
       {expanded && (
-        <PalDetails pal={pal} onUpdate={onUpdate} onOpenDialog={onOpenDialog} />
+        <PalDetails 
+          pal={pal} 
+          onUpdate={onUpdate} 
+          onOpenDialog={onOpenDialog} 
+          onSave={onSave}
+          onDelete={onDelete}
+        />
       )}
     </div>
   )
@@ -312,62 +395,95 @@ function PalDetails({
   pal,
   onUpdate,
   onOpenDialog,
+  onSave,
+  onDelete,
 }: {
   pal: CreatorPal
   onUpdate: (patch: Partial<CreatorPal>) => void
   onOpenDialog: (title: string, dataset: Record<string, any>, onSelect: (id: string, label: string) => void, palElements?: string[]) => void
+  onSave: (oldId: string, saved: CreatorPal) => void
+  onDelete: (id: string) => void
 }) {
   return (
     <div className="border-t border-border bg-muted/30 p-5 flex flex-col gap-5">
       {/* Core IDs */}
-      <div className="grid grid-cols-3 gap-3">
-        <FieldGroup label="PAL ID">
+      <div className="grid grid-cols-4 gap-3">
+        <FieldGroup label="CHARACTER ID">
           <input
-            value={pal.palId}
-            onChange={(e) => onUpdate({ palId: e.target.value })}
-            disabled={!!pal.palId}
-            title={pal.palId ? "PAL ID is locked after initial set" : ""}
-            className="input-field disabled:opacity-50 disabled:cursor-not-allowed"
+            value={pal.CharacterID}
+            onChange={(e) => onUpdate({ CharacterID: e.target.value })}
+            disabled={!pal.CharacterID.startsWith("NewPal_")}
+            title={!pal.CharacterID.startsWith("NewPal_") ? "Character ID is locked after initial creation" : ""}
+            className="input-field disabled:opacity-50 disabled:cursor-not-allowed font-mono text-xs"
           />
         </FieldGroup>
-        <FieldGroup label="SPECIES NAME">
+        <FieldGroup label="DISPLAY NAME">
           <input
-            value={pal.speciesName}
-            onChange={(e) => onUpdate({ speciesName: e.target.value })}
+            value={pal.Name}
+            onChange={(e) => onUpdate({ Name: e.target.value })}
             className="input-field"
           />
         </FieldGroup>
         <FieldGroup label="PARENT TEMPLATE">
           <select
-            value={pal.parentTemplate}
-            onChange={(e) => onUpdate({ parentTemplate: e.target.value })}
+            value={pal.TemplateID}
+            onChange={(e) => onUpdate({ TemplateID: e.target.value })}
             className="input-field"
           >
             {mockPalTemplates.map((t) => <option key={t} value={t}>{t}</option>)}
           </select>
         </FieldGroup>
+        <FieldGroup label="PALDECK INDEX">
+          <div className="flex gap-1.5">
+            <input
+              type="number"
+              value={pal.ZukanIndex || 1}
+              onChange={(e) => onUpdate({ ZukanIndex: Number(e.target.value) })}
+              className="input-field flex-1"
+            />
+            <input
+              value={pal.ZukanIndexSuffix || ""}
+              onChange={(e) => onUpdate({ ZukanIndexSuffix: e.target.value })}
+              className="input-field w-14 text-center font-bold"
+              placeholder="Sfx"
+              maxLength={2}
+            />
+          </div>
+        </FieldGroup>
       </div>
+
+      <FieldGroup label="DESCRIPTION">
+        <textarea
+          value={pal.Description}
+          onChange={(e) => onUpdate({ Description: e.target.value })}
+          className="input-field min-h-12 py-1.5 text-xs"
+          placeholder="A short description..."
+          rows={2}
+        />
+      </FieldGroup>
 
       {/* Elements — 2 required */}
       <div className="grid grid-cols-2 gap-3">
         <FieldGroup label="PRIMARY ELEMENT (Required)">
           <select
-            value={pal.elementTypes[0] || ""}
-            onChange={(e) => onUpdate({ elementTypes: [e.target.value, pal.elementTypes[1] || ""] })}
+            value={pal.ElementType1 || "EPalElementType::Normal"}
+            onChange={(e) => onUpdate({ ElementType1: e.target.value })}
             className="input-field"
           >
-            <option value="">Select element...</option>
-            {Object.keys(ELEMENT_COLORS).map((el) => <option key={el} value={el}>{el}</option>)}
+            {ELEMENT_OPTIONS.map(([val, label]) => (
+              <option key={val} value={val}>{label}</option>
+            ))}
           </select>
         </FieldGroup>
         <FieldGroup label="SECONDARY ELEMENT (Optional)">
           <select
-            value={pal.elementTypes[1] || ""}
-            onChange={(e) => onUpdate({ elementTypes: [pal.elementTypes[0] || "", e.target.value] })}
+            value={pal.ElementType2 || "EPalElementType::None"}
+            onChange={(e) => onUpdate({ ElementType2: e.target.value })}
             className="input-field"
           >
-            <option value="">None</option>
-            {Object.keys(ELEMENT_COLORS).map((el) => <option key={el} value={el}>{el}</option>)}
+            {ELEMENT_OPTIONS.map(([val, label]) => (
+              <option key={val} value={val}>{label}</option>
+            ))}
           </select>
         </FieldGroup>
       </div>
@@ -377,99 +493,114 @@ function PalDetails({
         <div>
           <h3 className="text-muted-foreground text-xs font-bold uppercase tracking-widest mb-4">Base Attributes</h3>
           <div className="flex flex-col gap-4">
-            {(["hp", "attack", "defense", "workSpeed"] as const).map((stat) => (
-              <StatSlider
-                key={stat}
-                label={stat === "workSpeed" ? "WORK SPEED" : stat.toUpperCase()}
-                value={pal[stat] as number}
-                onChange={(v) => onUpdate({ [stat]: v })}
-              />
-            ))}
+            <StatSlider
+              label="HP"
+              value={pal.BaseHP}
+              onChange={(v) => onUpdate({ BaseHP: v })}
+            />
+            <StatSlider
+              label="ATTACK"
+              value={pal.BaseAtk}
+              onChange={(v) => onUpdate({ BaseAtk: v })}
+            />
+            <StatSlider
+              label="DEFENSE"
+              value={pal.BaseDef}
+              onChange={(v) => onUpdate({ BaseDef: v })}
+            />
+            <StatSlider
+              label="WORK SPEED"
+              value={pal.BaseWorkSpeed}
+              onChange={(v) => onUpdate({ BaseWorkSpeed: v })}
+            />
           </div>
         </div>
 
         <div>
           <h3 className="text-muted-foreground text-xs font-bold uppercase tracking-widest mb-4">Work Suitabilities</h3>
           <div className="grid grid-cols-2 gap-2">
-            {WORK_SUITS.map((key) => (
-              <label key={key} className="flex items-center gap-2 cursor-pointer select-none">
-                <Checkbox
-                  checked={pal.workSuitabilities[key as WorkKey]}
-                  onCheckedChange={(c) =>
-                    onUpdate({
-                      workSuitabilities: { ...pal.workSuitabilities, [key]: !!c },
-                    })
-                  }
-                  className="border-border data-[state=checked]:bg-primary data-[state=checked]:border-primary"
-                />
-                <span className="text-xs text-foreground">{key}</span>
-              </label>
-            ))}
+            {WORK_SUITS.map((key) => {
+              const rawKey = WORK_SUITABILITY_MAP[key]
+              const isChecked = (pal.WorkSuitabilities?.[rawKey] || 0) > 0
+              return (
+                <label key={key} className="flex items-center gap-2 cursor-pointer select-none">
+                  <Checkbox
+                    checked={isChecked}
+                    onCheckedChange={(c) => {
+                      onUpdate({
+                        WorkSuitabilities: {
+                          ...(pal.WorkSuitabilities || {}),
+                          [rawKey]: c ? 1 : 0,
+                        },
+                      })
+                    }}
+                    className="border-border data-[state=checked]:bg-primary data-[state=checked]:border-primary"
+                  />
+                  <span className="text-xs text-foreground">{key}</span>
+                </label>
+              )
+            })}
           </div>
         </div>
       </div>
 
       {/* Spawning Logic */}
       <div className="grid grid-cols-2 gap-4">
-        <FieldGroup label="Spawner Location">
+        <FieldGroup label="Spawner Location ID">
           <select
-            value={Object.entries(mockSpawnerCache).find(([_, v]) => v === pal.parentTemplate)?.[0] || ""}
-            onChange={(e) => {
-              const selected = e.target.value
-              onUpdate({ parentTemplate: mockSpawnerCache[selected] || pal.parentTemplate })
-            }}
+            value={pal.SpawnLocationID || ""}
+            onChange={(e) => onUpdate({ SpawnLocationID: e.target.value })}
             className="input-field"
           >
             <option value="">Select spawner...</option>
             {Object.entries(mockSpawnerCache).map(([display, actual]) => (
-              <option key={actual} value={display}>{display}</option>
+              <option key={actual} value={actual}>{display}</option>
             ))}
           </select>
-        </FieldGroup>
-
-        <FieldGroup label="Coordinates (X, Y)">
-          <div className="flex gap-2">
-            <input
-              type="number"
-              value={pal.spawnX}
-              onChange={(e) => onUpdate({ spawnX: Number(e.target.value) })}
-              className="input-field flex-1"
-            />
-            <input
-              type="number"
-              value={pal.spawnY}
-              onChange={(e) => onUpdate({ spawnY: Number(e.target.value) })}
-              className="input-field flex-1"
-            />
-          </div>
         </FieldGroup>
 
         <FieldGroup label="Level Range">
           <div className="flex gap-2">
             <input
               type="number"
-              value={pal.levelMin}
-              onChange={(e) => onUpdate({ levelMin: Number(e.target.value) })}
+              value={pal.SpawnMinLevel || 1}
+              onChange={(e) => onUpdate({ SpawnMinLevel: Number(e.target.value) })}
               className="input-field flex-1"
               placeholder="1"
+              min={1}
+              max={100}
             />
             <input
               type="number"
-              value={pal.levelMax}
-              onChange={(e) => onUpdate({ levelMax: Number(e.target.value) })}
+              value={pal.SpawnMaxLevel || 50}
+              onChange={(e) => onUpdate({ SpawnMaxLevel: Number(e.target.value) })}
               className="input-field flex-1"
               placeholder="50"
+              min={1}
+              max={100}
             />
           </div>
         </FieldGroup>
 
-        <FieldGroup label="Group Size">
-          <input
-            type="number"
-            value={pal.groupSize}
-            onChange={(e) => onUpdate({ groupSize: Number(e.target.value) })}
-            className="input-field"
-          />
+        <FieldGroup label="Group Size Range">
+          <div className="flex gap-2">
+            <input
+              type="number"
+              value={pal.SpawnMinGroup || 1}
+              onChange={(e) => onUpdate({ SpawnMinGroup: Number(e.target.value) })}
+              className="input-field flex-1"
+              placeholder="Min"
+              min={1}
+            />
+            <input
+              type="number"
+              value={pal.SpawnMaxGroup || 1}
+              onChange={(e) => onUpdate({ SpawnMaxGroup: Number(e.target.value) })}
+              className="input-field flex-1"
+              placeholder="Max"
+              min={1}
+            />
+          </div>
         </FieldGroup>
       </div>
 
@@ -481,7 +612,7 @@ function PalDetails({
             onClick={() =>
               onOpenDialog("Add Move", mockActiveSkills, (id, label) => {
                 onUpdate({
-                  Learnset: [...pal.Learnset, { Level: 1, WazaID: id }],
+                  Learnset: [...(pal.Learnset || []), { Level: 1, WazaID: id }],
                 })
               })
             }
@@ -501,7 +632,7 @@ function PalDetails({
         </div>
 
         <div className="max-h-48 overflow-y-auto border border-border rounded">
-          {pal.Learnset.length === 0 ? (
+          {(!pal.Learnset || pal.Learnset.length === 0) ? (
             <p className="text-muted-foreground text-xs italic p-3">No moves. Add one above.</p>
           ) : (
             pal.Learnset.sort((a, b) => a.Level - b.Level).map((row, i) => {
@@ -553,6 +684,54 @@ function PalDetails({
             })
           )}
         </div>
+      </div>
+
+      {/* Action Row */}
+      <div className="flex items-center justify-end gap-3 mt-4 border-t border-border pt-4">
+        <button
+          onClick={async () => {
+            try {
+              if (confirm(`Are you sure you want to delete custom Pal '${pal.Name || pal.CharacterID}'?`)) {
+                if (!pal.CharacterID.startsWith("NewPal_")) {
+                  await PalCreatorAPI.delete(pal.CharacterID)
+                }
+                onDelete(pal.CharacterID)
+              }
+            } catch (err) {
+              console.error("Delete failed:", err)
+              alert(`Delete failed: ${err}`)
+            }
+          }}
+          className="flex items-center gap-1.5 px-3 py-2 rounded border border-status-error text-status-error text-xs font-semibold hover:bg-status-error/10 transition-colors"
+        >
+          <Trash2 className="size-3.5" />
+          Delete Pal
+        </button>
+        <button
+          onClick={async () => {
+            try {
+              const isNew = pal.CharacterID.startsWith("NewPal_")
+              let finalCharId = pal.CharacterID
+              if (isNew) {
+                finalCharId = pal.Name.replace(/\s+/g, "")
+                if (!finalCharId) {
+                  alert("Please enter a Display Name first!")
+                  return
+                }
+              }
+              const cleanPal = { ...pal, CharacterID: finalCharId }
+              const saved = await PalCreatorAPI.save(cleanPal, isNew)
+              onSave(pal.CharacterID, saved)
+              alert("Pal saved successfully!")
+            } catch (err) {
+              console.error("Save failed:", err)
+              alert(`Save failed: ${err}`)
+            }
+          }}
+          className="flex items-center gap-1.5 px-4 py-2 rounded bg-primary text-primary-foreground text-xs font-bold uppercase tracking-wider hover:bg-primary/90 transition-colors"
+        >
+          Save Changes
+        </button>
       </div>
     </div>
   )
