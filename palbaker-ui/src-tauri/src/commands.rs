@@ -107,6 +107,10 @@ fn run_cli(app: &AppHandle, state: &AppState, args: &[&str]) -> Result<String, S
     if !status.success() {
         let err_msg = format!("CLI exited with non-zero status: {}", status.code().unwrap_or(-1));
         emit_log(app, "ERROR", &err_msg);
+        let trimmed_stdout = stdout_str.trim();
+        if !trimmed_stdout.is_empty() {
+            return Err(trimmed_stdout.to_string());
+        }
         return Err(err_msg);
     }
 
