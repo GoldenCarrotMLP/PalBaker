@@ -1,34 +1,136 @@
 "use client"
 
-import { useState } from "react"
-import { mockModList, type ModItem } from "@/lib/mock-data"
+import { useState, useMemo } from "react"
+import { mockModList, type ModItem, type PakStatus } from "@/lib/mock-data"
 import { ModCard } from "@/components/mod-manager/mod-card"
+import { cn } from "@/lib/utils"
+
+// Filter chips mirror the status states from mod_card.py
+type FilterStatus = "All" | PakStatus
+
+const STATUS_FILTERS: { status: FilterStatus; label: string; chipClass: string }[] = [
+  { status: "All",          label: "All",          chipClass: "bg-muted text-foreground border-border"                                    },
+  { status: "Unextracted",  label: "Unextracted",  chipClass: "bg-status-error/15  text-status-error   border-status-error/40"             },
+  { status: "Unpacked",     label: "Unpacked",     chipClass: "bg-muted            text-muted-foreground border-border"                   },
+  { status: "Outdated",     label: "Outdated",     chipClass: "bg-primary/10       text-primary         border-primary/30"                 },
+  { status: "Packed",       label: "Packed",       chipClass: "bg-status-success/10 text-status-success  border-status-success/30"         },
+  { status: "SrcChanged",   label: "Src Changed",  chipClass: "bg-status-warning/15 text-status-warning  border-status-warning/40"         },
+]
+
+function StatusFilterChip({
+  label,
+  chipClass,
+  active,
+  count,
+  onClick,
+}: {
+  label: string
+  chipClass: string
+  active: boolean
+  count: number
+  onClick: () => void
+}) {
+  return (
+    <button
+      onClick={onClick}
+      className={cn(
+        "flex items-center gap-1.5 px-2.5 py-1 rounded border text-xs font-semibold tracking-wide transition-all",
+        chipClass,
+        active ? "opacity-100 ring-1 ring-current" : "opacity-50 hover:opacity-80",
+      )}
+    >
+      {label}
+      <span className={cn(
+        "text-[10px] font-bold px-1 py-0.5 rounded",
+        active ? "bg-current/20" : "bg-current/10",
+      )}>
+        {count}
+      </span>
+    </button>
+  )
+}
 
 export function ModManagerPage() {
-  const [mods] = useState<ModItem[]>(mockModList)
-  const [expandedId, setExpandedId] = useState<string | null>("anubis_model_v4")
+  const [mods, setMods] = useState<ModItem[]>(mockModList)
+  const [expandedId, setExpandedId] = useState<string | null>(null)
+  const [activeFilter, setActiveFilter] = useState<FilterStatus>("All")
+  const [searchQuery, setSearchQuery] = useState("")
 
   function toggleExpand(id: string) {
     setExpandedId((prev) => (prev === id ? null : id))
   }
 
-  // When the real CLI bridge is connected this will dispatch to the Python server.
-  // For now it logs the intended action so interactive testing is possible.
   function handleAction(mod: ModItem, action: string) {
-    console.log("[v0] mod action:", mod.name, action)
+    console.log("[action]", mod.name, action)
   }
 
+  // Count per status for filter chips
+  const statusCounts = useMemo(() => {
+    const counts: Record<string, number> = { All: mods.length }
+    for (const mod of mods) {
+      counts[mod.pak_status] = (counts[mod.pak_status] ?? 0) + 1
+    }
+    return counts
+  }, [mods])
+
+  // Apply both search and status filter
+  const filtered = useMemo(() => {
+    const q = searchQuery.trim().toLowerCase()
+    return mods.filter((mod) => {
+      const matchesStatus = activeFilter === "All" || mod.pak_status === activeFilter
+      const matchesSearch = !q || mod.name.toLowerCase().includes(q)
+      return matchesStatus && matchesSearch
+    })
+  }, [mods, activeFilter, searchQuery])
+
   return (
-    <div className="flex flex-col gap-3">
-      {mods.map((mod) => (
-        <ModCard
-          key={mod.id}
-          mod={mod}
-          expanded={expandedId === mod.id}
-          onToggle={() => toggleExpand(mod.id)}
-          onAction={handleAction}
-        />
-      ))}
+    <div className="flex flex-col gap-4">
+      {/* Filter bar */}
+      <div className="flex items-center gap-2 flex-wrap">
+        {STATUS_FILTERS.map(({ status, label, chipClass }) => (
+          <StatusFilterChip
+            key={status}
+            label={label}
+            chipClass={chipClass}
+            active={activeFilter === status}
+            count={statusCounts[status] ?? 0}
+            onClick={() => setActiveFilter(status)}
+          />
+        ))}
+
+        {/* Inline search */}
+        <div className="relative ml-auto flex items-center">
+          <input
+            type="text"
+            value={searchQuery}
+            onChange={(e) => setSearchQuery(e.target.value)}
+            placeholder="Filter mods..."
+            className="w-44 bg-muted/50 border border-border rounded-md pl-8 pr-3 py-1 text-xs text-foreground placeholder:text-muted-foreground focus:outline-none focus:ring-1 focus:ring-primary"
+          />
+          <svg className="absolute left-2 size-3.5 text-muted-foreground pointer-events-none" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2}>
+            <path strokeLinecap="round" strokeLinejoin="round" d="M21 21l-4.35-4.35M17 11A6 6 0 1 1 5 11a6 6 0 0 1 12 0z" />
+          </svg>
+        </div>
+      </div>
+
+      {/* Mod list */}
+      {filtered.length === 0 ? (
+        <div className="text-muted-foreground text-sm text-center py-12">
+          No mods match the current filter.
+        </div>
+      ) : (
+        <div className="flex flex-col gap-3">
+          {filtered.map((mod) => (
+            <ModCard
+              key={mod.id}
+              mod={mod}
+              expanded={expandedId === mod.id}
+              onToggle={() => toggleExpand(mod.id)}
+              onAction={handleAction}
+            />
+          ))}
+        </div>
+      )}
     </div>
   )
 }
