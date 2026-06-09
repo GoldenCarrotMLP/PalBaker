@@ -214,6 +214,24 @@ pub async fn run_mod_action(
 }
 
 #[tauri::command]
+pub async fn unreal_ping(
+    app: AppHandle,
+    state: State<'_, AppState>,
+) -> Result<Value, String> {
+    let raw = run_cli(&app, &state, &["mod", "ping", "_"])?;
+    let parsed: Value = serde_json::from_str(&raw)
+        .unwrap_or(serde_json::json!({
+            "unreal_running": false,
+            "ini_enabled": false,
+            "connection_active": false,
+            "plugin_loaded": false,
+            "diagnostic_code": "UNREAL_CLOSED",
+            "message": "Failed to parse backend ping status."
+        }));
+    Ok(parsed)
+}
+
+#[tauri::command]
 pub async fn audio_set(
     app: AppHandle,
     state: State<'_, AppState>,
