@@ -1,5 +1,4 @@
-import { ModManagerPage } from "@/components/mod-manager/mod-manager-page"
-
+// All page rendering is handled by AppShell via NavContext (Tauri-compatible, no URL routing).
 export default function Page() {
-  return <ModManagerPage />
+  return null
 }
