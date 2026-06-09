@@ -3,7 +3,7 @@
   "version": "0.1.0",
   "identifier": "com.palbaker.app",
   "build": {
-    "beforeDevCommand": "TAURI_ENV_DEBUG=true pnpm dev",
+    "beforeDevCommand": "TAURI_ENV_DEBUG=true TAURI_MODE=true pnpm dev",
     "beforeBuildCommand": "pnpm build",
     "devUrl": "http://localhost:3000",
     "frontendDist": "../out"

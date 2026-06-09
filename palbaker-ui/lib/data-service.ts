@@ -1,16 +1,19 @@
 /**
  * Data Service Layer
  *
- * Abstraction over mock vs live data. Switch between mock and live by changing
- * the USE_LIVE_DATA flag or environment variable.
+ * Abstraction over mock vs live data. Automatically detects environment:
+ * - pnpm dev: Uses mock data (TAURI_MODE not set)
+ * - pnpm tauri dev: Uses live data from Python CLI (TAURI_MODE=true)
  *
- * All page components import from here, so switching is a single point change.
+ * All page components import from here, so switching is automatic.
  */
 
 import { mockModList, mockSpawnerCache, mockCreatorList, mockEnvStatus } from "./mock-data"
 import type { ModItem, CreatorItem, EnvStatusType } from "./mock-data"
 
-const USE_LIVE_DATA = process.env.NEXT_PUBLIC_USE_LIVE_DATA === "true"
+// Automatically true when running "pnpm tauri dev" (TAURI_MODE env var set in tauri.conf.json)
+// False when running "pnpm dev" (regular Next.js dev)
+const USE_LIVE_DATA = process.env.TAURI_MODE === "true"
 
 /**
  * Module Manager API

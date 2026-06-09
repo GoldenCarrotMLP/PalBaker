@@ -2,15 +2,27 @@
 
 ## Overview
 
-This guide walks you through connecting the Next.js UI to the **real** Python CLI backend. Currently, the app uses mock data. By following these steps, you'll wire up live IPC communication through Tauri.
+This guide walks you through connecting the Next.js UI to the **real** Python CLI backend. Currently, the app uses mock data by default.
+
+### Automatic Mode Switching
+
+The app automatically switches between mock and live data based on how you run it:
+
+| Command | Mode | Data Source |
+|---------|------|-------------|
+| `pnpm dev` | Development | Mock data (mock-data.ts) |
+| `pnpm tauri dev` | Tauri Dev | Live data (Python CLI via Tauri IPC) |
+| `pnpm tauri build` | Production | Live data (Python CLI via Tauri IPC) |
+
+This is controlled by the `TAURI_MODE` environment variable set in `tauri.conf.json`. No manual configuration needed — just run the right command.
 
 ## Prerequisites
+
+To implement live data, you'll need:
 
 - Rust + Tauri v2 CLI installed on your machine
 - Python CLI (`pythoncli/palbaker_cli.py`) working and tested
 - Basic understanding of Tauri's `invoke()` system
-
-## Step 1: Define Tauri Commands
 
 Tauri commands are Rust functions exposed to the frontend. They handle communication with Python.
 
