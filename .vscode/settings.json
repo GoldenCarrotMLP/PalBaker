@@ -1,0 +1,13 @@
+{
+    "python.analysis.extraPaths": [
+        "F:/Users/ander/Documents/Unreal Projects/ModKitPAck/Intermediate/PythonStub",
+        "F:/Program Files/Epic Games/UE_5.1/Engine/Plugins/Experimental/PythonScriptPlugin/Content/Python"
+    ],
+    "python.autoComplete.extraPaths": [
+        "F:/Users/ander/Documents/Unreal Projects/ModKitPAck/Intermediate/PythonStub",
+        "F:/Program Files/Epic Games/UE_5.1/Engine/Plugins/Experimental/PythonScriptPlugin/Content/Python"
+    ],
+        "workbench.editorAssociations": {
+        "*.md": "vscode.markdown.preview.editor"
+    }
+}
