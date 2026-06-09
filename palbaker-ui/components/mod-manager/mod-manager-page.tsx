@@ -130,7 +130,13 @@ export function ModManagerPage() {
       // OR intersection match for selected tags
       let matchesTags = true
       if (selectedTags.length > 0) {
-        const modBadgeKeys = (mod.badges || []).map((b) => b.text.toUpperCase())
+        const modBadgeKeys = (mod.badges || []).map((b) => {
+          if (!b) return ""
+          if (Array.isArray(b)) {
+            return b[0] ? b[0].toUpperCase() : ""
+          }
+          return b.text ? b.text.toUpperCase() : ""
+        }).filter(Boolean)
         matchesTags = selectedTags.some((tag) => modBadgeKeys.includes(tag.toUpperCase()))
       }
 
