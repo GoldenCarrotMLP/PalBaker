@@ -64,6 +64,7 @@ pub fn run() {
             commands::creator_delete,
             commands::get_app_version,
             commands::run_mod_action,
+            commands::unreal_ping,
             commands::audio_set,
             commands::audio_clear,
             commands::audio_play,

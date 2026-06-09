@@ -4,7 +4,7 @@ import { useState, useEffect } from "react"
 import { Terminal, ChevronUp, ChevronDown, Copy, Trash2 } from "lucide-react"
 import { cn } from "@/lib/utils"
 import { CONSOLE_LOGS, type LogEntry } from "@/lib/mock-data"
-import { BuildConsoleAPI } from "@/lib/data-service"
+import { BuildConsoleAPI, UnrealHealthAPI } from "@/lib/data-service"
 import { ContextMenuPortal, type ContextMenuEntry } from "@/components/ui/context-menu-portal"
 
 const LEVEL_COLORS = {
@@ -18,6 +18,48 @@ export function BuildConsole() {
   const [expanded, setExpanded] = useState(false)
   const [logs, setLogs] = useState<LogEntry[]>([])
   const [ctxMenu, setCtxMenu] = useState<{ x: number; y: number } | null>(null)
+  
+  const [unrealStatus, setUnrealStatus] = useState<string>("READY")
+  const [statusColorClass, setStatusColorClass] = useState<string>("text-status-success")
+  const [statusTooltip, setStatusTooltip] = useState<string>("Initializing connectivity status...")
+
+  useEffect(() => {
+    const checkHealth = async () => {
+      try {
+        const res = await UnrealHealthAPI.ping()
+        if (res.diagnostic_code === "FULLY_CONNECTED") {
+          setUnrealStatus("CONNECTED")
+          setStatusColorClass("text-status-success")
+          setStatusTooltip(res.message || "Connected and ready.")
+        } else if (res.diagnostic_code === "MISSING_HELPER_PLUGIN") {
+          setUnrealStatus("NO_PLUGIN")
+          setStatusColorClass("text-primary")
+          setStatusTooltip(res.message || "Remote connection active but plugin is not loaded.")
+        } else if (res.diagnostic_code === "NEEDS_RESTART_OR_FIREWALL") {
+          setUnrealStatus("BLOCKED")
+          setStatusColorClass("text-status-warning animate-pulse")
+          setStatusTooltip(res.message || "Unreal config is set to True, but connection timed out.")
+        } else if (res.diagnostic_code === "REMOTE_EXEC_DISABLED") {
+          setUnrealStatus("REMOTE_OFF")
+          setStatusColorClass("text-status-warning")
+          setStatusTooltip(res.message || "Unreal is running but Remote Execution is unchecked.")
+        } else {
+          setUnrealStatus("OFFLINE")
+          setStatusColorClass("text-muted-foreground")
+          setStatusTooltip(res.message || "Unreal Editor is closed.")
+        }
+      } catch (err) {
+        console.error("Failed to check Unreal health:", err)
+        setUnrealStatus("OFFLINE")
+        setStatusColorClass("text-muted-foreground")
+        setStatusTooltip("Failed to query Unreal connection status.")
+      }
+    }
+
+    checkHealth()
+    const interval = setInterval(checkHealth, 10000)
+    return () => clearInterval(interval)
+  }, [])
 
   useEffect(() => {
     const isLive = typeof window !== "undefined" && (window as any).__TAURI_INTERNALS__ !== undefined
@@ -78,7 +120,7 @@ export function BuildConsole() {
               BUFFER: {(JSON.stringify(logs).length / 1024).toFixed(1)}KB
             </span>
             <span className="text-muted-foreground text-xs font-mono">
-              STATUS: <span className="text-status-success">READY</span>
+              UNREAL: <span className={statusColorClass} title={statusTooltip}>{unrealStatus}</span>
             </span>
             {expanded ? (
               <ChevronDown className="size-3.5 text-muted-foreground" />
