@@ -251,7 +251,7 @@ def get_mod_info(settings: dict, target_mod: str | None = None):
             if not has_blend:
                 badges.append(("RAW", "#333333"))
             if has_blend:
-                badges.append(("SOURCE", "#2196F3"))
+                badges.append((".blend", "#2196F3"))
             if has_ue:
                 badges.append(("UE ASSETS", "#FF9800"))
             if is_altermatic_active:
@@ -259,7 +259,7 @@ def get_mod_info(settings: dict, target_mod: str | None = None):
 
             source_modified = is_source_modified(fmodel_path) if has_blend else False
             if source_modified:
-                badges.append(("SRC CHANGED", "#0D47A1"))
+                badges.append((".blend Changed", "#0D47A1"))
 
             ue_modified_files = is_ue_modified(fmodel_path, ue_path) if has_ue else []
             ue_modified = len(ue_modified_files) > 0

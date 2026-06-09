@@ -60,7 +60,7 @@ class ModsView:
         self.badge_chips = ft.Row([
             ft.Text("Tags:", weight=ft.FontWeight.BOLD),
             ft.Chip(label=ft.Text("RAW"), on_select=lambda e: self.update_badge_filter("RAW", e.control.selected)),
-            ft.Chip(label=ft.Text("SOURCE"), on_select=lambda e: self.update_badge_filter("SOURCE", e.control.selected)),
+            ft.Chip(label=ft.Text(".blend"), on_select=lambda e: self.update_badge_filter(".blend", e.control.selected)),
             ft.Chip(label=ft.Text("UE ASSETS"), on_select=lambda e: self.update_badge_filter("UE ASSETS", e.control.selected)),
             ft.Chip(label=ft.Text("MODIFIED"), on_select=lambda e: self.update_badge_filter("MODIFIED", e.control.selected)),
             ft.Chip(label=ft.Text("ALTERMATIC"), on_select=lambda e: self.update_badge_filter("ALTERMATIC", e.control.selected)),
