@@ -158,8 +158,8 @@ def main():
                 "is_custom_pal": workspace.is_custom_pal
             }
             config_path = os.path.join(target_dir, "import_config.json")
-            with open(config_path, "w") as f:
-                json.dump(config, f)
+            with open(config_path, "w", encoding="utf-8") as f:
+                json.dump(config, f, indent=4)
 
             print(f"Connecting to Open Unreal Engine (Target: {os.path.basename(target_dir)})...", flush=True)
             ue_import_script = os.path.join(os.path.dirname(__file__), "ue_import.py")
