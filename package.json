@@ -9,7 +9,9 @@
     "tauri": "pnpm --filter palbaker-ui tauri"
   },
   "dependencies": {
+    "lucide-react": "^1.17.0",
     "next": "16.2.6",
+    "react": "19.2.4",
     "sharp": "^0.34.5"
   }
 }
