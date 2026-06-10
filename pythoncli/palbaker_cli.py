@@ -387,9 +387,7 @@ def main():
                     error_print("Missing --path for set-icon")
                     sys.exit(1)
                 import shutil
-                icon_dir = os.path.join(mod_data["mod_dir"], "Resources")
-                os.makedirs(icon_dir, exist_ok=True)
-                dest = os.path.join(icon_dir, "icon.png")
+                dest = os.path.join(mod_data["fmodel_path"], f"T_{mod_data['name']}_icon_normal.png")
                 shutil.copy2(args.path, dest)
                 json_print({"status": "success", "message": f"Icon set for {args.mod}"})
             elif args.action == "browse-ue":
