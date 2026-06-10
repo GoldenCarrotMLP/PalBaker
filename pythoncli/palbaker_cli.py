@@ -352,6 +352,8 @@ def main():
                 from utils.extractor import extract_pal_assets
                 success, msg = extract_pal_assets(settings, mod_data["name"], "Monster")
                 json_print({"type": "result", "status": "success" if success else "error", "message": msg})
+                if not success:
+                    sys.exit(1)
                 
             elif args.action == "decompile":
                 if not is_unreal_running():
@@ -381,6 +383,8 @@ def main():
                     "message": msg,
                     "summary": summary
                 })
+                if not success:
+                    sys.exit(1)
             
             elif args.action == "set-icon":
                 if not args.path:
@@ -463,7 +467,11 @@ def main():
                 for line in proc.stdout:
                     log_print(line.strip())
                 proc.wait()
-                json_print({"type": "result", "status": "success" if proc.returncode == 0 else "error"})
+                if proc.returncode == 0:
+                    json_print({"type": "result", "status": "success"})
+                else:
+                    json_print({"type": "result", "status": "error", "message": f"Pipeline action '{args.action}' failed with exit code {proc.returncode}"})
+                    sys.exit(proc.returncode)
 
 
         elif args.command == "altermatic":
