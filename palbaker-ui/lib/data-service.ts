@@ -407,6 +407,36 @@ export const SystemSettingsAPI = {
       }
     }
   },
+
+  /**
+   * UE4SS Install / Uninstall / Repair actions via backend
+   */
+  async manageUe4ss(action: string): Promise<any> {
+    if (USE_LIVE_DATA) {
+      try {
+        return await invoke("ue4ss_manage", { action })
+      } catch (err) {
+        console.error("ue4ss_manage failed:", err)
+        throw err
+      }
+    }
+    return { status: "success", message: `Mocked UE4SS action: ${action}` }
+  },
+
+  /**
+   * PalSchema Plugin Install / Uninstall actions via backend
+   */
+  async managePalSchema(action: string): Promise<any> {
+    if (USE_LIVE_DATA) {
+      try {
+        return await invoke("palschema_manage", { action })
+      } catch (err) {
+        console.error("palschema_manage failed:", err)
+        throw err
+      }
+    }
+    return { status: "success", message: `Mocked PalSchema action: ${action}` }
+  },
 }
 
 /**

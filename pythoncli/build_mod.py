@@ -216,6 +216,14 @@ def main():
     # PHASE 2: COOK (Compile only)
     # -------------------------------------------------------------
     if ACTION in ["cook", "full", "cook_only"]:
+        # ADDED MEMORY GATES: Prevent cooking hangs under low free RAM conditions
+        from utils.builder.cooker_helper import verify_cooking_memory_limit
+        
+        is_safe, err_msg = verify_cooking_memory_limit(threshold_gb=2.5)
+        if not is_safe:
+            print(f"ERROR: {err_msg}", flush=True)
+            sys.exit(1)
+
         restore_palbaker_backup(workspace.uproject_path)
         clean_cook_environment(workspace)
 
@@ -247,6 +255,7 @@ def main():
                 sys.exit(1)
             else:
                 print("COOK SUCCESS: Compilation completed successfully.", flush=True)
+
 
     # -------------------------------------------------------------
     # PHASE 3: PACK (Package only)
