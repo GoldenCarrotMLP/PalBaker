@@ -3,6 +3,16 @@ import unreal  # type: ignore
 import json
 import os
 
+def sanitize_asset_name(name):
+    """Sanitizes asset names to comply with Unreal Engine's strict naming rules (alphanumeric and underscores only)."""
+    import re
+    # Replace any spaces, hyphens, or other non-alphanumeric chars with underscores
+    sanitized = re.sub(r'[^a-zA-Z0-9_]', '_', name)
+    # Collapse multiple consecutive underscores into a single one
+    sanitized = re.sub(r'_+', '_', sanitized)
+    # Strip leading/trailing underscores
+    return sanitized.strip('_')
+
 def find_best_texture_match(slot_name, textures, suffix):
     """Calculates the highest token intersection between slot and file to map textures dynamically."""
     clean_slot = slot_name.lower().replace("mi_", "").replace("sk_", "")
@@ -66,19 +76,31 @@ def build_materials_heuristically(ue_path, textures, material_slots):
     mi_assets = []
     
     for slot_name in material_slots:
-        mi_path = f"{ue_path}/{slot_name}"
+        sanitized_slot = sanitize_asset_name(slot_name)
+        mi_path = f"{ue_path}/{sanitized_slot}"
+        mi_asset = None
+        
         if unreal.EditorAssetLibrary.does_asset_exist(mi_path):
-            print(f"Loading existing material instance: {slot_name}")
-            mi_asset = unreal.EditorAssetLibrary.load_asset(mi_path)
-        else:
-            print(f"Creating new material instance: {slot_name}")
-            factory = unreal.MaterialInstanceConstantFactoryNew()
-            mi_asset = asset_tools.create_asset(slot_name, ue_path, unreal.MaterialInstanceConstant.static_class(), factory)
-            
+            existing_asset = unreal.EditorAssetLibrary.load_asset(mi_path)
+            if existing_asset and isinstance(existing_asset, unreal.MaterialInstanceConstant):
+                print(f"Loading existing material instance: {sanitized_slot}")
+                mi_asset = existing_asset
+            else:
+                print(f"Asset '{sanitized_slot}' already exists but is not a MaterialInstanceConstant (type: {type(existing_asset).__name__ if existing_asset else 'None'}). Deleting to recreate as MaterialInstanceConstant...", flush=True)
+                unreal.EditorAssetLibrary.delete_asset(mi_path)
+                
         if not mi_asset:
+            print(f"Creating new material instance: {sanitized_slot}")
+            factory = unreal.MaterialInstanceConstantFactoryNew()
+            created = asset_tools.create_asset(sanitized_slot, ue_path, unreal.MaterialInstanceConstant.static_class(), factory)
+            if created:
+                mi_asset = unreal.EditorAssetLibrary.load_asset(mi_path)
+                
+        if not mi_asset or not isinstance(mi_asset, unreal.MaterialInstanceConstant):
+            print(f"[!] Warning: Failed to obtain valid MaterialInstanceConstant for '{sanitized_slot}'")
             continue
             
-        lower_name = slot_name.lower()
+        lower_name = sanitized_slot.lower()
         if "eye" in lower_name or "mouth" in lower_name:
             parent_path = "/Game/Pal/Material/Character/Common/MI_PalLit_CharacterEyeBase"
         elif "hair" in lower_name:
@@ -90,21 +112,21 @@ def build_materials_heuristically(ue_path, textures, material_slots):
         if parent_mat:
             unreal.MaterialEditingLibrary.set_material_instance_parent(mi_asset, parent_mat)
             
-        tex_b = find_best_texture_match(slot_name, textures, "B")
+        tex_b = find_best_texture_match(sanitized_slot, textures, "B")
         if tex_b:
             loaded_tex = unreal.EditorAssetLibrary.load_asset(f"{ue_path}/{os.path.splitext(os.path.basename(tex_b))[0]}")
             if loaded_tex and isinstance(loaded_tex, unreal.Texture):
                 unreal.MaterialEditingLibrary.set_material_instance_texture_parameter_value(mi_asset, unreal.Name("Base Texture"), loaded_tex)
                 print(f"  Bound BaseColor: {os.path.basename(tex_b)}")
                 
-        tex_n = find_best_texture_match(slot_name, textures, "N")
+        tex_n = find_best_texture_match(sanitized_slot, textures, "N")
         if tex_n:
             loaded_tex = unreal.EditorAssetLibrary.load_asset(f"{ue_path}/{os.path.splitext(os.path.basename(tex_n))[0]}")
             if loaded_tex and isinstance(loaded_tex, unreal.Texture):
                 unreal.MaterialEditingLibrary.set_material_instance_texture_parameter_value(mi_asset, unreal.Name("Normal Map"), loaded_tex)
                 print(f"  Bound Normal: {os.path.basename(tex_n)}")
                 
-        tex_m = find_best_texture_match(slot_name, textures, "M")
+        tex_m = find_best_texture_match(sanitized_slot, textures, "M")
         if tex_m:
             loaded_tex = unreal.EditorAssetLibrary.load_asset(f"{ue_path}/{os.path.splitext(os.path.basename(tex_m))[0]}")
             if loaded_tex and isinstance(loaded_tex, unreal.Texture):
@@ -112,7 +134,7 @@ def build_materials_heuristically(ue_path, textures, material_slots):
                 print(f"  Bound ParameterMap: {os.path.basename(tex_m)}")
                 
         unreal.EditorAssetLibrary.save_loaded_asset(mi_asset)
-        mi_assets.append((slot_name.lower(), mi_asset))
+        mi_assets.append((sanitized_slot.lower(), mi_asset))
         
     return mi_assets
 
@@ -140,22 +162,33 @@ def build_materials(ue_path, json_path, textures, target_asset_path):
         mi_assets = []
         
         for mat_name, data in materials_metadata.items():
-            mi_path = f"{ue_path}/{mat_name}"
+            sanitized_name = sanitize_asset_name(mat_name)
+            mi_path = f"{ue_path}/{sanitized_name}"
+            mi_asset = None
             
             if unreal.EditorAssetLibrary.does_asset_exist(mi_path):
-                print(f"Loading existing material instance: {mat_name}")
-                mi_asset = unreal.EditorAssetLibrary.load_asset(mi_path)
-            else:
-                print(f"Creating new material instance: {mat_name}")
-                factory = unreal.MaterialInstanceConstantFactoryNew()
-                mi_asset = asset_tools.create_asset(mat_name, ue_path, unreal.MaterialInstanceConstant.static_class(), factory)
-                
+                existing_asset = unreal.EditorAssetLibrary.load_asset(mi_path)
+                if existing_asset and isinstance(existing_asset, unreal.MaterialInstanceConstant):
+                    print(f"Loading existing material instance: {sanitized_name}")
+                    mi_asset = existing_asset
+                else:
+                    print(f"Asset '{sanitized_name}' already exists but is not a MaterialInstanceConstant (type: {type(existing_asset).__name__ if existing_asset else 'None'}). Deleting to recreate as MaterialInstanceConstant...", flush=True)
+                    unreal.EditorAssetLibrary.delete_asset(mi_path)
+            
             if not mi_asset:
+                print(f"Creating new material instance: {sanitized_name}")
+                factory = unreal.MaterialInstanceConstantFactoryNew()
+                created = asset_tools.create_asset(sanitized_name, ue_path, unreal.MaterialInstanceConstant.static_class(), factory)
+                if created:
+                    mi_asset = unreal.EditorAssetLibrary.load_asset(mi_path)
+                    
+            if not mi_asset or not isinstance(mi_asset, unreal.MaterialInstanceConstant):
+                print(f"[!] Warning: Failed to obtain valid MaterialInstanceConstant for '{sanitized_name}'")
                 continue
                 
             parent_path = "/Game/Pal/Material/Character/Common/MI_PalLit_CharacterBodyBase"
             parent_class_lower = data.get("parent_class", "").lower()
-            mat_name_lower = mat_name.lower()
+            mat_name_lower = sanitized_name.lower()
             
             if "eye" in parent_class_lower or "mouth" in parent_class_lower or "eye" in mat_name_lower or "mouth" in mat_name_lower:
                 parent_path = "/Game/Pal/Material/Character/Common/MI_PalLit_CharacterEyeBase"
@@ -179,23 +212,23 @@ def build_materials(ue_path, json_path, textures, target_asset_path):
             else:
                 # FIXED: If a material slot exists in the sidecar but has an empty texture block,
                 # immediately run our suffix-matching heuristics inside this specific slot.
-                print(f"  [!] No mapped textures found in sidecar for {mat_name}. Reverting to heuristic search...", flush=True)
+                print(f"  [!] No mapped textures found in sidecar for {sanitized_name}. Reverting to heuristic search...", flush=True)
                 
-                tex_b = find_best_texture_match(mat_name, textures, "B")
+                tex_b = find_best_texture_match(sanitized_name, textures, "B")
                 if tex_b:
                     loaded_tex = unreal.EditorAssetLibrary.load_asset(f"{ue_path}/{os.path.splitext(os.path.basename(tex_b))[0]}")
                     if loaded_tex and isinstance(loaded_tex, unreal.Texture):
                         unreal.MaterialEditingLibrary.set_material_instance_texture_parameter_value(mi_asset, unreal.Name("Base Texture"), loaded_tex)
                         print(f"    Heuristic Bound Base: {os.path.basename(tex_b)}")
                         
-                tex_n = find_best_texture_match(mat_name, textures, "N")
+                tex_n = find_best_texture_match(sanitized_name, textures, "N")
                 if tex_n:
                     loaded_tex = unreal.EditorAssetLibrary.load_asset(f"{ue_path}/{os.path.splitext(os.path.basename(tex_n))[0]}")
                     if loaded_tex and isinstance(loaded_tex, unreal.Texture):
                         unreal.MaterialEditingLibrary.set_material_instance_texture_parameter_value(mi_asset, unreal.Name("Normal Map"), loaded_tex)
                         print(f"    Heuristic Bound Normal: {os.path.basename(tex_n)}")
                         
-                tex_m = find_best_texture_match(mat_name, textures, "M")
+                tex_m = find_best_texture_match(sanitized_name, textures, "M")
                 if tex_m:
                     loaded_tex = unreal.EditorAssetLibrary.load_asset(f"{ue_path}/{os.path.splitext(os.path.basename(tex_m))[0]}")
                     if loaded_tex and isinstance(loaded_tex, unreal.Texture):
@@ -203,7 +236,7 @@ def build_materials(ue_path, json_path, textures, target_asset_path):
                         print(f"    Heuristic Bound Parameter: {os.path.basename(tex_m)}")
                     
             unreal.EditorAssetLibrary.save_loaded_asset(mi_asset)
-            mi_assets.append((mat_name.lower(), mi_asset))
+            mi_assets.append((sanitized_name.lower(), mi_asset))
             
         return mi_assets
     else:
