@@ -481,3 +481,28 @@ pub async fn set_config(
         .map_err(|e| format!("JSON parse error on set_config: {}", e))?;
     Ok(parsed)
 }
+
+#[tauri::command]
+pub async fn ue4ss_manage(
+    app: AppHandle,
+    state: State<'_, AppState>,
+    action: String,
+) -> Result<Value, String> {
+    let raw = run_cli(&app, &state, &["env", "ue4ss-install", &action])?;
+    let parsed: Value = serde_json::from_str(&raw)
+        .unwrap_or(serde_json::json!({ "status": "success", "message": raw }));
+    Ok(parsed)
+}
+
+#[tauri::command]
+pub async fn palschema_manage(
+    app: AppHandle,
+    state: State<'_, AppState>,
+    action: String,
+) -> Result<Value, String> {
+    let raw = run_cli(&app, &state, &["env", "install-plugin", &action])?;
+    let parsed: Value = serde_json::from_str(&raw)
+        .unwrap_or(serde_json::json!({ "status": "success", "message": raw }));
+    Ok(parsed)
+}
+

@@ -4,7 +4,56 @@ import sys
 import shutil
 import subprocess
 import glob
+import ctypes
 from utils.audio_helper import get_staged_audio_overrides
+
+class MEMORYSTATUSEX(ctypes.Structure):
+    """Win32 structure to hold physical and virtual memory allocation parameters."""
+    _fields_ = [
+        ("dwLength", ctypes.c_ulong),
+        ("dwMemoryLoad", ctypes.c_ulong),
+        ("ullTotalPhys", ctypes.c_ulonglong),
+        ("ullAvailPhys", ctypes.c_ulonglong),
+        ("ullTotalPageFile", ctypes.c_ulonglong),
+        ("ullAvailPageFile", ctypes.c_ulonglong),
+        ("ullTotalVirtual", ctypes.c_ulonglong),
+        ("ullAvailVirtual", ctypes.c_ulonglong),
+        ("ullAvailExtendedVirtual", ctypes.c_ulonglong)
+    ]
+
+
+def get_free_physical_ram() -> float:
+    """Returns the amount of free physical memory currently available on the system in GB."""
+    if os.name != 'nt':
+        # POSIX Fallback (Read /proc/meminfo directly from Linux/WSL environments)
+        try:
+            with open('/proc/meminfo', 'r') as f:
+                for line in f:
+                    if 'MemAvailable' in line:
+                        return int(line.split()[1]) / (1024 * 1024)
+        except Exception:
+            pass
+        return 8.0 # Safe default fallback
+
+    try:
+        stat = MEMORYSTATUSEX()
+        stat.dwLength = ctypes.sizeof(stat)
+        ctypes.windll.kernel32.GlobalMemoryStatusEx(ctypes.byref(stat))
+        return stat.ullAvailPhys / (1024 ** 3)
+    except Exception:
+        return 8.0 # Safe default fallback
+
+
+def verify_cooking_memory_limit(threshold_gb: float = 4.0) -> tuple[bool, str]:
+    """
+    Verifies if the system possesses enough free RAM to safely cook.
+    Returns: (is_safe: bool, status_message: str)
+    """
+    free_ram = get_free_physical_ram()
+    if free_ram < threshold_gb:
+        return False, f"Low Physical Memory: Only {free_ram:.2f} GB of free RAM is available. Unreal Engine Cooking requires at least {threshold_gb:.1f} GB of free RAM to prevent infinite allocation loops. Please close background applications (such as web browsers or other editors) and retry."
+    return True, ""
+
 
 def run_and_stream(cmd_args) -> bool:
     """

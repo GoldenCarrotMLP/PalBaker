@@ -81,6 +81,8 @@ pub fn run() {
             commands::save_mod_audio_bytes,
             commands::get_config,
             commands::set_config,
+            commands::ue4ss_manage,
+            commands::palschema_manage,
         ])
         .run(tauri::generate_context!())
         .expect("error while running tauri application");

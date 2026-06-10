@@ -88,11 +88,7 @@ export function SystemSettingsPage() {
             label="WORKSPACE ROOT (FMODEL OUTPUT)"
             value={config.fmodel_output}
             onChange={(v) => updateConfig("fmodel_output", v)}
-          />
-          <PathField
-            label="STANDALONE EXPORT DIR"
-            value={config.workspace}
-            onChange={(v) => updateConfig("workspace", v)}
+            wide
           />
           <PathField
             label="UNREAL ENGINE ROOT"
@@ -159,29 +155,98 @@ export function SystemSettingsPage() {
 
           {/* UE4SS */}
           <BinaryCard
-            name="UE4SS (v2.5.2)"
-            status="INSTALLED & ACTIVE"
-            statusClass="bg-status-success/15 text-status-success border-status-success/30"
+            name="UE4SS"
+            status={
+              envStatus.ue4ss?.status === "Installed"
+                ? `INSTALLED (${envStatus.ue4ss?.branch || "Unknown"})`
+                : envStatus.ue4ss?.status === "Not Installed"
+                ? "NOT INSTALLED"
+                : "STATUS UNKNOWN"
+            }
+            statusClass={
+              envStatus.ue4ss?.status === "Installed"
+                ? "bg-status-success/15 text-status-success border-status-success/30"
+                : "bg-status-warning/15 text-status-warning border-status-warning/30"
+            }
             description="The essential C++ modding tool for Unreal Engine games. Required for script loading and hooking."
-            accentColor="border-l-status-success"
-            actions={[
-              { label: "Uninstall", variant: "ghost" },
-              { label: "Repair", variant: "ghost" },
-              { label: "INSTALL", variant: "primary" },
-            ]}
+            accentColor={
+              envStatus.ue4ss?.status === "Installed"
+                ? "border-l-status-success"
+                : "border-l-status-warning"
+            }
+            actions={
+              envStatus.ue4ss?.status === "Installed"
+                ? envStatus.ue4ss?.branch === "Palworld-Experimental"
+                  ? [
+                      { label: "Uninstall", actionKey: "uninstall", variant: "ghost" },
+                      { label: "Repair", actionKey: "repair", variant: "ghost" },
+                      { label: "Switch to Latest-Experimental", actionKey: "install-latest", variant: "warning" },
+                    ]
+                  : [
+                      { label: "Uninstall", actionKey: "uninstall", variant: "ghost" },
+                      { label: "Repair", actionKey: "repair", variant: "ghost" },
+                      { label: "Switch to Palworld-Experimental", actionKey: "install-palworld", variant: "warning" },
+                    ]
+                : [
+                    { label: "Install Palworld-Experimental", actionKey: "install-palworld", variant: "primary" },
+                    { label: "Install Latest-Experimental", actionKey: "install-latest", variant: "primary" },
+                  ]
+            }
+            onAction={async (actionKey) => {
+              try {
+                await SystemSettingsAPI.manageUe4ss(actionKey)
+                // Refresh status
+                const updated = await SystemSettingsAPI.getEnvStatus()
+                setEnvStatus(updated)
+              } catch (err) {
+                console.error("UE4SS action failed:", err)
+              }
+            }}
+            repoBranch={envStatus.ue4ss?.branch}
           />
 
           {/* PalSchema Plugin */}
           <BinaryCard
             name="PalSchema Plugin"
-            status="UPDATE AVAILABLE"
-            statusClass="bg-status-warning/15 text-status-warning border-status-warning/30"
+            status={
+              envStatus.palschema?.status === "Installed"
+                ? "INSTALLED & ACTIVE"
+                : envStatus.palschema?.status === "Not Installed"
+                ? "NOT INSTALLED"
+                : "STATUS UNKNOWN"
+            }
+            statusClass={
+              envStatus.palschema?.status === "Installed"
+                ? "bg-status-success/15 text-status-success border-status-success/30"
+                : "bg-status-warning/15 text-status-warning border-status-warning/30"
+            }
             description="Data structure mapping for the latest Palworld version (v0.2.1.0). Controls asset serialization."
-            accentColor="border-l-status-warning"
-            actions={[
-              { label: "Uninstall", variant: "ghost" },
-              { label: "INSTALL / UPDATE", variant: "warning" },
-            ]}
+            accentColor={
+              envStatus.palschema?.status === "Installed"
+                ? "border-l-status-success"
+                : "border-l-status-warning"
+            }
+            actions={
+              envStatus.palschema?.status === "Installed"
+                ? [
+                    { label: "Uninstall", actionKey: "uninstall", variant: "ghost" },
+                    { label: "Repair", actionKey: "install", variant: "ghost" },
+                  ]
+                : [
+                    { label: "INSTALL", actionKey: "install", variant: "primary" },
+                  ]
+            }
+            onAction={async (actionKey) => {
+              try {
+                await SystemSettingsAPI.managePalSchema(actionKey)
+                // Refresh status
+                const updated = await SystemSettingsAPI.getEnvStatus()
+                setEnvStatus(updated)
+              } catch (err) {
+                console.error("PalSchema action failed:", err)
+              }
+            }}
+            repoBranch="PalSchema"
           />
         </section>
       </div>
@@ -256,19 +321,97 @@ function PathField({
 
 function BinaryCard({
   name,
-  status,
-  statusClass,
+  status: initialStatus,
+  statusClass: initialStatusClass,
   description,
-  accentColor,
-  actions,
+  accentColor: initialAccentColor,
+  actions: initialActions,
+  onAction,
+  repoBranch,
 }: {
   name: string
   status: string
   statusClass: string
   description: string
   accentColor: string
-  actions: { label: string; variant: "ghost" | "primary" | "warning" }[]
+  actions: { label: string; actionKey: string; variant: "ghost" | "primary" | "warning"; disabled?: boolean }[]
+  onAction?: (actionKey: string) => void
+  repoBranch?: string
 }) {
+  const [latestVersion, setLatestVersion] = useState<string | null>(null)
+  const [isLoadingRelease, setIsLoadingRelease] = useState(false)
+
+  // Dynamically resolve creator, sourceUrl, and repoPath based on branch
+  let creator = "UE4SS Team"
+  let sourceUrl = "https://github.com/UE4SS-RE/RE-UE4SS"
+  let repoPath = "UE4SS-RE/RE-UE4SS"
+
+  if (name === "PalSchema Plugin") {
+    creator = "Okaetsu / Palworld Modding Community"
+    sourceUrl = "https://github.com/Okaetsu/RE-UE4SS"
+    repoPath = "Okaetsu/PalSchema"
+  } else if (name === "UE4SS") {
+    if (repoBranch === "Palworld-Experimental") {
+      creator = "Okaetsu"
+      sourceUrl = "https://github.com/Okaetsu/RE-UE4SS"
+      repoPath = "Okaetsu/RE-UE4SS"
+    } else {
+      creator = "UE4SS Team"
+      sourceUrl = "https://github.com/UE4SS-RE/RE-UE4SS"
+      repoPath = "UE4SS-RE/RE-UE4SS"
+    }
+  }
+
+  // Determine current/latest release mismatch variants
+  let currentVersion = "3.0.1"
+  if (name === "PalSchema Plugin") {
+    currentVersion = "0.5.2"
+  } else if (name === "UE4SS") {
+    if (repoBranch === "Palworld-Experimental") {
+      currentVersion = "experimental-palworld"
+    } else {
+      currentVersion = "3.0.1"
+    }
+  }
+
+  const isOutdated = latestVersion && currentVersion !== latestVersion
+
+  const status = isOutdated ? "UPDATE AVAILABLE" : initialStatus
+  const statusClass = isOutdated 
+    ? "bg-status-warning/15 text-status-warning border-status-warning/30" 
+    : initialStatusClass
+  const accentColor = isOutdated ? "border-l-status-warning" : initialAccentColor
+
+  // Filter actions dynamically depending on installed state
+  const actions = initialActions.map((a) => {
+    if (isOutdated && a.variant === "primary") {
+      return { ...a, label: "INSTALL / UPDATE", variant: "warning" as const }
+    }
+    return a
+  })
+
+  useEffect(() => {
+    if (!repoPath) return
+    async function fetchLatestRelease() {
+      setIsLoadingRelease(true)
+      try {
+        const res = await fetch(`https://api.github.com/repos/${repoPath}/releases/latest`)
+        if (res.ok) {
+          const data = await res.json()
+          if (data && data.tag_name) {
+            const tag = data.tag_name.replace(/^v/, "")
+            setLatestVersion(tag)
+          }
+        }
+      } catch (err) {
+        console.error("Failed to check latest release from GitHub:", err)
+      } finally {
+        setIsLoadingRelease(false)
+      }
+    }
+    fetchLatestRelease()
+  }, [repoPath])
+
   const actionClasses = {
     ghost: "border border-border bg-transparent text-foreground hover:bg-accent",
     primary: "bg-primary text-primary-foreground hover:bg-primary/80",
@@ -286,14 +429,49 @@ function BinaryCard({
           >
             {status}
           </Badge>
+          {latestVersion && (
+            <Badge
+              variant="secondary"
+              className="text-[10px] font-semibold border px-1.5 py-0 bg-primary/10 text-primary border-primary/20"
+            >
+              {isLoadingRelease ? "v..." : `Latest: v${latestVersion}`}
+            </Badge>
+          )}
         </div>
         <p className="text-muted-foreground text-xs leading-relaxed">{description}</p>
+        
+        {/* Creator, Source & Releases Info */}
+        {(creator || sourceUrl) && (
+          <div className="flex items-center gap-2 mt-1.5 text-[11px] text-muted-foreground">
+            {creator && (
+              <span>
+                Creator: <span className="text-foreground/80 font-medium">{creator}</span>
+              </span>
+            )}
+            {creator && sourceUrl && <span className="opacity-50">•</span>}
+            {sourceUrl && (
+              <a
+                href={sourceUrl}
+                target="_blank"
+                rel="noopener noreferrer"
+                className="text-primary hover:underline font-medium"
+              >
+                Source / Credits
+              </a>
+            )}
+          </div>
+        )}
       </div>
-      <div className="flex items-center gap-2 shrink-0">
+      <div className="flex items-center gap-2 shrink-0 flex-wrap max-w-[280px] justify-end">
         {actions.map((a) => (
           <button
             key={a.label}
-            className={cn("px-3 py-1.5 rounded text-xs font-semibold transition-colors whitespace-nowrap", actionClasses[a.variant])}
+            onClick={() => !a.disabled && onAction?.(a.actionKey)}
+            disabled={a.disabled}
+            className={cn(
+              "px-3 py-1.5 rounded text-xs font-semibold transition-colors whitespace-nowrap",
+              a.disabled ? "opacity-50 cursor-not-allowed bg-muted text-muted-foreground border border-border" : actionClasses[a.variant]
+            )}
           >
             {a.label}
           </button>
