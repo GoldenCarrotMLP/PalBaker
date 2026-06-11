@@ -112,6 +112,7 @@ pub fn run() {
             commands::env_enable_remote_exec,
             commands::env_autodetect,
             commands::env_inject_assets,
+            commands::env_extract_icons,
         ])
         .run(tauri::generate_context!())
         .expect("error while running tauri application");

@@ -14,7 +14,19 @@ export interface DiagnosticReport {
 }
 
 export function parseBackendError(rawError: string): DiagnosticReport {
-  const err = String(rawError).trim();
+  let err = String(rawError).trim();
+
+  // Unpack raw JSON error envelopes to extract the core descriptive message
+  try {
+    const parsed = JSON.parse(err);
+    if (parsed.message) {
+      err = parsed.message;
+    } else if (parsed.error) {
+      err = parsed.error;
+    }
+  } catch (e) {
+    // Not a JSON string, keep it as is
+  }
 
   // 1. CONFIGURATION & PATH ERRORS
   if (
@@ -67,7 +79,7 @@ export function parseBackendError(rawError: string): DiagnosticReport {
     return {
       category: "EXTRACTOR",
       title: "FModel / Cue4Parse Failure",
-      friendlyMsg: "Poki, I couldn't extract the raw Pal assets or translate their name entries! We might be missing standard Mappings or our cue4parse dependencies in 'deps/'. Let's check them!",
+      friendlyMsg: "I couldn't extract the raw Pal assets or translate their name entries! We might be missing standard Mappings or our cue4parse dependencies in 'deps/'. Let's check them!",
       remediations: [
         { label: "⚙️ Go to Settings", actionKey: "go_to_settings", style: "primary" },
         { label: "📦 Rebuild Database Map", actionKey: "rebuild_db", style: "secondary" }
@@ -80,7 +92,7 @@ export function parseBackendError(rawError: string): DiagnosticReport {
     err.includes("Failed to pre-install PSK addon") ||
     err.includes("no .psk skeletal mesh found") ||
     err.includes("Blender executed but failed to save") ||
-    err.includes("Skeletal blend file not found") ||
+    err.includes("Skeletal mesh blend file not found") ||
     err.includes("Failed to launch Blender")
   ) {
     return {

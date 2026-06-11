@@ -93,6 +93,14 @@ export const SystemSettingsAPI = {
     return { status: "success", message: "Mocked inject-assets completed." }
   },
 
+  async extractIcons(): Promise<any> {
+    if (USE_LIVE_DATA) {
+      try { return await invoke("env_extract_icons") } 
+      catch (err) { handleBackendError(err) }
+    }
+    return { status: "success", message: "Mocked extract-icons completed." }
+  },
+
   async pickPath(options: { directory: boolean; filters?: { name: string; extensions: string[] }[] }): Promise<any> {
     if (USE_LIVE_DATA) {
       try {

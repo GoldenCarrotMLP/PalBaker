@@ -179,7 +179,7 @@ def load_sound_map() -> dict:
     
     # Locate resolved_sound_map.json in the repository root directory
     repo_root = os.path.dirname(os.path.dirname(os.path.abspath(__file__)))
-    map_path = os.path.join(repo_root, SOUND_MAP_FILE)
+    map_path = os.path.join(repo_root, "deps", SOUND_MAP_FILE)
     
     if not os.path.exists(map_path):
         return {}

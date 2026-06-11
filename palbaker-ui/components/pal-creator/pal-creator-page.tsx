@@ -2,12 +2,13 @@
 
 import { useState, useEffect } from "react"
 import { Plus } from "lucide-react"
-import { PalCreatorAPI, ModManagerAPI } from "@/lib/data-service"
+import { PalCreatorAPI, ModManagerAPI, SystemSettingsAPI } from "@/lib/data-service"
 import { type CreatorPal, type ActiveSkill, mockPalTemplates } from "@/lib/mock-data"
 import { PalListRow } from "./pal-list-row"
 import { SearchSelectorDialog } from "./search-selector-dialog"
 import { AddPalModal } from "./add-pal-modal"
 import { ConfirmModal } from "@/components/common/confirm-modal"
+import { useNav } from "@/lib/nav-context"
 
 type DialogState = {
   title: string
@@ -26,6 +27,7 @@ export function PalCreatorPage() {
   const [templates, setTemplates] = useState<string[]>([])
   const [palNames, setPalNames] = useState<Record<string, string>>({})
   const [deleteTarget, setDeleteTarget] = useState<string | null>(null)
+  const { refreshTrigger } = useNav() as any
 
   // Dynamic Dictionaries populated entirely by the Python Backend
   const [spawners, setSpawners] = useState<Record<string, string>>({})
@@ -35,6 +37,24 @@ export function PalCreatorPage() {
     async function loadPalsAndCaches() {
       try {
         setLoading(true)
+
+        // 1. Check path configuration status first
+        const config = await SystemSettingsAPI.getConfig()
+        const configured = Boolean(
+          config.fmodel_output &&
+          config.ue_root &&
+          config.uproject &&
+          config.blender &&
+          config.palworld_exe
+        )
+
+        if (!configured) {
+          // If unconfigured, gracefully set defaults and halt to avoid backend failures
+          setTemplates(mockPalTemplates)
+          return
+        }
+
+        // 2. Safe query when environments are healthy
         const [data, caches] = await Promise.all([
           PalCreatorAPI.list(),
           ModManagerAPI.getAltermaticCaches()
@@ -68,7 +88,7 @@ export function PalCreatorPage() {
       }
     }
     loadPalsAndCaches()
-  }, [])
+  }, [refreshTrigger])
 
   function updatePal(id: string, patch: Partial<CreatorPal>) {
     setPals((list) => list.map((p) => (p.CharacterID === id ? { ...p, ...patch } : p)))
@@ -110,11 +130,11 @@ export function PalCreatorPage() {
   return (
     <>
       {dialog && (
-        <SearchSelectorDialog title={dialog.title} dataset={dialog.dataset} palElements={dialog.palElements} onSelect={dialog.onSelect} onClose={() => setDialog(null)} />
+        <SearchSelectorDialog title={dialog.title} dataset={dialog.dataset} palElements={dialog.palElements} onSelect={dialog.onSelect} onClose={() => { setDialog(null) }} />
       )}
       
       {isAddOpen && (
-        <AddPalModal templates={templates} palNames={palNames} onConfirm={handleAddConfirm} onCancel={() => setIsAddOpen(false)} />
+        <AddPalModal templates={templates} palNames={palNames} onConfirm={handleAddConfirm} onCancel={() => { setIsAddOpen(false) }} />
       )}
 
       {deleteTarget && (
@@ -122,7 +142,7 @@ export function PalCreatorPage() {
           title="Confirm Deletion" 
           message={`Are you sure you want to permanently delete custom Pal '${deleteTarget}'?`}
           onConfirm={executeDelete} 
-          onCancel={() => setDeleteTarget(null)} 
+          onCancel={() => { setDeleteTarget(null) }} 
         />
       )}
 
@@ -130,7 +150,7 @@ export function PalCreatorPage() {
         <div className="flex items-center justify-between">
           <h2 className="text-muted-foreground text-xs font-bold uppercase tracking-widest">Pal Definitions</h2>
           <button
-            onClick={() => setIsAddOpen(true)}
+            onClick={() => { setIsAddOpen(true) }}
             disabled={loading}
             className="flex items-center gap-1.5 px-3 py-1.5 rounded border border-primary text-primary text-xs font-semibold hover:bg-primary/10 transition-colors cursor-pointer disabled:opacity-50"
           >
@@ -154,11 +174,11 @@ export function PalCreatorPage() {
                 expanded={expandedId === pal.CharacterID}
                 spawners={spawners}
                 activeSkills={activeSkills}
-                onToggle={() => setExpandedId(expandedId === pal.CharacterID ? null : pal.CharacterID)}
-                onUpdate={(patch) => updatePal(pal.CharacterID, patch)}
-                onOpenDialog={(title, dataset, onSelect, palElements) => setDialog({ title, dataset, onSelect, palElements })}
+                onToggle={() => { setExpandedId(expandedId === pal.CharacterID ? null : pal.CharacterID) }}
+                onUpdate={(patch) => { updatePal(pal.CharacterID, patch) }}
+                onOpenDialog={(title, dataset, onSelect, palElements) => { setDialog({ title, dataset, onSelect, palElements }) }}
                 onSave={savePal}
-                onDelete={() => setDeleteTarget(pal.CharacterID)}
+                onDelete={() => { setDeleteTarget(pal.CharacterID) }}
               />
             ))}
           </div>

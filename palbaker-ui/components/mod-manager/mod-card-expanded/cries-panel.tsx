@@ -37,7 +37,7 @@ export function CriesPanel({ mod, onRefresh, onNotify }: Props) {
   }
 
   const handleAudioClear = async (slot: string) => {
-    if (!confirm(`Clear the custom override for ${slot}?`)) return
+    if (!window.confirm(`Clear the custom override for ${slot}?`)) return
     try {
       await ModManagerAPI.audioClear(mod.name, slot)
       onNotify(`Cleared custom override for ${slot}.`, "success")

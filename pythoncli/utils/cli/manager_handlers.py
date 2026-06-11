@@ -82,7 +82,7 @@ def handle_manager_command(args, settings):
             path = os.path.join(deps_dir, filename)
             if os.path.exists(path):
                 try:
-                    with open(path, "r", encoding="utf-8") as f:
+                    with open(path, "r") as f:
                         caches[key] = json.load(f)
                 except Exception:
                     pass
@@ -90,11 +90,11 @@ def handle_manager_command(args, settings):
         # traits_db points directly to passive_skills
         caches["traits_db"] = caches["passive_skills"]
         
-        # Parse flat localization map from pal_names_map.json
-        names_path = os.path.join(repo_root, "pal_names_map.json")
+        # Parse flat localization map from pal_names_map.json located inside deps/
+        names_path = os.path.join(deps_dir, "pal_names_map.json")
         if os.path.exists(names_path):
             try:
-                with open(names_path, "r", encoding="utf-8") as f:
+                with open(names_path, "r") as f:
                     data = json.load(f)
                     rows = data.get("Rows", {})
                     flat_names = {}

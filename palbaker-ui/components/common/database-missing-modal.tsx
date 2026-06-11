@@ -5,11 +5,12 @@ import { SystemSettingsAPI } from "@/lib/data-service"
 import { Database, Loader2, X, AlertTriangle } from "lucide-react"
 
 interface Props {
+  missingFiles?: string[]
   onClose: () => void
   onSuccess?: () => void
 }
 
-export function DatabaseMissingModal({ onClose, onSuccess }: Props) {
+export function DatabaseMissingModal({ missingFiles = [], onClose, onSuccess }: Props) {
   const [loading, setLoading] = useState(false)
   const [error, setError] = useState<string | null>(null)
 
@@ -20,7 +21,7 @@ export function DatabaseMissingModal({ onClose, onSuccess }: Props) {
       const res = await SystemSettingsAPI.buildDb()
       if (res && res.status === "success") {
         if (onSuccess) onSuccess()
-        onClose()
+        // No onClose() call here; the page's state-driven re-verification loop handles transition/unmounting!
       } else {
         setError(res.message || "Failed to compile localization database.")
       }
@@ -31,6 +32,10 @@ export function DatabaseMissingModal({ onClose, onSuccess }: Props) {
       setLoading(false)
     }
   }
+
+  const renderedFiles = missingFiles.length > 0 
+    ? missingFiles.join(", ") 
+    : "pal_names_map.json";
 
   return (
     <div className="fixed inset-0 z-[110] flex items-center justify-center bg-black/80 backdrop-blur-sm p-4">
@@ -49,8 +54,12 @@ export function DatabaseMissingModal({ onClose, onSuccess }: Props) {
         </div>
 
         <p className="text-sm text-foreground/80 leading-relaxed">
-          The local Pal database mapping (<code className="text-xs bg-muted px-1 py-0.5 rounded font-mono text-primary">pal_names_map.json</code>) is missing or incomplete. 
-          <br /><br />
+          The following local Pal database mapping files are missing or incomplete:
+          <br />
+          <code className="text-xs bg-muted px-1 py-0.5 rounded font-mono text-primary block mt-2 truncate" title={renderedFiles}>
+            {renderedFiles}
+          </code>
+          <br />
           PalBaker can automatically extract the latest English localization files directly from your game archives and compile the skills and spawners caches.
         </p>
 

@@ -1,28 +1,38 @@
 import os
 import glob
+import hashlib
 
-def get_max_source_mtime(directory: str) -> float:
-    """Recursively finds the maximum modification time of C++ source files in the directory."""
-    if not os.path.exists(directory):
-        return 0.0
+def get_source_dir_hash(plugin_dir: str) -> str:
+    """Computes a combined SHA-256 hash of all C++ source files, normalizing newlines to prevent Git CRLF issues."""
+    source_dir = os.path.join(plugin_dir, "Source")
+    if not os.path.exists(source_dir):
+        return ""
     
-    max_time = 0.0
+    hasher = hashlib.sha256()
     extensions = (".h", ".cpp", ".cs", ".uplugin")
-    for root, _, files in os.walk(directory):
+    
+    filepaths = []
+    for root, _, files in os.walk(source_dir):
         for file in files:
             if file.endswith(extensions):
-                max_time = max(max_time, os.path.getmtime(os.path.join(root, file)))
-    return max_time
-
-def get_max_dll_mtime(directory: str) -> float:
-    """Finds the maximum modification time of any compiled plugin DLLs."""
-    if not os.path.exists(directory):
-        return 0.0
-        
-    dlls = glob.glob(os.path.join(directory, "UnrealEditor-PalBakerEditorUtils*.dll"))
-    if not dlls:
-        return 0.0
-    return max(os.path.getmtime(d) for d in dlls)
+                filepaths.append(os.path.join(root, file))
+                
+    uplugin_path = os.path.join(plugin_dir, "PalBakerEditorUtils.uplugin")
+    if os.path.exists(uplugin_path):
+        filepaths.append(uplugin_path)
+                
+    # Sort files to ensure deterministic hashing order across all OSs
+    filepaths.sort()
+    
+    for path in filepaths:
+        try:
+            with open(path, "r", encoding="utf-8", errors="ignore") as f:
+                content = f.read().replace("\r\n", "\n")
+                hasher.update(content.encode("utf-8"))
+        except Exception:
+            pass
+            
+    return hasher.hexdigest().lower()
 
 def get_missing_assets(src_assets_dir: str, dest_content_dir: str) -> list[str]:
     """Diffs the repository assets against the ModKit and returns a list of missing relative paths."""
@@ -38,7 +48,7 @@ def get_missing_assets(src_assets_dir: str, dest_content_dir: str) -> list[str]:
     return missing
 
 def check_remote_execution_settings(uproject_path: str) -> bool:
-    """Returns True if bRemoteExecution=True is configured in DefaultEngine.ini."""
+    """Returns True if bRemoteExecution=True is configured in DefaultEngine.ini (fully case-insensitive)."""
     project_dir = os.path.dirname(uproject_path)
     ini_path = os.path.join(project_dir, "Config", "DefaultEngine.ini")
     
@@ -50,15 +60,17 @@ def check_remote_execution_settings(uproject_path: str) -> bool:
             lines = f.readlines()
             
         in_section = False
+        target_section = "[/script/pythonscriptplugin.pythonscriptpluginsettings]"
+        
         for line in lines:
-            stripped = line.strip()
+            stripped = line.strip().replace(" ", "").lower()
             if stripped.startswith("[") and stripped.endswith("]"):
-                if stripped == "[/Script/PythonScriptPlugin.PythonScriptPluginSettings]":
+                if stripped == target_section:
                     in_section = True
                 else:
                     in_section = False
             elif in_section:
-                if stripped.replace(" ", "").lower() == "bremoteexecution=true":
+                if stripped == "bremoteexecution=true":
                     return True
         return False
     except Exception:
