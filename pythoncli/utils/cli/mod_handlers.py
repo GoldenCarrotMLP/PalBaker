@@ -64,6 +64,34 @@ def verify_unreal_connection(settings: dict) -> tuple[bool, str, str]:
         
     return True, "FULLY_CONNECTED", ""
 
+def verify_project_integrity(settings: dict) -> tuple[bool, str]:
+    """
+    Verifies if the C++ plugin and master assets are installed in the Unreal project.
+    Returns: (is_intact: bool, error_message: str)
+    """
+    from utils.plugin_manager import check_project_requirements
+    
+    reqs = check_project_requirements(settings.get("ue_root", ""), settings.get("uproject", ""))
+    
+    if reqs.get("error"):
+        return False, f"Project Validation Failed: {reqs['error']}"
+        
+    if reqs.get("needs_compile") or reqs.get("needs_plugin_sync") or reqs.get("plugin_outdated"):
+        return False, (
+            "The PalBaker C++ Editor Helper Plugin is missing or outdated in your Unreal project!\n\n"
+            "This plugin is strictly required to programmatically build animation blueprints and material connections.\n"
+            "Please navigate to System Settings and click 'Save & Verify Project Requirements' to install it."
+        )
+        
+    if reqs.get("missing_assets"):
+        return False, (
+            "Your Unreal project is missing crucial master materials and framework assets!\n\n"
+            "PalBaker requires these base assets to safely link materials onto your meshes.\n"
+            "Please navigate to System Settings and click 'Save & Verify Project Requirements' to inject them."
+        )
+        
+    return True, ""
+
 def run_build_mod_and_stream(monster_name: str, category: str, action: str):
     """
     Spawns build_mod.py unbuffered, intercepts output lines, and 
@@ -171,7 +199,14 @@ def handle_mod_command(args, settings):
             json_print({"status": "error", "error_code": err_code, "message": err_msg})
             sys.exit(1)
 
-    # 3. Command Execution
+    # 3. Project Integrity Validation (Missing Assets & Plugin check)
+    if action in ["push", "full", "cook", "pack", "decompile"]:
+        is_intact, integrity_msg = verify_project_integrity(settings)
+        if not is_intact:
+            json_print({"status": "error", "message": integrity_msg})
+            sys.exit(1)
+
+    # 4. Command Execution
     mods = get_mod_info(settings, args.mod)
     if not mods and action not in ["extract", "cancel-pipeline"]:
         error_print(f"Mod {args.mod} was not found on disk.")
@@ -406,6 +441,7 @@ def handle_audio_command(args, settings):
             # Extract dynamically if missing
             if not os.path.exists(wem_abs_path):
                 export_root = os.path.join(settings["fmodel_output"], "Exports")
+                from utils.extractor import extract_single_file
                 extract_single_file(settings, wem_rel, export_root)
                 
             if not os.path.exists(wem_abs_path):
