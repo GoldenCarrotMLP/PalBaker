@@ -3,24 +3,28 @@
 import { Slider } from "@/components/ui/slider"
 import { cn } from "@/lib/utils"
 
-// ── Constants ────────────────────────────────────────────────────────────────────
-
 export const WORK_SUITS = [
-  "Kindling", "Planting", "Handiwork", "Watering",
-  "Gathering", "Lumbering", "Mining", "Medicine",
+  "Kindling", "Watering", "Planting", "Electricity", "Handiwork",
+  "Gathering", "Lumbering", "Mining", "Oil Extraction", "Medicine",
+  "Cooling", "Transport", "Farming",
 ] as const
 
 export type WorkKey = typeof WORK_SUITS[number]
 
 export const WORK_SUITABILITY_MAP: Record<WorkKey, string> = {
-  Kindling:  "WorkSuitability_EmitFlame",
-  Planting:  "WorkSuitability_Seeding",
-  Handiwork: "WorkSuitability_Handcraft",
-  Watering:  "WorkSuitability_Watering",
-  Gathering: "WorkSuitability_Collection",
-  Lumbering: "WorkSuitability_Deforest",
-  Mining:    "WorkSuitability_Mining",
-  Medicine:  "WorkSuitability_ProductMedicine",
+  "Kindling":  "WorkSuitability_EmitFlame",
+  "Watering":  "WorkSuitability_Watering",
+  "Planting":  "WorkSuitability_Seeding",
+  "Electricity": "WorkSuitability_GenerateElectricity",
+  "Handiwork": "WorkSuitability_Handcraft",
+  "Gathering": "WorkSuitability_Collection",
+  "Lumbering": "WorkSuitability_Deforest",
+  "Mining":    "WorkSuitability_Mining",
+  "Oil Extraction": "WorkSuitability_OilExtraction",
+  "Medicine":  "WorkSuitability_ProductMedicine",
+  "Cooling": "WorkSuitability_Cool",
+  "Transport": "WorkSuitability_Transport",
+  "Farming": "WorkSuitability_MonsterFarm",
 }
 
 export const ELEMENT_OPTIONS: [string, string][] = [
@@ -46,8 +50,6 @@ export function cleanElement(raw: string): string {
   return part
 }
 
-// ── Shared UI helpers ─────────────────────────────────────────────────────────────
-
 export function FieldGroup({ label, children }: { label: string; children: React.ReactNode }) {
   return (
     <div className="flex flex-col gap-1.5">
@@ -69,23 +71,27 @@ export function StatSlider({
   label,
   value,
   onChange,
+  min = 1,
+  max = 500,
 }: {
   label: string
   value: number
   onChange: (v: number) => void
+  min?: number
+  max?: number
 }) {
   return (
-    <div className="grid grid-cols-[110px_1fr_56px] items-center gap-3">
-      <span className="text-muted-foreground text-xs font-semibold uppercase tracking-wider">{label}</span>
+    <div className="grid grid-cols-[120px_1fr_56px] items-center gap-3">
+      <span className="text-muted-foreground text-[10px] font-semibold uppercase tracking-wider">{label}</span>
       <Slider
         value={[value]}
-        min={1}
-        max={500}
+        min={min}
+        max={max}
         step={1}
         onValueChange={(vals) => onChange(Array.isArray(vals) ? (vals as number[])[0] : Number(vals))}
         className="[&_[role=slider]]:bg-primary [&_[role=slider]]:border-primary"
       />
-      <div className="bg-muted/60 border border-border rounded px-2 py-1 text-primary text-xs font-mono text-center">
+      <div className="bg-muted/60 border border-border rounded px-2 py-1 text-primary text-[10px] font-mono text-center">
         {value}
       </div>
     </div>

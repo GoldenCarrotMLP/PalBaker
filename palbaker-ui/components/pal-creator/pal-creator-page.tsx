@@ -2,49 +2,12 @@
 
 import { useState, useEffect } from "react"
 import { Plus } from "lucide-react"
-import { PalCreatorAPI } from "@/lib/data-service"
-import { type CreatorPal, type ActiveSkill } from "@/lib/mock-data"
+import { PalCreatorAPI, ModManagerAPI } from "@/lib/data-service"
+import { type CreatorPal, type ActiveSkill, mockPalTemplates } from "@/lib/mock-data"
 import { PalListRow } from "./pal-list-row"
 import { SearchSelectorDialog } from "./search-selector-dialog"
-
-// Default shape for a freshly created Pal before any edits
-function makeNewPal(): CreatorPal {
-  return {
-    CharacterID: `NewPal_${Date.now()}`,
-    TemplateID: "Anubis",
-    Name: "",
-    Description: "",
-    ElementType1: "EPalElementType::Normal",
-    ElementType2: "EPalElementType::None",
-    BaseHP: 100,
-    BaseAtk: 50,
-    BaseDef: 50,
-    BaseWorkSpeed: 100,
-    WorkSuitabilities: {
-      WorkSuitability_EmitFlame: 0,
-      WorkSuitability_Watering: 0,
-      WorkSuitability_Seeding: 0,
-      WorkSuitability_GenerateElectricity: 0,
-      WorkSuitability_Handcraft: 0,
-      WorkSuitability_Collection: 0,
-      WorkSuitability_Deforest: 0,
-      WorkSuitability_Mining: 0,
-      WorkSuitability_OilExtraction: 0,
-      WorkSuitability_ProductMedicine: 0,
-      WorkSuitability_Cool: 0,
-      WorkSuitability_Transport: 0,
-      WorkSuitability_MonsterFarm: 0,
-    },
-    Learnset: [],
-    SpawnLocationID: "",
-    SpawnMinLevel: 1,
-    SpawnMaxLevel: 50,
-    SpawnMinGroup: 1,
-    SpawnMaxGroup: 1,
-    ZukanIndex: 1,
-    ZukanIndexSuffix: "",
-  }
-}
+import { AddPalModal } from "./add-pal-modal"
+import { ConfirmModal } from "@/components/common/confirm-modal"
 
 type DialogState = {
   title: string
@@ -58,20 +21,53 @@ export function PalCreatorPage() {
   const [expandedId, setExpandedId] = useState<string | null>(null)
   const [loading,    setLoading]    = useState(true)
   const [dialog,     setDialog]     = useState<DialogState>(null)
+  
+  const [isAddOpen, setIsAddOpen] = useState(false)
+  const [templates, setTemplates] = useState<string[]>([])
+  const [palNames, setPalNames] = useState<Record<string, string>>({})
+  const [deleteTarget, setDeleteTarget] = useState<string | null>(null)
+
+  // Dynamic Dictionaries populated entirely by the Python Backend
+  const [spawners, setSpawners] = useState<Record<string, string>>({})
+  const [activeSkills, setActiveSkills] = useState<Record<string, ActiveSkill>>({})
 
   useEffect(() => {
-    async function loadPals() {
+    async function loadPalsAndCaches() {
       try {
         setLoading(true)
-        const data = await PalCreatorAPI.list()
+        const [data, caches] = await Promise.all([
+          PalCreatorAPI.list(),
+          ModManagerAPI.getAltermaticCaches()
+        ])
         setPals(data as unknown as CreatorPal[])
+        
+        if (caches) {
+          // Hydrate dynamic menus
+          if (caches.monster_spawners) setSpawners(caches.monster_spawners)
+          if (caches.active_skills) setActiveSkills(caches.active_skills)
+          
+          if (caches.templates) {
+            const validTemplates = Object.keys(caches.templates)
+              .filter(t => t && t !== "None")
+              .sort((a, b) => {
+                const nameA = (caches.pal_names?.[a] || a).toLowerCase()
+                const nameB = (caches.pal_names?.[b] || b).toLowerCase()
+                return nameA.localeCompare(nameB)
+              })
+            setTemplates(validTemplates)
+            setPalNames(caches.pal_names || {})
+          } else {
+            setTemplates(mockPalTemplates)
+          }
+        }
       } catch (err) {
-        console.error("Failed to load custom Pals:", err)
+        console.error("Failed to load custom Pals or caches:", err)
+        setTemplates(mockPalTemplates)
       } finally {
         setLoading(false)
       }
     }
-    loadPals()
+    loadPalsAndCaches()
   }, [])
 
   function updatePal(id: string, patch: Partial<CreatorPal>) {
@@ -82,47 +78,70 @@ export function PalCreatorPage() {
     setPals((list) => list.map((p) => (p.CharacterID === oldId ? saved : p)))
   }
 
-  function deletePal(id: string) {
-    setPals((list) => list.filter((p) => p.CharacterID !== id))
+  async function handleAddConfirm(id: string, templateId: string) {
+    setIsAddOpen(false)
+    setLoading(true)
+    try {
+      const newPal = await PalCreatorAPI.add(id, templateId)
+      setPals((prev) => [...prev, newPal])
+      setExpandedId(newPal.CharacterID)
+    } catch (e) {
+      console.error(e)
+    } finally {
+      setLoading(false)
+    }
   }
 
-  function addPal() {
-    const pal = makeNewPal()
-    setPals((list) => [...list, pal])
-    setExpandedId(pal.CharacterID)
-  }
-
-  if (loading) {
-    return <p className="text-muted-foreground text-xs italic">Loading Pal definitions...</p>
+  async function executeDelete() {
+    if (!deleteTarget) return
+    const target = deleteTarget
+    setDeleteTarget(null)
+    setLoading(true)
+    try {
+      await PalCreatorAPI.delete(target)
+      setPals((list) => list.filter((p) => p.CharacterID !== target))
+    } catch (e) {
+      console.error(e)
+    } finally {
+      setLoading(false)
+    }
   }
 
   return (
     <>
       {dialog && (
-        <SearchSelectorDialog
-          title={dialog.title}
-          dataset={dialog.dataset}
-          palElements={dialog.palElements}
-          onSelect={dialog.onSelect}
-          onClose={() => setDialog(null)}
+        <SearchSelectorDialog title={dialog.title} dataset={dialog.dataset} palElements={dialog.palElements} onSelect={dialog.onSelect} onClose={() => setDialog(null)} />
+      )}
+      
+      {isAddOpen && (
+        <AddPalModal templates={templates} palNames={palNames} onConfirm={handleAddConfirm} onCancel={() => setIsAddOpen(false)} />
+      )}
+
+      {deleteTarget && (
+        <ConfirmModal 
+          title="Confirm Deletion" 
+          message={`Are you sure you want to permanently delete custom Pal '${deleteTarget}'?`}
+          onConfirm={executeDelete} 
+          onCancel={() => setDeleteTarget(null)} 
         />
       )}
 
       <div className="flex flex-col gap-4">
-        {/* Header */}
         <div className="flex items-center justify-between">
           <h2 className="text-muted-foreground text-xs font-bold uppercase tracking-widest">Pal Definitions</h2>
           <button
-            onClick={addPal}
-            className="flex items-center gap-1.5 px-3 py-1.5 rounded border border-primary text-primary text-xs font-semibold hover:bg-primary/10 transition-colors cursor-pointer"
+            onClick={() => setIsAddOpen(true)}
+            disabled={loading}
+            className="flex items-center gap-1.5 px-3 py-1.5 rounded border border-primary text-primary text-xs font-semibold hover:bg-primary/10 transition-colors cursor-pointer disabled:opacity-50"
           >
             <Plus className="size-3.5" />
             New Pal
           </button>
         </div>
 
-        {/* Pal list */}
-        {pals.length === 0 ? (
+        {loading ? (
+          <p className="text-muted-foreground text-xs italic">Loading Pal definitions...</p>
+        ) : pals.length === 0 ? (
           <p className="text-muted-foreground text-xs italic border border-border rounded p-4">
             No custom Pals yet. Click &quot;New Pal&quot; to create one.
           </p>
@@ -133,13 +152,13 @@ export function PalCreatorPage() {
                 key={pal.CharacterID}
                 pal={pal}
                 expanded={expandedId === pal.CharacterID}
+                spawners={spawners}
+                activeSkills={activeSkills}
                 onToggle={() => setExpandedId(expandedId === pal.CharacterID ? null : pal.CharacterID)}
                 onUpdate={(patch) => updatePal(pal.CharacterID, patch)}
-                onOpenDialog={(title, dataset, onSelect, palElements) =>
-                  setDialog({ title, dataset, onSelect, palElements })
-                }
+                onOpenDialog={(title, dataset, onSelect, palElements) => setDialog({ title, dataset, onSelect, palElements })}
                 onSave={savePal}
-                onDelete={deletePal}
+                onDelete={() => setDeleteTarget(pal.CharacterID)}
               />
             ))}
           </div>

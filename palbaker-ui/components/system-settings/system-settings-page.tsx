@@ -5,8 +5,17 @@ import { mockConfig, mockEnvStatus } from "@/lib/mock-data"
 import { SystemSettingsAPI } from "@/lib/data-service"
 import { Separator } from "@/components/ui/separator"
 import { Badge } from "@/components/ui/badge"
-import { Folder, RefreshCw } from "lucide-react"
+import { Folder, RefreshCw, CheckCircle, Database } from "lucide-react"
 import { cn } from "@/lib/utils"
+import { DiagnosticsModal } from "@/components/common/diagnostics-modal"
+import { useNotifications } from "../mod-manager/mod-card-expanded/use-notifications"
+import { NotificationToast } from "../mod-manager/mod-card-expanded/notification-toast"
+import { DatabaseMissingModal } from "@/components/common/database-missing-modal"
+
+// Importing setup wizards modals
+import { PluginInstallModal } from "./setup-wizards/PluginInstallModal"
+import { AssetInjectModal } from "./setup-wizards/AssetInjectModal"
+import { ConfigFixModal } from "./setup-wizards/ConfigFixModal"
 
 const PIPELINE_ITEMS = [
   { key: "blender_rpc", label: "BLENDER RPC" },
@@ -28,6 +37,13 @@ export function SystemSettingsPage() {
   const [config, setConfig] = useState(mockConfig)
   const [envStatus, setEnvStatus] = useState<any>(mockEnvStatus)
   const [showMappedNames, setShowMappedNames] = useState(true)
+  const [diagnosticError, setDiagnosticError] = useState<string | null>(null)
+  const { notifications, showNotification, dismissNotification } = useNotifications()
+
+  // Setup Wizards States
+  const [activeWizard, setActiveWizard] = useState<"plugin" | "asset" | "config" | null>(null)
+  const [verificationResult, setVerificationResult] = useState<any>(null)
+  const [showDbModal, setShowDbModal] = useState(false)
 
   useEffect(() => {
     async function loadEnvStatusAndConfig() {
@@ -45,8 +61,9 @@ export function SystemSettingsPage() {
           fmodel_output: liveConfig.fmodel_output || "",
         })
         setShowMappedNames(liveConfig.show_mapped !== false)
-      } catch (err) {
+      } catch (err: any) {
         console.error("Failed to load env status or config:", err)
+        setDiagnosticError(String(err.message || err))
       }
     }
     loadEnvStatusAndConfig()
@@ -60,8 +77,9 @@ export function SystemSettingsPage() {
         key === "blender_exe" ? "blender" :
         key;
       await SystemSettingsAPI.setConfig(backendKey, value)
-    } catch (err) {
+    } catch (err: any) {
       console.error("Failed to update config key:", err)
+      setDiagnosticError(String(err.message || err))
     }
   }
 
@@ -69,8 +87,100 @@ export function SystemSettingsPage() {
     setShowMappedNames(checked)
     try {
       await SystemSettingsAPI.setConfig("show_mapped", checked ? "True" : "False")
-    } catch (err) {
+    } catch (err: any) {
       console.error("Failed to update show_mapped setting:", err)
+      setDiagnosticError(String(err.message || err))
+    }
+  }
+
+  // Sequential Wizard Verification Flow
+  async function runVerificationFlow() {
+    try {
+      showNotification("Starting system and prerequisite verification flow... 🦊", "info", "Prerequisites")
+      const result = await SystemSettingsAPI.verifyEnv()
+      const reqs = result.data || {}
+      setVerificationResult(reqs)
+
+      // 1. Intercept flow and guide them to setup missing database first!
+      if (reqs.needs_db_build) {
+        setShowDbModal(true)
+      } else if (reqs.needs_plugin_sync) {
+        setActiveWizard("plugin")
+      } else if (reqs.missing_assets && reqs.missing_assets.length > 0) {
+        setActiveWizard("asset")
+      } else if (reqs.needs_remote_exec_enable || reqs.needs_cooking_setup) {
+        setActiveWizard("config")
+      } else {
+        // Refresh local integration state
+        const updated = await SystemSettingsAPI.getEnvStatus()
+        setEnvStatus(updated)
+        showNotification("All systems fully verified! Your workspace, helper plugins, and configs are 100% ready! 🦊✨", "success", "Verification Clean")
+      }
+    } catch (err: any) {
+      console.error("Verification failed:", err)
+      setDiagnosticError(String(err.message || err))
+    }
+  }
+
+  // Remediations handlers
+  async function handleInstallPlugin() {
+    try {
+      showNotification("Compiling and installing C++ editor helper plugin... ⚙️", "info", "Compiling")
+      await SystemSettingsAPI.managePalSchema("install")
+      showNotification("C++ plugin installed and compiled successfully! Proceeding with next check...", "success", "Installation Done")
+      await runVerificationFlow()
+    } catch (err: any) {
+      console.error("Plugin installation failed:", err)
+      setDiagnosticError(String(err.message || err))
+    }
+  }
+
+  async function handleInjectAssets() {
+    try {
+      showNotification("Injecting required material assets and templates into project Content... 📦", "info", "Injecting")
+      await SystemSettingsAPI.injectAssets()
+      showNotification("Prerequisite material assets injected successfully! Proceeding with next check...", "success", "Assets Loaded")
+      await runVerificationFlow()
+    } catch (err: any) {
+      console.error("Asset injection failed:", err)
+      setDiagnosticError(String(err.message || err))
+    }
+  }
+
+  async function handleFixConfig() {
+    try {
+      showNotification("Configuring Python Remote Execution settings in DefaultEngine.ini... ⚙️", "info", "Configuring")
+      await SystemSettingsAPI.enableRemoteExec()
+      showNotification("Project configuration patched successfully! All systems set.", "success", "Config Patched")
+      await runVerificationFlow()
+    } catch (err: any) {
+      console.error("Config fix failed:", err)
+      setDiagnosticError(String(err.message || err))
+    }
+  }
+
+  async function handleAutodetect() {
+    try {
+      const results = await SystemSettingsAPI.autodetect()
+      if (results.ue_root) {
+        await updateConfig("ue_root", results.ue_root)
+      }
+      if (results.palworld_exe) {
+        await updateConfig("palworld_exe", results.palworld_exe)
+      }
+      const liveConfig = await SystemSettingsAPI.getConfig()
+      setConfig({
+        workspace: liveConfig.workspace || "",
+        ue_root: liveConfig.ue_root || "",
+        uproject_path: liveConfig.uproject || "",
+        blender_exe: liveConfig.blender || "",
+        palworld_exe: liveConfig.palworld_exe || "",
+        fmodel_output: liveConfig.fmodel_output || "",
+      })
+      showNotification("Auto-detection finished and matching paths were automatically pre-filled! 🦊", "success", "Auto-Detection")
+    } catch (err: any) {
+      console.error("Autodetect failed:", err)
+      setDiagnosticError(String(err.message || err))
     }
   }
 
@@ -78,9 +188,17 @@ export function SystemSettingsPage() {
     <div className="flex flex-col gap-6 max-w-5xl">
       {/* Project Environment Paths */}
       <section className="bg-card rounded-md border border-border p-6">
-        <div className="flex items-center gap-3 mb-5">
-          <Folder className="size-4 text-primary" />
-          <h2 className="text-foreground font-bold text-sm uppercase tracking-widest">Project Environment Paths</h2>
+        <div className="flex items-center justify-between mb-5">
+          <div className="flex items-center gap-3">
+            <Folder className="size-4 text-primary" />
+            <h2 className="text-foreground font-bold text-sm uppercase tracking-widest">Project Environment Paths</h2>
+          </div>
+          <button
+            onClick={handleAutodetect}
+            className="flex items-center gap-1.5 text-xs text-primary hover:text-primary/80 transition-colors border border-primary/20 rounded px-2.5 py-1 hover:bg-primary/5 cursor-pointer font-semibold uppercase tracking-wider"
+          >
+            Auto-detect Paths
+          </button>
         </div>
 
         <div className="grid grid-cols-2 gap-x-8 gap-y-5">
@@ -88,28 +206,67 @@ export function SystemSettingsPage() {
             label="WORKSPACE ROOT (FMODEL OUTPUT)"
             value={config.fmodel_output}
             onChange={(v) => updateConfig("fmodel_output", v)}
+            onPick={async () => {
+              const res = await SystemSettingsAPI.pickPath({ directory: true })
+              if (res && res.status === "success" && res.path) {
+                updateConfig("fmodel_output", res.path)
+              }
+            }}
             wide
           />
           <PathField
             label="UNREAL ENGINE ROOT"
             value={config.ue_root}
             onChange={(v) => updateConfig("ue_root", v)}
+            onPick={async () => {
+              const res = await SystemSettingsAPI.pickPath({ directory: true })
+              if (res && res.status === "success" && res.path) {
+                updateConfig("ue_root", res.path)
+              }
+            }}
           />
           <PathField
             label=".UPROJECT FILE PATH"
             value={config.uproject_path}
             onChange={(v) => updateConfig("uproject_path", v)}
             iconVariant="file"
+            onPick={async () => {
+              const res = await SystemSettingsAPI.pickPath({
+                directory: false,
+                filters: [{ name: "UProject Files", extensions: ["uproject"] }]
+              })
+              if (res && res.status === "success" && res.path) {
+                updateConfig("uproject_path", res.path)
+              }
+            }}
           />
           <PathField
             label="BLENDER EXECUTABLE"
             value={config.blender_exe}
             onChange={(v) => updateConfig("blender_exe", v)}
+            onPick={async () => {
+              const res = await SystemSettingsAPI.pickPath({
+                directory: false,
+                filters: [{ name: "Blender Executable", extensions: ["exe"] }]
+              })
+              if (res && res.status === "success" && res.path) {
+                updateConfig("blender_exe", res.path)
+              }
+            }}
           />
           <PathField
             label="PALWORLD.EXE PATH"
             value={config.palworld_exe}
             onChange={(v) => updateConfig("palworld_exe", v)}
+            onPick={async () => {
+              const res = await SystemSettingsAPI.pickPath({
+                directory: false,
+                filters: [{ name: "Palworld Executable", extensions: ["exe"] }]
+              })
+              if (res && res.status === "success" && res.path) {
+                updateConfig("palworld_exe", res.path)
+              }
+            }}
             wide
           />
         </div>
@@ -130,7 +287,6 @@ export function SystemSettingsPage() {
                 Display human-readable asset aliases instead of raw internal IDs
               </div>
             </div>
-            {/* Toggle */}
             <label className="shrink-0 cursor-pointer">
               <div className="relative w-11 h-6">
                 <input
@@ -195,11 +351,11 @@ export function SystemSettingsPage() {
             onAction={async (actionKey) => {
               try {
                 await SystemSettingsAPI.manageUe4ss(actionKey)
-                // Refresh status
                 const updated = await SystemSettingsAPI.getEnvStatus()
                 setEnvStatus(updated)
-              } catch (err) {
+              } catch (err: any) {
                 console.error("UE4SS action failed:", err)
+                setDiagnosticError(String(err.message || err))
               }
             }}
             repoBranch={envStatus.ue4ss?.branch}
@@ -239,11 +395,11 @@ export function SystemSettingsPage() {
             onAction={async (actionKey) => {
               try {
                 await SystemSettingsAPI.managePalSchema(actionKey)
-                // Refresh status
                 const updated = await SystemSettingsAPI.getEnvStatus()
                 setEnvStatus(updated)
-              } catch (err) {
+              } catch (err: any) {
                 console.error("PalSchema action failed:", err)
+                setDiagnosticError(String(err.message || err))
               }
             }}
             repoBranch="PalSchema"
@@ -256,12 +412,24 @@ export function SystemSettingsPage() {
         <div className="flex items-center justify-between mb-5">
           <div>
             <h2 className="text-foreground font-bold text-sm uppercase tracking-widest">Pipeline Health Monitor</h2>
-            <p className="text-muted-foreground text-xs mt-1">Current connection states for all background workers</p>
+            <p className="text-muted-foreground text-xs mt-1">Current connection states and diagnostic tools</p>
           </div>
-          <button className="flex items-center gap-1.5 text-xs text-muted-foreground hover:text-foreground transition-colors">
-            <RefreshCw className="size-3.5" />
-            Force Re-scan
-          </button>
+          <div className="flex gap-2">
+            <button
+              onClick={() => setShowDbModal(true)}
+              className="flex items-center gap-1.5 text-xs text-primary hover:text-primary-foreground hover:bg-primary font-semibold border border-primary/20 rounded px-3 py-1.5 transition-all cursor-pointer"
+            >
+              <Database className="size-3.5" />
+              Rebuild Game Database
+            </button>
+            <button
+              onClick={runVerificationFlow}
+              className="flex items-center gap-1.5 text-xs text-primary hover:text-primary-foreground hover:bg-primary font-semibold border border-primary/20 rounded px-3 py-1.5 transition-all cursor-pointer"
+            >
+              <CheckCircle className="size-3.5" />
+              Verify Environment Prerequisites
+            </button>
+          </div>
         </div>
 
         <div className="grid grid-cols-4 gap-3">
@@ -283,6 +451,44 @@ export function SystemSettingsPage() {
           })}
         </div>
       </section>
+
+      {/* Diagnostics Modal Render */}
+      {diagnosticError && (
+        <DiagnosticsModal
+          errorText={diagnosticError}
+          onClose={() => setDiagnosticError(null)}
+        />
+      )}
+
+      {/* Setup Wizards Sequential Modals */}
+      <PluginInstallModal
+        isOpen={activeWizard === "plugin"}
+        onClose={() => setActiveWizard(null)}
+        onConfirm={handleInstallPlugin}
+      />
+
+      <AssetInjectModal
+        isOpen={activeWizard === "asset"}
+        onClose={() => setActiveWizard(null)}
+        onConfirm={handleInjectAssets}
+      />
+
+      <ConfigFixModal
+        isOpen={activeWizard === "config"}
+        onClose={() => setActiveWizard(null)}
+        onConfirm={handleFixConfig}
+      />
+
+      {showDbModal && (
+        <DatabaseMissingModal
+          onClose={() => setShowDbModal(false)}
+          onSuccess={() => {
+            showNotification("Game database rebuilt successfully! 🦊✨", "success", "Database Rebuilt")
+          }}
+        />
+      )}
+
+      <NotificationToast notifications={notifications} onDismiss={dismissNotification} />
     </div>
   )
 }
@@ -295,12 +501,14 @@ function PathField({
   onChange,
   iconVariant = "folder",
   wide = false,
+  onPick,
 }: {
   label: string
   value: string
   onChange: (v: string) => void
   iconVariant?: "folder" | "file"
   wide?: boolean
+  onPick?: () => void
 }) {
   return (
     <div className={cn("flex flex-col gap-1.5", wide && "col-span-2")}>
@@ -311,7 +519,10 @@ function PathField({
           onChange={(e) => onChange(e.target.value)}
           className="flex-1 bg-muted/50 border border-border border-r-0 rounded-l px-3 py-2 text-sm text-foreground font-mono placeholder:text-muted-foreground focus:outline-none focus:ring-1 focus:ring-primary"
         />
-        <button className="px-3 py-2 bg-muted border border-border rounded-r hover:bg-accent transition-colors">
+        <button
+          onClick={onPick}
+          className="px-3 py-2 bg-muted border border-border rounded-r hover:bg-accent transition-colors"
+        >
           <Folder className="size-4 text-muted-foreground" />
         </button>
       </div>
@@ -384,8 +595,9 @@ function BinaryCard({
 
   // Filter actions dynamically depending on installed state
   const actions = initialActions.map((a) => {
-    if (isOutdated && a.variant === "primary") {
-      return { ...a, label: "INSTALL / UPDATE", variant: "warning" as const }
+    const isInstalled = initialStatus.startsWith("INSTALLED") || initialStatus.includes("ACTIVE");
+    if (isOutdated && isInstalled && (a.actionKey === "repair" || a.actionKey === "install")) {
+      return { ...a, label: "UPDATE", variant: "primary" as const }
     }
     return a
   })
@@ -465,7 +677,7 @@ function BinaryCard({
       <div className="flex items-center gap-2 shrink-0 flex-wrap max-w-[280px] justify-end">
         {actions.map((a) => (
           <button
-            key={a.label}
+            key={a.actionKey}
             onClick={() => !a.disabled && onAction?.(a.actionKey)}
             disabled={a.disabled}
             className={cn(

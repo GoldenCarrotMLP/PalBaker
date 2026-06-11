@@ -3,8 +3,8 @@
         "status": "success",
         "data": {
             "fmodel_output": "H:\\SteamLibrary\\steamapps\\common\\Palworld\\Output",
-            "palworld_exe": "H:\\SteamLibrary\\steamapps\\common\\Palworld\\Palworld.exe",
-            "workspace": "H:\\SteamLibrary\\steamapps\\common\\Palworld\\Output\\Exports\\Pal\\Content\\Pal\\Model\\Character\\Pending Monster\\BlueberryFairy"
+            "blender": "F:\\Program Files (x86)\\Steam\\steamapps\\common\\Blender\\blender.exe",
+            "console_height": 200
         }
     },
     "manager_list": {
@@ -16,25 +16,25 @@
                 "localized_name": "0576 Gothitelle"
             },
             {
-                "name": "IceDeer",
+                "name": "Horus",
                 "sound_metadata": {
                     "Death": {
-                        "media_id": 1045178007,
-                        "wav_name": "VO_IceDeer_06_Death.wav",
-                        "wem_relative_path": "Pal/Content/WwiseAudio/Media/1045178007.wem"
+                        "media_id": 882512941,
+                        "wav_name": "VO_Horus_06_Death.wav",
+                        "wem_relative_path": "Pal/Content/WwiseAudio/Media/882512941.wem"
                     },
                     "Pain": {
-                        "media_id": 318650996,
-                        "wav_name": "VO_IceDeer_05_Pain.wav",
-                        "wem_relative_path": "Pal/Content/WwiseAudio/Media/318650996.wem"
+                        "media_id": 424023866,
+                        "wav_name": "VO_Horus_05_Pain.wav",
+                        "wem_relative_path": "Pal/Content/WwiseAudio/Media/424023866.wem"
                     },
                     "Anger": {
-                        "media_id": 306183132,
-                        "wav_name": "VO_IceDeer_03_Anger.wav",
-                        "wem_relative_path": "Pal/Content/WwiseAudio/Media/306183132.wem"
+                        "media_id": 365453183,
+                        "wav_name": "VO_Horus_03_Anger.wav",
+                        "wem_relative_path": "Pal/Content/WwiseAudio/Media/365453183.wem"
                     }
                 },
-                "localized_name": "Reindrix"
+                "localized_name": "Faleris"
             },
             {
                 "name": "Yeti",
@@ -68,14 +68,14 @@
                 "localized_name": "0576 Gothitelle"
             },
             {
-                "name": "SK_NPC_Male_DesertPeople01",
+                "name": "Kirin",
                 "sound_metadata": {},
-                "localized_name": "SK_NPC_Male_DesertPeople01"
+                "localized_name": "Univolt"
             },
             {
-                "name": "zarude",
+                "name": "Yeti_Grass",
                 "sound_metadata": {},
-                "localized_name": "zarude"
+                "localized_name": "Wumpo Botan"
             }
         ]
     },
@@ -99,54 +99,15 @@
                     "category": "Shot"
                 }
             },
-            "learnsets": {
-                "Anubis": [
-                    {
-                        "Level": 1,
-                        "WazaID": "StoneShotgun"
-                    },
-                    {
-                        "Level": 22,
-                        "WazaID": "Unique_Anubis_LowRoundKick"
-                    },
-                    {
-                        "Level": 50,
-                        "WazaID": "RockLance"
-                    }
-                ],
-                "BOSS_KingAlpaca": [
-                    {
-                        "Level": 1,
-                        "WazaID": "MudShot"
-                    },
-                    {
-                        "Level": 22,
-                        "WazaID": "Unique_KingAlpaca_BodyPress"
-                    },
-                    {
-                        "Level": 50,
-                        "WazaID": "HyperBeam"
-                    }
-                ],
-                "BOSS_LegendDeer": [
-                    {
-                        "Level": 1,
-                        "WazaID": "PowerShot"
-                    },
-                    {
-                        "Level": 22,
-                        "WazaID": "RadiantBarrage"
-                    },
-                    {
-                        "Level": 50,
-                        "WazaID": "Unique_LegendDeer_RadiantPurge_Otomo"
-                    }
-                ]
+            "monster_spawners_default_map": {
+                "SheepBall": "PvP_21_2_1",
+                "RedArmorBird": "yamijima_7_3_RedArea_Magma",
+                "Quest_farmer03_PinkCat": "Quest_Farmer03_grass"
             },
-            "traits_db": {
-                "Health Up Lv. 1": "HP_ACC_up1",
-                "ElementAddDrop_Aqua_2_PAL": "ElementAddDrop_Aqua_2_PAL",
-                "Blood Is Fuel": "OctaviaArmorVampire"
+            "pal_names": {
+                "Alpaca": "Melpaca",
+                "Kitsunebi": "Foxparks",
+                "LegendDeer": "Hartalis"
             }
         }
     },
@@ -158,11 +119,11 @@
                 "Learnset": [
                     {
                         "Level": 1,
-                        "WazaID": "AirCanon"
+                        "WazaID": "IceMissile"
                     },
                     {
                         "Level": 22,
-                        "WazaID": "Unique_PinkCat_CatPunch"
+                        "WazaID": "IceBlade"
                     },
                     {
                         "Level": 50,
@@ -178,14 +139,14 @@
         "palschema": {
             "status": "Installed"
         },
-        "remote_exec_enabled": true
+        "unreal_running": true
     },
     "env_verify": {
         "status": "success",
         "data": {
             "error": null,
             "needs_remote_exec_enable": false,
-            "missing_assets": []
+            "needs_db_build": false
         },
         "message": "Verification completed."
     },
@@ -211,13 +172,15 @@
     },
     "altermatic_metadata": {
         "status": "success",
-        "blend_files": [
-            "Furret.blend"
+        "available_materials": [
+            "MI_Furret_Body",
+            "MI_Furret_Mouth",
+            "MI_WeaselDragon_Mouth"
         ],
         "category": "Monster"
     },
     "altermatic_sidecar": {
         "status": "error",
-        "message": "Blend file base not found on disk."
+        "message": "'Namespace' object has no attribute 'label'"
     }
 }

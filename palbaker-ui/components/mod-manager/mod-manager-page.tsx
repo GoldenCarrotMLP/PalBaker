@@ -9,9 +9,13 @@ import { ModCard } from "@/components/mod-manager/mod-card"
 import { cn } from "@/lib/utils"
 import { useNotifications } from "./mod-card-expanded/use-notifications"
 import { NotificationToast } from "./mod-card-expanded/notification-toast"
+import { DiagnosticsModal } from "@/components/common/diagnostics-modal"
+
+// Importing Unreal Wizards
+import { UnrealClosedModal } from "@/components/common/unreal-wizards/UnrealClosedModal"
+import { RemoteExecDisabledModal } from "@/components/common/unreal-wizards/RemoteExecDisabledModal"
 
 // ── Tag definitions ────────────────────────────────────────────────────────────
-// A "tag" is a boolean predicate on a ModItem.
 type Tag = "unextracted" | "raw" | "source" | "ue_assets" | "altermatic" | "src_changed" | "modified"
 const TAG_LABELS: Record<Tag, string> = {
   unextracted: "Unextracted",
@@ -41,15 +45,13 @@ function modMatchesTag(mod: ModItem, tag: Tag): boolean {
 }
 
 // ── Preset definitions ────────────────────────────────────────────────────────
-// Each preset maps to a pak_status filter + an optional tag filter set.
-// activeTags: null = no tag filtering (show all). Set = must match at least one.
 type Preset = "workspace" | "unextracted" | "in-progress" | "ready" | "done" | "all"
 
 interface PresetDef {
   label:       string
   description: string
-  statusMatch: ((mod: ModItem) => boolean) | null  // null = no status filter
-  activeTags:  Tag[] | null                         // null = no tag filter
+  statusMatch: ((mod: ModItem) => boolean) | null
+  activeTags:  Tag[] | null
 }
 
 const PRESETS: Record<Preset, PresetDef> = {
@@ -104,7 +106,6 @@ const PRESET_CHIP_CLASS: Record<Preset, string> = {
 
 // ── Helpers ────────────────────────────────────────────────────────────────────
 function resolveActiveTags(preset: Preset, customTags: Tag[] | null): Tag[] | null {
-  // If user has broken out into custom mode, use their tags
   if (customTags !== null) return customTags
   return PRESETS[preset].activeTags
 }
@@ -138,28 +139,12 @@ export function ModManagerPage() {
   const [loading, setLoading]         = useState(true)
   const [showMapped, setShowMapped]   = useState(false)
   const [activePreset, setActivePreset] = useState<Preset>("workspace")
-  // null = using preset's default tags; Tag[] = user has customised
   const [customTags, setCustomTags]   = useState<Tag[] | null>(null)
   const [advancedOpen, setAdvancedOpen] = useState(false)
-  const [unrealModalOpen, setUnrealModalOpen] = useState(false)
+  const [diagnosticError, setDiagnosticError] = useState<string | null>(null)
+  const [activeUnrealWizard, setActiveUnrealWizard] = useState<"unreal_closed" | "remote_exec_disabled" | null>(null)
   const advancedRef = useRef<HTMLDivElement>(null)
 
-  async function handleLaunchUnreal() {
-    setUnrealModalOpen(false)
-    try {
-      showNotification("Triggering Unreal Editor launch, please wait...", "info", "Launch Unreal")
-      const res = await UnrealHealthAPI.launchUnreal()
-      if (res.status === "success") {
-        showNotification("Unreal Editor launch successfully triggered!", "success", "Launch Unreal")
-      } else {
-        showNotification(res.message || "Failed to launch Unreal Editor.", "error", "Launch Unreal")
-      }
-    } catch (err: any) {
-      showNotification(String(err), "error", "Launch Unreal")
-    }
-  }
-
-  // Derived: the effective active tags for display in the advanced panel
   const effectiveTags = resolveActiveTags(activePreset, customTags)
   const isCustom = customTags !== null
 
@@ -181,7 +166,6 @@ export function ModManagerPage() {
 
   useEffect(() => { loadMods() }, [])
 
-  // Close advanced panel on outside click
   useEffect(() => {
     function onClickOutside(e: MouseEvent) {
       if (advancedRef.current && !advancedRef.current.contains(e.target as Node)) {
@@ -194,11 +178,10 @@ export function ModManagerPage() {
 
   function selectPreset(p: Preset) {
     setActivePreset(p)
-    setCustomTags(null) // reset any custom tag overrides
+    setCustomTags(null)
   }
 
   function toggleCustomTag(tag: Tag) {
-    // First toggle: snapshot the preset's default tags into customTags
     const base = effectiveTags ?? []
     const current = customTags ?? base
     const next = current.includes(tag)
@@ -211,6 +194,30 @@ export function ModManagerPage() {
     setCustomTags(null)
   }
 
+  // Active Unreal wizards handlers
+  async function handleLaunchUnreal() {
+    try {
+      showNotification("Sending launch command for Unreal Editor... 🦊🚀", "info", "Unreal Editor")
+      await UnrealHealthAPI.launchUnreal()
+      showNotification("Unreal Editor launch request sent! Please wait for it to boot up.", "success", "Unreal Launching")
+    } catch (err: any) {
+      console.error("Unreal launch failed:", err)
+      setDiagnosticError(String(err.message || err))
+    }
+  }
+
+  async function handleEnableRemoteExecAndLaunch() {
+    try {
+      showNotification("Patching DefaultEngine.ini to enable remote Python script execution... ⚙️", "info", "Configuring")
+      await SystemSettingsAPI.enableRemoteExec()
+      showNotification("Remote Execution successfully enabled! Launching Unreal Editor... 🦊🚀", "success", "Configured")
+      await UnrealHealthAPI.launchUnreal()
+    } catch (err: any) {
+      console.error("Remote exec configure & launch failed:", err)
+      setDiagnosticError(String(err.message || err))
+    }
+  }
+
   async function handleAction(mod: ModItem, action: string) {
     const isNavigation = ["open_source", "open_ue", "open_pak", "browse_unreal"].includes(action)
     
@@ -219,20 +226,13 @@ export function ModManagerPage() {
         const res = await ModManagerAPI.runAction(mod.name, action)
         showNotification(res.message || `Opened folder successfully!`, "success", "Explorer Action")
       } catch (err: any) {
-        let isUnrealClosed = false
-        try {
-          const parsed = JSON.parse(String(err))
-          if (parsed.error_code === "UNREAL_CLOSED") {
-            isUnrealClosed = true
-          }
-        } catch (e) {}
-
-        if (isUnrealClosed) {
-          console.warn("Navigation failed gracefully: Unreal Editor is closed.")
-          setUnrealModalOpen(true)
+        console.error("Action failed:", err)
+        if (err.message === "UNREAL_CLOSED") {
+          setActiveUnrealWizard("unreal_closed")
+        } else if (err.message === "REMOTE_EXEC_DISABLED") {
+          setActiveUnrealWizard("remote_exec_disabled")
         } else {
-          console.error("Action failed:", err)
-          showNotification(err.message || String(err), "error", "Operation Failed")
+          setDiagnosticError(String(err.message || err))
         }
       }
       return
@@ -245,20 +245,13 @@ export function ModManagerPage() {
       setMods(data)
       showNotification(res.message || "Action executed successfully!", "success", "Pipeline Success")
     } catch (err: any) {
-      let isUnrealClosed = false
-      try {
-        const parsed = JSON.parse(String(err))
-        if (parsed.error_code === "UNREAL_CLOSED") {
-          isUnrealClosed = true
-        }
-      } catch (e) {}
-
-      if (isUnrealClosed) {
-        console.warn("Action failed gracefully: Unreal Editor is closed.")
-        setUnrealModalOpen(true)
+      console.error("Action failed:", err)
+      if (err.message === "UNREAL_CLOSED") {
+        setActiveUnrealWizard("unreal_closed")
+      } else if (err.message === "REMOTE_EXEC_DISABLED") {
+        setActiveUnrealWizard("remote_exec_disabled")
       } else {
-        console.error("Action failed:", err)
-        showNotification(err.message || String(err), "error", "Pipeline Failed")
+        setDiagnosticError(String(err.message || err))
       }
     } finally {
       setLoading(false)
@@ -270,7 +263,6 @@ export function ModManagerPage() {
     [mods, activePreset, customTags, searchQuery],
   )
 
-  // Count per preset for badge display
   const presetCounts = useMemo(() => {
     const counts: Partial<Record<Preset, number>> = {}
     for (const p of PRESET_ORDER) {
@@ -424,34 +416,26 @@ export function ModManagerPage() {
       )}
       <NotificationToast notifications={notifications} onDismiss={dismissNotification} />
 
-      {/* ── Unreal Closed Modal ── */}
-      {unrealModalOpen && (
-        <div className="fixed inset-0 z-[150] flex items-center justify-center bg-black/70 backdrop-blur-sm animate-fade-in">
-          <div className="bg-background border border-border w-full max-w-md p-6 rounded-lg shadow-2xl flex flex-col gap-4 animate-scale-up">
-            <div className="flex items-center gap-3 text-status-warning">
-              <span className="text-xl">⚠️</span>
-              <h3 className="text-lg font-semibold tracking-wide">Unreal Editor Closed</h3>
-            </div>
-            <p className="text-sm text-muted-foreground leading-relaxed">
-              Unreal Editor is not running! Would you like to open your project in Unreal Editor now?
-            </p>
-            <div className="flex justify-end gap-3 mt-2">
-              <button
-                onClick={() => setUnrealModalOpen(false)}
-                className="hover:bg-muted text-muted-foreground font-semibold py-2 px-4 rounded-md transition-colors text-sm"
-              >
-                Cancel
-              </button>
-              <button
-                onClick={handleLaunchUnreal}
-                className="bg-primary/20 hover:bg-primary/30 border border-primary/40 hover:border-primary/60 text-primary font-semibold py-2 px-5 rounded-md transition-colors text-sm"
-              >
-                Okay, open Unreal!
-              </button>
-            </div>
-          </div>
-        </div>
+      {/* ── Diagnostics / Self-Healing Smart Modal ── */}
+      {diagnosticError && (
+        <DiagnosticsModal
+          errorText={diagnosticError}
+          onClose={() => setDiagnosticError(null)}
+        />
       )}
+
+      {/* Sequential Unreal Wizards */}
+      <UnrealClosedModal
+        isOpen={activeUnrealWizard === "unreal_closed"}
+        onClose={() => setActiveUnrealWizard(null)}
+        onConfirm={handleLaunchUnreal}
+      />
+
+      <RemoteExecDisabledModal
+        isOpen={activeUnrealWizard === "remote_exec_disabled"}
+        onClose={() => setActiveUnrealWizard(null)}
+        onConfirm={handleEnableRemoteExecAndLaunch}
+      />
     </div>
   )
 }

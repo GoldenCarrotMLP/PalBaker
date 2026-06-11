@@ -123,9 +123,13 @@ def create_cli_parser() -> argparse.ArgumentParser:
     env_plugin = env_subparsers.add_parser("install-plugin", help="Install or uninstall PalSchema Plugin")
     env_plugin.add_argument("--action", choices=["install", "uninstall"], default="install")
 
+    env_subparsers.add_parser("inject-assets", help="Inject required ModKit material assets and templates")
+
     env_status = env_subparsers.add_parser("status", help="Fetch complete real-time status of UE4SS and PalSchema")
     env_subparsers.add_parser("launch-unreal", help="Launch the configured Unreal Editor for the project")
+    env_subparsers.add_parser("restart-unreal", help="Restart the configured Unreal Editor for the project")
     env_subparsers.add_parser("enable-remote-exec", help="Configure DefaultEngine.ini to enable remote Python execution")
     env_subparsers.add_parser("autodetect", help="Autodetect Unreal Engine, Palworld, and Blender paths")
+
 
     return parser

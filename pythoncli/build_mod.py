@@ -27,9 +27,9 @@ def main():
     CATEGORY = sys.argv[2] 
     ACTION = sys.argv[3]   
 
-    SETTINGS_FILE = os.path.join(os.path.dirname(__file__), "manager_settings.json")
-    with open(SETTINGS_FILE, "r") as f:
-        settings = json.load(f)
+    # FIXED: Load settings via centralized loader to inherit clean, sanitized paths
+    from utils.config import load_settings
+    settings = load_settings()
 
     workspace = ModWorkspace(MONSTER_NAME, CATEGORY, settings)
 

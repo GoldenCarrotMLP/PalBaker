@@ -106,7 +106,35 @@ def download_and_extract_ue4ss(palworld_exe: str, branch: str, log_callback) -> 
         log_callback("Error: Invalid Palworld executable path.", True)
         return False
         
-    url = PALWORLD_BRANCH_URL if branch == "Palworld-Experimental" else LATEST_BRANCH_URL
+    url = PALWORLD_BRANCH_URL
+    if branch == "Latest-Experimental":
+        log_callback("Resolving latest experimental release URL from GitHub API...", False)
+        try:
+            req = urllib.request.Request(
+                "https://api.github.com/repos/UE4SS-RE/RE-UE4SS/releases/tags/experimental-latest",
+                headers={'User-Agent': 'Mozilla/5.0'}
+            )
+            ctx = ssl.create_default_context()
+            ctx.check_hostname = False
+            ctx.verify_mode = ssl.CERT_NONE
+            with urllib.request.urlopen(req, context=ctx) as response:
+                data = json.loads(response.read().decode())
+                assets = data.get("assets", [])
+                found_url = None
+                for asset in assets:
+                    name = asset.get("name", "")
+                    if name.endswith(".zip") and not name.startswith("zDEV-") and not name.startswith("zCustomGameConfigs") and not name.startswith("zMapGenBP"):
+                        found_url = asset.get("browser_download_url")
+                        break
+                if found_url:
+                    url = found_url
+                    log_callback(f"Resolved latest experimental zip: {os.path.basename(url)}", False)
+                else:
+                    log_callback("Warning: Could not find matching zip asset in release; using hardcoded fallback URL.", False)
+                    url = LATEST_BRANCH_URL
+        except Exception as e:
+            log_callback(f"Warning: Failed to fetch latest release dynamically ({e}); using hardcoded fallback URL.", False)
+            url = LATEST_BRANCH_URL
     
     temp_dir = tempfile.gettempdir()
     zip_path = os.path.join(temp_dir, f"ue4ss_{branch}.zip")

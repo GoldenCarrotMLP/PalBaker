@@ -11,7 +11,7 @@ def handle_env_command(args, settings):
     subcommand = args.subcommand
 
     # 1. Route validation based on targeted operations
-    if subcommand in ["verify", "install-plugin", "launch-unreal"]:
+    if subcommand in ["verify", "install-plugin", "launch-unreal", "restart-unreal"]:
         is_valid, err_msg = validate_settings(settings, ["ue_root", "uproject"])
     elif subcommand in ["ue4ss-install", "status"]:
         is_valid, err_msg = validate_settings(settings, ["palworld_exe"])
@@ -32,6 +32,12 @@ def handle_env_command(args, settings):
         from utils.plugin_manager import check_project_requirements
         
         try:
+            # Check if database caches are missing or incomplete
+            repo_root = os.path.dirname(os.path.dirname(os.path.dirname(os.path.abspath(__file__))))
+            map_path = os.path.join(repo_root, "pal_names_map.json")
+            skills_cache = os.path.join(repo_root, "deps", "active_skills_cache.json")
+            needs_db_build = not os.path.exists(map_path) or not os.path.exists(skills_cache)
+
             # First verify physical compiler toolsets
             success, msg = verify_compiler_requirements(all_yes=True, print_output=False)
             if success:
@@ -41,6 +47,18 @@ def handle_env_command(args, settings):
                     json_print({"status": "error", "message": reqs["error"]})
                     sys.exit(1)
                 else:
+                    # Inject the DB build flag into the requirements block
+                    reqs["needs_db_build"] = needs_db_build
+                    
+                    # Print precise, friendly status warning in the Build Console
+                    if reqs.get("needs_plugin_sync"):
+                        project_dir = os.path.dirname(settings["uproject"])
+                        dest_plugin_dir = os.path.join(project_dir, "Plugins", "PalBakerEditorUtils")
+                        if os.path.exists(dest_plugin_dir):
+                            json_print({"type": "log", "level": "warning", "message": "We noticed your C++ Editor Helper Plugin is outdated. Please close Unreal Editor before applying updates to prevent Windows file-permission locks!"})
+                        else:
+                            json_print({"type": "log", "level": "standard", "message": "Required C++ Editor Helper Plugin is missing from your project."})
+                    
                     json_print({"status": "success", "data": reqs, "message": "Verification completed."})
             else:
                 json_print({"status": "error", "message": msg})
@@ -164,6 +182,21 @@ def handle_env_command(args, settings):
             error_print(f"Failed to launch Unreal: {str(e)}")
             sys.exit(1)
 
+    # 6b. Handle 'env restart-unreal'
+    elif subcommand == "restart-unreal":
+        from utils.plugins.installer import restart_unreal_editor
+        try:
+            success, msg = restart_unreal_editor(settings["ue_root"], settings["uproject"])
+            if success:
+                json_print({"status": "success", "message": msg})
+            else:
+                json_print({"status": "error", "message": msg})
+                sys.exit(1)
+        except Exception as e:
+            error_print(f"Failed to restart Unreal: {str(e)}")
+            sys.exit(1)
+
+
     # 7. Handle 'env enable-remote-exec'
     elif subcommand == "enable-remote-exec":
         from utils.plugins.installer import enable_remote_execution_settings
@@ -176,6 +209,16 @@ def handle_env_command(args, settings):
                 sys.exit(1)
         except Exception as e:
             error_print(f"Failed to enable Remote Execution: {str(e)}")
+            sys.exit(1)
+
+    # 7b. Handle 'env inject-assets'
+    elif subcommand == "inject-assets":
+        from utils.plugin_manager import inject_missing_assets
+        try:
+            inject_missing_assets(settings["uproject"], verbose=False)
+            json_print({"status": "success", "message": "Successfully injected ModKit materials and template assets."})
+        except Exception as e:
+            error_print(f"Failed to inject assets: {str(e)}")
             sys.exit(1)
 
     # 8. Handle 'env autodetect'

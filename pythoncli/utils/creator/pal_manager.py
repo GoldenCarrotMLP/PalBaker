@@ -84,7 +84,6 @@ class PalManager:
             if "weaseldragon" in template_id.lower() or "amaterasuwolf" in template_id.lower():
                 predicted_coop_passives.append("GiveADragon_Ride")
 
-            # Predict overworld spawner location based on parent template ID
             predicted_spawner = self.c.monster_spawners_default_map.get(template_id, "1_1_plain_begginer")
 
             new_pal_data = {
@@ -92,13 +91,36 @@ class PalManager:
                 "TemplateID": template_id,
                 "Name": clean_id,
                 "Description": f"A custom standalone Pal cloned from {template_id}.",
+                
+                # --- Core Attributes Map (1:1 with DT_PalMonsterParameter) ---
                 "ElementType1": base_properties.get("ElementType1", "EPalElementType::None"),
                 "ElementType2": base_properties.get("ElementType2", "EPalElementType::None"),
-                "BaseHP": base_properties.get("HP", 100),
-                "BaseAtk": base_properties.get("MeleeAttack", 100),
-                "BaseDef": base_properties.get("Defense", 100),
-                "BaseWorkSpeed": base_properties.get("WorkSpeed", 70),
-                "WorkSuitabilities": {k: v for k, v in base_properties.items() if k.startswith("WorkSuitability_")},
+                "Hp": base_properties.get("Hp", 100),
+                "MeleeAttack": base_properties.get("MeleeAttack", 100),
+                "ShotAttack": base_properties.get("ShotAttack", 100),
+                "Defense": base_properties.get("Defense", 100),
+                "Support": base_properties.get("Support", 100),
+                "CraftSpeed": base_properties.get("CraftSpeed", 100),
+                
+                # --- Advanced Physiology Map ---
+                "Size": base_properties.get("Size", "EPalSizeType::M"),
+                "Rarity": base_properties.get("Rarity", 1),
+                "Price": base_properties.get("Price", 1000.0),
+                "WalkSpeed": base_properties.get("WalkSpeed", 100),
+                "RunSpeed": base_properties.get("RunSpeed", 500),
+                "RideSprintSpeed": base_properties.get("RideSprintSpeed", 700),
+                "TransportSpeed": base_properties.get("TransportSpeed", 200),
+                "FoodAmount": base_properties.get("FoodAmount", 1),
+                "Stamina": base_properties.get("Stamina", 100),
+                "MaleProbability": base_properties.get("MaleProbability", 50),
+                "CombiRank": base_properties.get("CombiRank", 100),
+                "CaptureRateCorrect": base_properties.get("CaptureRateCorrect", 1.0),
+
+                # --- Core Collision Capsule & Translation Map ---
+                "MeshCapsuleHalfHeight": base_properties.get("MeshCapsuleHalfHeight", 110.0),
+                "MeshCapsuleRadius": base_properties.get("MeshCapsuleRadius", 50.0),
+                "MeshRelativeLocation": base_properties.get("MeshRelativeLocation", {"X": 0.0, "Y": 0.0, "Z": -110.0}),
+
                 "BaseSkills": ["AirCanon", "IgnisBlast"],
                 "PassiveSkills": [],
                 "PartnerSkill": base_properties.get("PartnerSkill", "None"),
@@ -111,11 +133,17 @@ class PalManager:
                 "SpawnMaxLevel": 5,
                 "SpawnMinGroup": 1,
                 "SpawnMaxGroup": 3,
+                "EnablePaldeck": True,
                 "ZukanIndex": -1,
                 "ZukanIndexSuffix": "",
                 "LongDescription": f"A custom standalone Pal cloned from {template_id}.",
-                "PaldexType": "Species"  # Baseline classification default
+                "PaldexType": "Species"
             }
+            
+            # Flattens all Work Suitabilities natively directly into the root level of the JSON
+            for k, v in base_properties.items():
+                if k.startswith("WorkSuitability_"):
+                    new_pal_data[k] = v
 
             target_file = os.path.join(creator_dir, f"{clean_id}_creator.json")
             try:
@@ -123,9 +151,7 @@ class PalManager:
                     json.dump(new_pal_data, f, indent=4)
                 self.c.view.write_log(f"Successfully created brand new Pal template: {clean_id}", "success")
                 
-                # Auto-extract, clone, and binary-patch standalone blueprint assets on creation!
                 self.c.exporter.generate_custom_actor_blueprint(new_pal_data)
-                
                 self.c.export_to_palschema(new_pal_data)
             except Exception as e:
                 self.c.view.write_log(f"Failed to save new Pal: {e}", "error")

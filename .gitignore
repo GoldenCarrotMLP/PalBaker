@@ -56,3 +56,10 @@ Thumbs.db
 .vscode/
 *.suo
 *.user
+dump.txt
+
+# Release Artifacts
+/release/
+/palbaker-ui/src-tauri/resources/
+/pythoncli/build/
+/pythoncli/dist/

@@ -156,6 +156,10 @@ class PalBakerCLI:
         """Launch Unreal Editor via CLI."""
         return await self._execute(["env", "launch-unreal"])
 
+    async def env_restart_unreal(self):
+        """Restart Unreal Editor via CLI."""
+        return await self._execute(["env", "restart-unreal"])
+
     async def env_enable_remote_exec(self):
         """Enable Python Remote Execution via CLI."""
         return await self._execute(["env", "enable-remote-exec"])

@@ -1,9 +1,28 @@
+# palbaker_cli.py
 import sys
+
+# Standard library dummy imports to force PyInstaller to bundle dependencies
+# required by Unreal Engine's out-of-process remote_execution.py script
+import uuid
+import socket
+import select
+import struct
+import logging
+
 from utils.config import load_settings, save_settings
 from utils.cli.parser_helper import create_cli_parser
 from utils.cli.shared import json_print, error_print
 
 def main():
+    import sys
+    # Intercept frozen subprocess calls to 'build_mod.py'
+    if getattr(sys, 'frozen', False) and len(sys.argv) >= 2 and sys.argv[1] == "internal-build-mod":
+        import build_mod
+        # Shift sys.argv so build_mod's main() parses its arguments starting at index 1
+        sys.argv = [sys.argv[0]] + sys.argv[2:]
+        build_mod.main()
+        sys.exit(0)
+
     parser = create_cli_parser()
     args = parser.parse_args()
 

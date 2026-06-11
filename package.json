@@ -6,7 +6,8 @@
     "dev": "pnpm --filter palbaker-ui dev",
     "build": "pnpm --filter palbaker-ui build",
     "start": "pnpm --filter palbaker-ui start",
-    "tauri": "pnpm --filter palbaker-ui tauri"
+    "tauri": "pnpm --filter palbaker-ui tauri",
+    "release": "node build-release.mjs"
   },
   "dependencies": {
     "@tauri-apps/api": "^2.11.0",

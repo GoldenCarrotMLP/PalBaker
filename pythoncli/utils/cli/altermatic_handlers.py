@@ -14,19 +14,14 @@ from utils.altermatic_helper import (
 )
 
 class CliAltermaticView:
-    """Captures Altermatic logs and redirects them cleanly to the build console."""
     def write_log(self, text: str, category: str = "standard"):
         json_print({"type": "log", "level": category, "message": text})
 
-    def show_snackbar(self, message: str, color: str):
-        pass
+    def show_snackbar(self, message: str, color: str = ""):
+        json_print({"type": "log", "level": "error", "message": message})
 
 
 class CliMasterController:
-    """
-    Lightweight master adapter. Allows UI-bound Altermatic methods 
-    to resolve active mod directories synchronously inside the CLI.
-    """
     def __init__(self, settings: dict):
         self.settings = settings
         self.view = CliAltermaticView()
@@ -49,7 +44,6 @@ def get_category_from_path(path: str | None) -> str:
 
 
 def resolve_altermatic_args(args) -> tuple[str, str, str, str]:
-    """Dynamically resolves positional arguments under any parser version layout."""
     mod_name = getattr(args, "mod", "") or getattr(args, "mod_name", "")
     label = getattr(args, "label", "") or getattr(args, "label_name", "")
     status = getattr(args, "status", "")
@@ -70,23 +64,18 @@ def resolve_altermatic_args(args) -> tuple[str, str, str, str]:
 
 
 def handle_altermatic_command(args, settings):
-    """Router for all Altermatic Framework subcommands."""
     subcommand = args.subcommand
 
-    # 1. Path Verification (All Altermatic subcommands require a valid workspace)
     is_valid, err_msg = validate_settings(settings, ["fmodel_output"])
     if not is_valid:
         error_print(err_msg)
         sys.exit(1)
 
-    # 2. Resolve variables dynamically
     mod_name, label, status, index = resolve_altermatic_args(args)
     data_str = getattr(args, "data", "")
 
-    # 3. Instantiate Cli Master
     mc = CliMasterController(settings)
 
-    # 4. Handle 'altermatic toggle <mod_name> <on|off>'
     if subcommand == "toggle":
         if not mod_name or not status:
             error_print("Usage: altermatic toggle <mod_name> <on|off>")
@@ -101,7 +90,6 @@ def handle_altermatic_command(args, settings):
         controller.toggle_altermatic(mc.raw_mods[0], status == "on")
         json_print({"status": "success", "message": f"Successfully toggled Altermatic {status} for {mod_name}."})
 
-    # 5. Handle 'altermatic list <mod_name>'
     elif subcommand == "list":
         if not mod_name:
             error_print("Usage: altermatic list <mod_name>")
@@ -114,7 +102,6 @@ def handle_altermatic_command(args, settings):
 
         json_print({"status": "success", "data": mc.raw_mods[0].get("altermatic_variants", [])})
 
-    # 6. Handle 'altermatic add <mod_name> <label> [--custom] [--source <source>]'
     elif subcommand == "add":
         if not mod_name or not label:
             error_print("Usage: altermatic add <mod_name> <label_name> [--custom] [--source <source_choice>]")
@@ -142,7 +129,6 @@ def handle_altermatic_command(args, settings):
         )
         json_print({"status": "success", "message": f"Added variant '{label}' successfully."})
 
-    # 7. Handle 'altermatic delete <mod_name> <index>'
     elif subcommand == "delete":
         if not mod_name or not index:
             error_print("Usage: altermatic delete <mod_name> <index_number>")
@@ -153,7 +139,6 @@ def handle_altermatic_command(args, settings):
             error_print(f"Mod {mod_name} was not found on disk.")
             sys.exit(1)
 
-        # Pre-resolve the sidecar path for defensive cleanup
         fmodel_altermatic_dir = mc.raw_mods[0]["fmodel_altermatic_path"]
         sidecar_to_clean = ""
         idx_int = int(index)
@@ -168,16 +153,12 @@ def handle_altermatic_command(args, settings):
         controller = AltermaticController(mc)
         controller.delete_altermatic_variant(mc.raw_mods[0], idx_int, sync=True)
         
-        # Defensive cleanup: ensure the sidecar JSON doesn't remain as an orphan
         if sidecar_to_clean and os.path.exists(sidecar_to_clean):
-            try:
-                os.remove(sidecar_to_clean)
-            except OSError:
-                pass
+            try: os.remove(sidecar_to_clean)
+            except OSError: pass
 
         json_print({"status": "success", "message": f"Deleted variant at index {index} successfully."})
 
-    # 8. Handle 'altermatic save <index> --data <json_string>'
     elif subcommand == "save":
         if not index or not data_str:
             error_print("Usage: altermatic save <index_number> --data '<json_string>'")
@@ -208,10 +189,9 @@ def handle_altermatic_command(args, settings):
             error_print(f"Failed to save Altermatic variant: {str(e)}")
             sys.exit(1)
 
-    # 9. Handle 'altermatic sidecar <mod_name> <blend_name>'
     elif subcommand == "sidecar":
-        mod_name = args.mod
-        blend_name = args.label # Positional bindings
+        mod_name = getattr(args, "mod", "")
+        blend_name = getattr(args, "blend_name", "") # FIXED: Pulling the correct argument!
         
         if not mod_name or not blend_name:
             error_print("Usage: altermatic sidecar <mod_name> <blend_name>")
@@ -236,7 +216,6 @@ def handle_altermatic_command(args, settings):
             error_print(f"Failed to sync sidecar metadata: {str(e)}")
             sys.exit(1)
 
-    # 10. Handle 'altermatic metadata <mod_name>'
     elif subcommand == "metadata":
         if not mod_name:
             error_print("Usage: altermatic metadata <mod_name>")
@@ -260,10 +239,9 @@ def handle_altermatic_command(args, settings):
             "category": category
         })
 
-    # 11. Handle 'altermatic open-blend <mod_name> <blend_name>'
     elif subcommand == "open-blend":
         mod_name = args.mod
-        blend_name = args.label
+        blend_name = getattr(args, "blend_name", "base")
         category = getattr(args, "category", "Monster")
 
         if not mod_name or not blend_name:
@@ -284,7 +262,7 @@ def handle_altermatic_command(args, settings):
 
         try:
             creation_flags = subprocess.CREATE_NO_WINDOW if os.name == 'nt' else 0
-            subprocess.Popen([settings["blender"], blend_path], creationflags=creation_flags, close_fds=True, start_new_session=True)
+            subprocess.Popen([settings["blender"], blend_path], creationflags=creation_flags, close_fds=True, start_new_session=True if os.name != 'nt' else False)
             json_print({"status": "success", "message": "Blender launched successfully."})
         except Exception as e:
             error_print(f"Failed to launch Blender: {str(e)}")

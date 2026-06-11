@@ -5,7 +5,7 @@ import json
 import shutil
 import subprocess
 from utils.config import validate_settings
-from utils.cli.shared import json_print, error_print
+from utils.cli.shared import json_print, error_print, system_open_path
 from utils.scanner import get_mod_info
 from utils.audio_helper import apply_custom_audio_worker, clear_audio_worker
 
@@ -30,7 +30,7 @@ def play_wav_file(wav_path: str):
             winsound.PlaySound(wav_path, winsound.SND_FILENAME | winsound.SND_ASYNC)
         except Exception:
             pass
-    elif sys.platform == "darwin":
+    elif sys.platform == 'darwin':
         subprocess.Popen(["afplay", wav_path], stdout=subprocess.DEVNULL, stderr=subprocess.DEVNULL)
     else:
         for player in ["paplay", "aplay", "play"]:
@@ -38,40 +38,45 @@ def play_wav_file(wav_path: str):
                 subprocess.Popen([player, wav_path], stdout=subprocess.DEVNULL, stderr=subprocess.DEVNULL)
                 break
 
-def verify_unreal_connection(settings: dict) -> tuple[bool, str]:
+def verify_unreal_connection(settings: dict) -> tuple[bool, str, str]:
     """
     Executes a rapid, lightweight handshake to verify if Unreal Editor 
     is running and accepts Python remote connections.
+    Returns: (is_connected, error_code, error_message)
     """
     from utils.plugins.installer import is_unreal_running
     if not is_unreal_running():
-        return False, "Unreal Editor is not running. Please launch the editor first."
+        return False, "UNREAL_CLOSED", "Unreal Editor is not running. Please launch the editor first."
         
     from utils.plugins.detector import check_remote_execution_settings
     uproject = settings.get("uproject", "")
     if uproject and not check_remote_execution_settings(uproject):
-        return False, "Python Remote Execution is currently disabled in your project's settings."
+        return False, "REMOTE_EXEC_DISABLED", "Python Remote Execution is currently disabled in your project's settings."
         
     # Attempt rapid UDP socket handshake
     try:
         from utils.cli.ping_helper import run_unreal_ping
         res = run_unreal_ping(settings)
         if res.get("diagnostic_code") != "FULLY_CONNECTED":
-            return False, f"UDP handshake with Unreal Editor failed: {res.get('message', 'Connection Timeout')}"
+            return False, res.get("diagnostic_code", "TIMEOUT"), f"UDP handshake with Unreal Editor failed: {res.get('message', 'Connection Timeout')}"
     except Exception as e:
-        return False, f"Unreal remote connection check failed: {str(e)}"
+        return False, "CRASH", f"Unreal remote connection check failed: {str(e)}"
         
-    return True, ""
+    return True, "FULLY_CONNECTED", ""
 
 def run_build_mod_and_stream(monster_name: str, category: str, action: str):
     """
     Spawns build_mod.py unbuffered, intercepts output lines, and 
     emits version-safe JSONL envelopes for real-time progress.
     """
-    repo_root = os.path.dirname(os.path.dirname(os.path.dirname(os.path.abspath(__file__))))
-    build_mod_path = os.path.join(repo_root, "build_mod.py")
+    is_frozen = getattr(sys, 'frozen', False)
+    if is_frozen:
+        cmd = [sys.executable, "internal-build-mod", monster_name, category, action]
+    else:
+        repo_root = os.path.dirname(os.path.dirname(os.path.dirname(os.path.abspath(__file__))))
+        build_mod_path = os.path.join(repo_root, "build_mod.py")
+        cmd = [sys.executable, "-u", build_mod_path, monster_name, category, action]
     
-    cmd = [sys.executable, "-u", build_mod_path, monster_name, category, action]
     creation_flags = subprocess.CREATE_NO_WINDOW if os.name == 'nt' else 0
     
     try:
@@ -147,10 +152,10 @@ def handle_mod_command(args, settings):
     action = args.action
     if action == "extract":
         is_valid, err_msg = validate_settings(settings, ["fmodel_output", "palworld_exe"])
-    elif action == "create-blend":
-        is_valid, err_msg = validate_settings(settings, ["fmodel_output", "blender"])
-    elif action == "set-icon":
+    elif action in ["create-blend", "set-icon", "open-source"]:
         is_valid, err_msg = validate_settings(settings, ["fmodel_output"])
+    elif action in ["open-ue", "open-pak"]:
+        is_valid, err_msg = validate_settings(settings, ["uproject"])
     else:
         # push, cook, pack, full, decompile, refresh-blend
         is_valid, err_msg = validate_settings(settings, ["fmodel_output", "ue_root", "uproject"])
@@ -161,14 +166,14 @@ def handle_mod_command(args, settings):
 
     # 2. Connection Validation Routing (Remote execution circuit breaker)
     if action in ["push", "full", "decompile", "browse-ue"]:
-        is_connected, err_msg = verify_unreal_connection(settings)
+        is_connected, err_code, err_msg = verify_unreal_connection(settings)
         if not is_connected:
-            error_print(err_msg)
+            json_print({"status": "error", "error_code": err_code, "message": err_msg})
             sys.exit(1)
 
     # 3. Command Execution
     mods = get_mod_info(settings, args.mod)
-    if not mods and action != "extract":
+    if not mods and action not in ["extract", "cancel-pipeline"]:
         error_print(f"Mod {args.mod} was not found on disk.")
         sys.exit(1)
 
@@ -227,12 +232,57 @@ def handle_mod_command(args, settings):
                 creation_flags = 0x08000000 # CREATE_NO_WINDOW
                 subprocess.run(["taskkill", "/F", "/T", "/IM", "UnrealEditor-Cmd.exe"], capture_output=True, creationflags=creation_flags)
                 subprocess.run(["taskkill", "/F", "/T", "/IM", "UnrealPak.exe"], capture_output=True, creationflags=creation_flags)
+                subprocess.run(["taskkill", "/F", "/T", "/IM", "Palworld-Win64-Shipping.exe"], capture_output=True, creationflags=creation_flags)
+                subprocess.run(["taskkill", "/F", "/T", "/IM", "Palworld.exe"], capture_output=True, creationflags=creation_flags)
             else:
                 subprocess.run(["pkill", "-f", "UnrealEditor-Cmd"], capture_output=True)
                 subprocess.run(["pkill", "-f", "UnrealPak"], capture_output=True)
-            json_print({"status": "success", "message": "Cancellation signals sent successfully."})
+                subprocess.run(["pkill", "-f", "Palworld"], capture_output=True)
+            json_print({"status": "success", "message": "Cancellation signals sent successfully. Locked files released!"})
         except Exception as e:
             error_print(f"Failed to execute process cancellation: {str(e)}")
+            sys.exit(1)
+
+    # Open local mod workspace source directory on native host or WSL
+    elif action == "open-source":
+        mod_data = mods[0]
+        path = mod_data.get("fmodel_path")
+        if not path or not os.path.exists(path):
+            error_print(f"Source folder for {args.mod} does not exist on disk.")
+            sys.exit(1)
+        success, msg = system_open_path(path)
+        if success:
+            json_print({"status": "success", "message": msg})
+        else:
+            error_print(msg)
+            sys.exit(1)
+
+    # Open cooked Unreal Engine Content workspace directory
+    elif action == "open-ue":
+        mod_data = mods[0]
+        path = mod_data.get("ue_path")
+        if not path or not os.path.exists(path):
+            error_print(f"Unreal assets folder for {args.mod} does not exist on disk. Have you run 'Push to Unreal' yet?")
+            sys.exit(1)
+        success, msg = system_open_path(path)
+        if success:
+            json_print({"status": "success", "message": msg})
+        else:
+            error_print(msg)
+            sys.exit(1)
+
+    # Open mod Pak folder and highlight output pak file
+    elif action == "open-pak":
+        mod_data = mods[0]
+        path = mod_data.get("pak_path")
+        if not path or not os.path.exists(path):
+            error_print(f"Compiled PAK file for {args.mod} does not exist on disk. Have you cooked and packaged the mod yet?")
+            sys.exit(1)
+        success, msg = system_open_path(path, is_file=True)
+        if success:
+            json_print({"status": "success", "message": msg})
+        else:
+            error_print(msg)
             sys.exit(1)
 
     # Standard / Long-running pipeline commands (reconstructed via build_mod.py subprocess)
@@ -362,7 +412,7 @@ def handle_audio_command(args, settings):
                 error_print("Original game asset is missing and failed to extract.")
                 sys.exit(1)
                 
-            audio_dir = os.path.join(mod_data["fmodel_path"], ".palbaker_audio") # FIXED: Ensure correct path
+            audio_dir = os.path.join(mod_data["fmodel_path"], ".palbaker_audio")
             os.makedirs(audio_dir, exist_ok=True)
             temp_wav = os.path.join(audio_dir, ".temp_preview.wav")
             if os.path.exists(temp_wav):
