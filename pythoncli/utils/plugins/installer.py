@@ -95,7 +95,19 @@ def copy_dlls_back(dest_dll_dir: str, src_dll_dir: str, verbose: bool = False):
             shutil.copy2(os.path.join(dest_dll_dir, f), os.path.join(src_dll_dir, f))
 
 def enable_remote_execution_settings(uproject_path: str) -> tuple[bool, str]:
-    """Safely injects Python Remote Execution settings into DefaultEngine.ini."""
+    """Safely injects Python Remote Execution settings into DefaultEngine.ini and verifies persistence."""
+    from utils.plugins.detector import check_remote_execution_settings
+
+    # 1. Early check to prevent duplicate editor closes and file modifications
+    if check_remote_execution_settings(uproject_path):
+        return True, "Python Remote Execution is already enabled!"
+
+    # 2. Force-close Unreal Editor if running to release the file lock
+    if is_unreal_running():
+        print(">>> Unreal Editor is running. Closing it to prevent it from overwriting DefaultEngine.ini...", flush=True)
+        close_unreal_editor(verbose=True)
+        time.sleep(1.0) # Wait a moment for the OS to release the file handle
+        
     project_dir = os.path.dirname(uproject_path)
     config_dir = os.path.join(project_dir, "Config")
     os.makedirs(config_dir, exist_ok=True)
@@ -108,26 +120,35 @@ def enable_remote_execution_settings(uproject_path: str) -> tuple[bool, str]:
             lines = f.readlines()
             
     new_lines = []
-    in_section = False
+    in_target_section = False
     section_found = False
     remote_exec_found = False
     dev_mode_found = False
     
-    section_header = "[/Script/PythonScriptPlugin.PythonScriptPluginSettings]"
+    target_section = "[/script/pythonscriptplugin.pythonscriptpluginsettings]"
     
     for line in lines:
-        stripped = line.strip()
+        stripped = line.strip().replace(" ", "").lower()
         if stripped.startswith("[") and stripped.endswith("]"):
-            if stripped.lower() == section_header.lower():
-                in_section = True
+            # If we were in the target section and some keys were missing, append them cleanly
+            if in_target_section:
+                if not remote_exec_found:
+                    new_lines.append("bRemoteExecution=True\n")
+                    remote_exec_found = True
+                if not dev_mode_found:
+                    new_lines.append("bDeveloperMode=True\n")
+                    dev_mode_found = True
+            
+            if stripped == target_section:
+                in_target_section = True
                 section_found = True
                 new_lines.append(line)
                 continue
             else:
-                in_section = False
+                in_target_section = False
                 
-        if in_section:
-            clean_line = stripped.replace(" ", "").lower()
+        if in_target_section:
+            clean_line = line.strip().replace(" ", "").lower()
             if clean_line.startswith("bremoteexecution="):
                 new_lines.append("bRemoteExecution=True\n")
                 remote_exec_found = True
@@ -139,22 +160,27 @@ def enable_remote_execution_settings(uproject_path: str) -> tuple[bool, str]:
                 
         new_lines.append(line)
         
+    # If the file ended while we were still inside our target section
+    if in_target_section:
+        if not remote_exec_found:
+            new_lines.append("bRemoteExecution=True\n")
+        if not dev_mode_found:
+            new_lines.append("bDeveloperMode=True\n")
+            
+    # If the section was never found, append it cleanly at the bottom
     if not section_found:
-        new_lines.append("\n" + section_header + "\n")
+        new_lines.append("\n[/Script/PythonScriptPlugin.PythonScriptPluginSettings]\n")
         new_lines.append("bRemoteExecution=True\n")
         new_lines.append("bDeveloperMode=True\n")
-    else:
-        if not remote_exec_found or not dev_mode_found:
-            new_lines.append("\n" + section_header + "\n")
-            if not remote_exec_found:
-                new_lines.append("bRemoteExecution=True\n")
-            if not dev_mode_found:
-                new_lines.append("bDeveloperMode=True\n")
-                
+        
     with open(ini_path, "w", encoding="utf-8") as f:
         f.writelines(new_lines)
         
-    return True, "Python Remote Execution successfully enabled!"
+    # 3. Verify if the changes actually persisted on disk
+    if check_remote_execution_settings(uproject_path):
+        return True, "Python Remote Execution successfully enabled!"
+    else:
+        return False, "Failed to enable Python Remote Execution. The changes did not persist inside DefaultEngine.ini. Please close Unreal Editor manually and try again."
 
 def enable_cooking_settings(uproject_path: str) -> tuple[bool, str]:
     """Safely injects bUseIoStore=False and bShareMaterialShaderCode=False into DefaultGame.ini."""

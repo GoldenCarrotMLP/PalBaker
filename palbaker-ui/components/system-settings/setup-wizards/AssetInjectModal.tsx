@@ -18,7 +18,7 @@ export function AssetInjectModal({ isOpen, onClose, onConfirm }: Props) {
     setLoading(true)
     try {
       await onConfirm()
-      onClose()
+      // No onClose() call here; the page's state-driven re-verification loop handles transition/unmounting!
     } catch (e) {
       console.error(e)
     } finally {

@@ -5,8 +5,7 @@ import json
 import glob
 import hashlib
 from utils.plugins.detector import (
-    get_max_source_mtime, 
-    get_max_dll_mtime, 
+    get_source_dir_hash, 
     get_missing_assets, 
     check_remote_execution_settings,
     check_cooking_settings
@@ -55,9 +54,11 @@ def check_project_requirements(ue_root: str, uproject_path: str) -> dict:
     result = {
         "error": None, 
         "needs_plugin_sync": False, 
+        "plugin_outdated": False,
         "needs_compile": False, 
         "needs_remote_exec_enable": False,
         "needs_cooking_setup": False,
+        "needs_icon_extraction": False,
         "missing_assets": []
     }
     
@@ -84,13 +85,22 @@ def check_project_requirements(ue_root: str, uproject_path: str) -> dict:
     if is_frozen:
         result["needs_compile"] = not bool(src_dll_hashes)
     else:
-        src_source_mtime = get_max_source_mtime(src_plugin_dir)
-        src_dll_mtime = get_max_dll_mtime(src_dll_dir)
-        result["needs_compile"] = src_dll_mtime == 0.0 or src_source_mtime > src_dll_mtime
+        # Check source hash against stored hash state
+        source_hash = get_source_dir_hash(src_plugin_dir)
+        hash_file = os.path.join(src_dll_dir, ".source_hash.txt")
+        stored_hash = ""
+        if os.path.exists(hash_file):
+            try:
+                with open(hash_file, "r") as f:
+                    stored_hash = f.read().strip()
+            except Exception: pass
+            
+        result["needs_compile"] = not bool(src_dll_hashes) or source_hash != stored_hash
 
     # Determine if the plugin files actually need a synchronization pass
     if not os.path.exists(dest_plugin_dir) or not dest_dll_hashes:
         result["needs_plugin_sync"] = True
+        result["plugin_outdated"] = False
     else:
         # Check if any pre-compiled DLL is missing or has a different hash in the destination
         needs_sync = False
@@ -99,9 +109,19 @@ def check_project_requirements(ue_root: str, uproject_path: str) -> dict:
                 needs_sync = True
                 break
         result["needs_plugin_sync"] = needs_sync
+        result["plugin_outdated"] = needs_sync
 
     result["needs_remote_exec_enable"] = not check_remote_execution_settings(uproject_path)
     result["needs_cooking_setup"] = not check_cooking_settings(uproject_path)
+
+    # Check if vanilla icons are extracted in the workspace (>10 png files is considered healthy)
+    # This keeps standard database builds lightning-fast and makes icon extraction fully optional!
+    from utils.config import load_settings
+    settings = load_settings()
+    fmodel_base = settings.get("fmodel_output", "")
+    icon_dir = os.path.normpath(os.path.join(fmodel_base, "Exports", "Pal", "Content", "Pal", "Texture", "PalIcon", "Normal"))
+    has_icons = os.path.exists(icon_dir) and len(glob.glob(os.path.join(icon_dir, "*.png"))) > 10
+    result["needs_icon_extraction"] = not has_icons
 
     src_assets_dir = os.path.join(src_plugin_dir, "Assets", "Content")
     dest_content_dir = os.path.join(project_dir, "Content")
@@ -120,7 +140,7 @@ def install_and_compile_plugin(ue_root: str, uproject_path: str, verbose: bool =
 
     # Safeguard: Force-close Unreal Editor before file operations to prevent DLL permission locks
     if is_unreal_running():
-        print(">>> Unreal Editor is running. Closing it to prevent file access locks on DLLs...", flush=True)
+        print(">>> Unreal Editor is running. Closing it to prevent it from overwriting DefaultEngine.ini...", flush=True)
         close_unreal_editor(verbose)
 
     is_frozen = getattr(sys, "frozen", False)
@@ -134,19 +154,38 @@ def install_and_compile_plugin(ue_root: str, uproject_path: str, verbose: bool =
         return True, "C++ Plugin successfully synchronized and installed!"
 
     # Dev-only compilation steps below
-    src_source_mtime = get_max_source_mtime(src_plugin_dir)
-    src_dll_mtime = get_max_dll_mtime(src_dll_dir)
+    source_hash = get_source_dir_hash(src_plugin_dir)
+    hash_file = os.path.join(src_dll_dir, ".source_hash.txt")
+    
+    stored_hash = ""
+    if os.path.exists(hash_file):
+        try:
+            with open(hash_file, "r") as f:
+                stored_hash = f.read().strip()
+        except Exception: pass
 
-    repo_needs_build = force_recompile or src_dll_mtime == 0.0 or src_source_mtime > src_dll_mtime
+    src_dll_hashes = get_dll_hashes(src_dll_dir)
+    repo_needs_build = force_recompile or not bool(src_dll_hashes) or source_hash != stored_hash
 
     if repo_needs_build:
+        if verbose:
+            print(">>> Source code changes detected or DLLs missing. Compiling C++ plugin...", flush=True)
+            
         sync_plugin_files(src_plugin_dir, dest_plugin_dir, verbose)
         success, err_msg = run_ubt_compilation(ue_root, uproject_path, verbose)
         if not success:
             return False, err_msg
         
         copy_dlls_back(dest_dll_dir, src_dll_dir, verbose)
+        
+        # Save the new state hash after successful compilation
+        os.makedirs(src_dll_dir, exist_ok=True)
+        try:
+            with open(hash_file, "w") as f:
+                f.write(source_hash)
+        except Exception: pass
 
+    # Always sync the (now up-to-date) binaries to the destination
     sync_plugin_files(src_plugin_dir, dest_plugin_dir, verbose)
     return True, "C++ Plugin successfully synchronized and installed!"
 

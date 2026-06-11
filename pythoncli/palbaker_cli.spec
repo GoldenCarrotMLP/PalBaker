@@ -21,8 +21,6 @@ datas = [
 # Dynamically include database JSONs if they have been built locally
 if os.path.exists('traits_db.json'):
     datas.append(('traits_db.json', '.'))
-if os.path.exists('pal_names_map.json'):
-    datas.append(('pal_names_map.json', '.'))
 
 a = Analysis(
     ['palbaker_cli.py'],
@@ -43,6 +41,24 @@ a = Analysis(
     noarchive=False,
     optimize=0,
 )
+
+# Prevent PyInstaller from aggressively duplicating 'deps' binaries into the root directory
+# Instead of deleting them, we remap their destination paths to safely land inside the _internal/deps folder!
+repo_root = os.path.abspath(SPECPATH)
+deps_dir = os.path.join(repo_root, 'deps')
+
+filtered_binaries = []
+for b in a.binaries:
+    dest, src, typecode = b
+    src_abs = os.path.abspath(src)
+    if src_abs.startswith(deps_dir):
+        # Remap the destination to preserve the directory structure inside _internal/deps
+        rel_dest = os.path.relpath(src_abs, repo_root).replace("\\", "/")
+        filtered_binaries.append((rel_dest, src, typecode))
+    else:
+        filtered_binaries.append(b)
+        
+a.binaries = filtered_binaries
 
 pyz = PYZ(a.pure)
 

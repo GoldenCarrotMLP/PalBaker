@@ -14,6 +14,7 @@ interface Props {
 export function DiagnosticsModal({ errorText, onClose }: Props) {
   const [showDetails, setShowDetails] = useState(false)
   const [health, setHealth] = useState<any>(null)
+  const [config, setConfig] = useState<any>(null)
   const [loadingHealth, setLoadingHealth] = useState(true)
   const [actionLoading, setActionLoading] = useState(false)
   const { setPage } = useNav()
@@ -21,10 +22,14 @@ export function DiagnosticsModal({ errorText, onClose }: Props) {
   useEffect(() => {
     async function checkHealth() {
       try {
-        const res = await UnrealHealthAPI.ping()
-        setHealth(res)
+        const [h, cfg] = await Promise.all([
+          UnrealHealthAPI.ping(),
+          SystemSettingsAPI.getConfig()
+        ])
+        setHealth(h)
+        setConfig(cfg)
       } catch (e) {
-        console.error("Health check failed", e)
+        console.error("Diagnostic verification failed", e)
       } finally {
         setLoadingHealth(false)
       }
@@ -73,6 +78,14 @@ export function DiagnosticsModal({ errorText, onClose }: Props) {
   const isUnrealRunning = health?.unreal_running === true
   const isIniEnabled = health?.ini_enabled === true
 
+  const isConfigured = Boolean(
+    config?.fmodel_output &&
+    config?.ue_root &&
+    config?.uproject &&
+    config?.blender &&
+    config?.palworld_exe
+  )
+
   return (
     <div className="fixed inset-0 z-[100] flex items-center justify-center bg-black/60 backdrop-blur-sm p-4">
       <div className="bg-card border border-border rounded-lg shadow-2xl w-full max-w-lg flex flex-col overflow-hidden animate-in zoom-in-95 duration-200">
@@ -96,7 +109,7 @@ export function DiagnosticsModal({ errorText, onClose }: Props) {
 
           <div className="bg-muted/30 border border-border rounded-md flex flex-col">
             <button 
-              onClick={() => setShowDetails(!showDetails)}
+              onClick={() => { setShowDetails(!showDetails) }}
               className="flex items-center justify-between px-3 py-2 text-xs font-semibold text-muted-foreground hover:text-foreground transition-colors cursor-pointer"
             >
               <div className="flex items-center gap-2">
@@ -122,40 +135,45 @@ export function DiagnosticsModal({ errorText, onClose }: Props) {
               <span className="text-xs font-bold text-muted-foreground uppercase tracking-widest">Recommended Actions</span>
               <div className="flex flex-col gap-2">
                 
-                {/* 1. If INI is disabled, ONLY show enable remote exec */}
-                {!isIniEnabled && (
-                  <button 
-                    onClick={handleEnableRemote}
-                    disabled={actionLoading}
-                    className="flex items-center gap-3 px-4 py-2.5 bg-primary/10 hover:bg-primary/20 border border-primary/30 rounded-md text-primary text-sm font-medium transition-colors cursor-pointer disabled:opacity-50"
-                  >
-                    <span className="text-lg">🔌</span>
-                    Enable Remote Execution
-                  </button>
-                )}
+                {/* 1. Only show system-level fixes if paths are fully set up */}
+                {isConfigured && (
+                  <>
+                    {/* If INI is disabled, show enable remote exec */}
+                    {!isIniEnabled && (
+                      <button 
+                        onClick={handleEnableRemote}
+                        disabled={actionLoading}
+                        className="flex items-center gap-3 px-4 py-2.5 bg-primary/10 hover:bg-primary/20 border border-primary/30 rounded-md text-primary text-sm font-medium transition-colors cursor-pointer disabled:opacity-50"
+                      >
+                        <span className="text-lg">🔌</span>
+                        Enable Remote Execution
+                      </button>
+                    )}
 
-                {/* 2. If Unreal is closed, show launch */}
-                {!isUnrealRunning && (
-                  <button 
-                    onClick={handleLaunch}
-                    disabled={actionLoading}
-                    className="flex items-center gap-3 px-4 py-2.5 bg-status-success/10 hover:bg-status-success/20 border border-status-success/30 rounded-md text-status-success text-sm font-medium transition-colors cursor-pointer disabled:opacity-50"
-                  >
-                    <span className="text-lg">🚀</span>
-                    Launch Unreal Editor
-                  </button>
-                )}
+                    {/* If Unreal is closed, show launch */}
+                    {!isUnrealRunning && (
+                      <button 
+                        onClick={handleLaunch}
+                        disabled={actionLoading}
+                        className="flex items-center gap-3 px-4 py-2.5 bg-status-success/10 hover:bg-status-success/20 border border-status-success/30 rounded-md text-status-success text-sm font-medium transition-colors cursor-pointer disabled:opacity-50"
+                      >
+                        <span className="text-lg">🚀</span>
+                        Launch Unreal Editor
+                      </button>
+                    )}
 
-                {/* 3. If Unreal is open and remote exec is enabled, it requires a restart */}
-                {isUnrealRunning && isIniEnabled && (
-                  <button 
-                    onClick={handleRestart}
-                    disabled={actionLoading}
-                    className="flex items-center gap-3 px-4 py-2.5 bg-status-warning/10 hover:bg-status-warning/20 border border-status-warning/30 rounded-md text-status-warning text-sm font-medium transition-colors cursor-pointer disabled:opacity-50"
-                  >
-                    <RefreshCw className="size-4" />
-                    Restart Unreal Editor
-                  </button>
+                    {/* If Unreal is open and remote exec is enabled, it requires a restart */}
+                    {isUnrealRunning && isIniEnabled && (
+                      <button 
+                        onClick={handleRestart}
+                        disabled={actionLoading}
+                        className="flex items-center gap-3 px-4 py-2.5 bg-status-warning/10 hover:bg-status-warning/20 border border-status-warning/30 rounded-md text-status-warning text-sm font-medium transition-colors cursor-pointer disabled:opacity-50"
+                      >
+                        <RefreshCw className="size-4" />
+                        Restart Unreal Editor
+                      </button>
+                    )}
+                  </>
                 )}
 
                 {/* Always show settings link fallback */}
@@ -165,7 +183,7 @@ export function DiagnosticsModal({ errorText, onClose }: Props) {
                   className="flex items-center gap-3 px-4 py-2.5 bg-muted hover:bg-muted/80 border border-border rounded-md text-foreground text-sm font-medium transition-colors cursor-pointer disabled:opacity-50"
                 >
                   <span className="text-lg">⚙️</span>
-                  Go to Settings
+                  {isConfigured ? "Go to Settings" : "Configure Settings Paths"}
                 </button>
 
               </div>

@@ -1,3 +1,4 @@
+# utils/names.py
 import os
 import json
 
@@ -9,8 +10,10 @@ def load_names_map():
     if _names_cache:
         return _names_cache
     
-    # Force loading of the name map from the root PalBaker directory
-    map_path = os.path.join(os.path.dirname(os.path.dirname(__file__)), MAP_FILE)
+    # Force loading of the name map from the deps directory
+    repo_root = os.path.dirname(os.path.dirname(os.path.abspath(__file__)))
+    map_path = os.path.normpath(os.path.join(repo_root, "deps", MAP_FILE))
+    
     if not os.path.exists(map_path):
         return {}
         

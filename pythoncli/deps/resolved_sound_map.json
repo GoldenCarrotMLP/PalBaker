@@ -1,0 +1,4108 @@
+{
+    "CowPal": {
+        "Death": {
+            "media_id": 43993055,
+            "wav_name": "VO_CowPal_06_Death.wav",
+            "wem_relative_path": "Pal/Content/WwiseAudio/Media/43993055.wem"
+        },
+        "Joy": {
+            "media_id": 243567802,
+            "wav_name": "VO_CowPal_02_Joy.wav",
+            "wem_relative_path": "Pal/Content/WwiseAudio/Media/243567802.wem"
+        },
+        "Normal": {
+            "media_id": 72700498,
+            "wav_name": "VO_CowPal_01_Normal.wav",
+            "wem_relative_path": "Pal/Content/WwiseAudio/Media/72700498.wem"
+        },
+        "Pain": {
+            "media_id": 635845368,
+            "wav_name": "VO_CowPal_05_Pain.wav",
+            "wem_relative_path": "Pal/Content/WwiseAudio/Media/635845368.wem"
+        },
+        "Sorrow": {
+            "media_id": 988110452,
+            "wav_name": "VO_CowPal_04_Sorrow.wav",
+            "wem_relative_path": "Pal/Content/WwiseAudio/Media/988110452.wem"
+        },
+        "Anger": {
+            "media_id": 764218450,
+            "wav_name": "VO_CowPal_03_Anger.wav",
+            "wem_relative_path": "Pal/Content/WwiseAudio/Media/764218450.wem"
+        }
+    },
+    "CatMage": {
+        "Death": {
+            "media_id": 131146235,
+            "wav_name": "VO_CatMage_06_Death.wav",
+            "wem_relative_path": "Pal/Content/WwiseAudio/Media/131146235.wem"
+        },
+        "Joy": {
+            "media_id": 356203378,
+            "wav_name": "VO_CatMage_02_Joy.wav",
+            "wem_relative_path": "Pal/Content/WwiseAudio/Media/356203378.wem"
+        },
+        "Normal": {
+            "media_id": 739474786,
+            "wav_name": "VO_CatMage_01_Normal.wav",
+            "wem_relative_path": "Pal/Content/WwiseAudio/Media/739474786.wem"
+        },
+        "Pain": {
+            "media_id": 405566054,
+            "wav_name": "VO_CatMage_05_Pain.wav",
+            "wem_relative_path": "Pal/Content/WwiseAudio/Media/405566054.wem"
+        },
+        "Sorrow": {
+            "media_id": 339133621,
+            "wav_name": "VO_CatMage_04_Sorrow.wav",
+            "wem_relative_path": "Pal/Content/WwiseAudio/Media/339133621.wem"
+        },
+        "Anger": {
+            "media_id": 446684168,
+            "wav_name": "VO_CatMage_03_Anger.wav",
+            "wem_relative_path": "Pal/Content/WwiseAudio/Media/446684168.wem"
+        }
+    },
+    "MopBaby": {
+        "Death": {
+            "media_id": 797199603,
+            "wav_name": "VO_MopBaby_06_Death.wav",
+            "wem_relative_path": "Pal/Content/WwiseAudio/Media/797199603.wem"
+        },
+        "Joy": {
+            "media_id": 431951506,
+            "wav_name": "VO_MopBaby_02_Joy.wav",
+            "wem_relative_path": "Pal/Content/WwiseAudio/Media/431951506.wem"
+        },
+        "Normal": {
+            "media_id": 475911044,
+            "wav_name": "VO_MopBaby_01_Normal.wav",
+            "wem_relative_path": "Pal/Content/WwiseAudio/Media/475911044.wem"
+        },
+        "Pain": {
+            "media_id": 796772864,
+            "wav_name": "VO_MopBaby_05_Pain.wav",
+            "wem_relative_path": "Pal/Content/WwiseAudio/Media/796772864.wem"
+        },
+        "Sorrow": {
+            "media_id": 468559722,
+            "wav_name": "VO_MopBaby_04_Sorrow.wav",
+            "wem_relative_path": "Pal/Content/WwiseAudio/Media/468559722.wem"
+        },
+        "Anger": {
+            "media_id": 769702214,
+            "wav_name": "VO_MopBaby_03_Anger.wav",
+            "wem_relative_path": "Pal/Content/WwiseAudio/Media/769702214.wem"
+        }
+    },
+    "IceDeer": {
+        "Death": {
+            "media_id": 1045178007,
+            "wav_name": "VO_IceDeer_06_Death.wav",
+            "wem_relative_path": "Pal/Content/WwiseAudio/Media/1045178007.wem"
+        },
+        "Joy": {
+            "media_id": 462075647,
+            "wav_name": "VO_IceDeer_02_Joy.wav",
+            "wem_relative_path": "Pal/Content/WwiseAudio/Media/462075647.wem"
+        },
+        "Normal": {
+            "media_id": 563190570,
+            "wav_name": "VO_IceDeer_01_Normal.wav",
+            "wem_relative_path": "Pal/Content/WwiseAudio/Media/563190570.wem"
+        },
+        "Pain": {
+            "media_id": 318650996,
+            "wav_name": "VO_IceDeer_05_Pain.wav",
+            "wem_relative_path": "Pal/Content/WwiseAudio/Media/318650996.wem"
+        },
+        "Sorrow": {
+            "media_id": 205813440,
+            "wav_name": "VO_IceDeer_04_Sorrow.wav",
+            "wem_relative_path": "Pal/Content/WwiseAudio/Media/205813440.wem"
+        },
+        "Anger": {
+            "media_id": 306183132,
+            "wav_name": "VO_IceDeer_03_Anger.wav",
+            "wem_relative_path": "Pal/Content/WwiseAudio/Media/306183132.wem"
+        }
+    },
+    "NaughtyCat": {
+        "Death": {
+            "media_id": 11616276,
+            "wav_name": "VO_NaughtyCat_06_Death.wav",
+            "wem_relative_path": "Pal/Content/WwiseAudio/Media/11616276.wem"
+        },
+        "Joy": {
+            "media_id": 959460093,
+            "wav_name": "VO_NaughtyCat_02_Joy.wav",
+            "wem_relative_path": "Pal/Content/WwiseAudio/Media/959460093.wem"
+        },
+        "Normal": {
+            "media_id": 963366852,
+            "wav_name": "VO_NaughtyCat_01_Normal.wav",
+            "wem_relative_path": "Pal/Content/WwiseAudio/Media/963366852.wem"
+        },
+        "Pain": {
+            "media_id": 515319950,
+            "wav_name": "VO_NaughtyCat_05_Pain.wav",
+            "wem_relative_path": "Pal/Content/WwiseAudio/Media/515319950.wem"
+        },
+        "Sorrow": {
+            "media_id": 729615605,
+            "wav_name": "VO_NaughtyCat_04_Sorrow.wav",
+            "wem_relative_path": "Pal/Content/WwiseAudio/Media/729615605.wem"
+        },
+        "Anger": {
+            "media_id": 218841215,
+            "wav_name": "VO_NaughtyCat_03_Anger.wav",
+            "wem_relative_path": "Pal/Content/WwiseAudio/Media/218841215.wem"
+        }
+    },
+    "BlackPuppy": {
+        "Death": {
+            "media_id": 333460777,
+            "wav_name": "VO_BlackPuppy_06_Death.wav",
+            "wem_relative_path": "Pal/Content/WwiseAudio/Media/333460777.wem"
+        },
+        "Joy": {
+            "media_id": 375002496,
+            "wav_name": "VO_BlackPuppy_02_Joy.wav",
+            "wem_relative_path": "Pal/Content/WwiseAudio/Media/375002496.wem"
+        },
+        "Normal": {
+            "media_id": 962015803,
+            "wav_name": "VO_BlackPuppy_01_Normal.wav",
+            "wem_relative_path": "Pal/Content/WwiseAudio/Media/962015803.wem"
+        },
+        "Pain": {
+            "media_id": 269067005,
+            "wav_name": "VO_BlackPuppy_05_Pain.wav",
+            "wem_relative_path": "Pal/Content/WwiseAudio/Media/269067005.wem"
+        },
+        "Sorrow": {
+            "media_id": 685576437,
+            "wav_name": "VO_BlackPuppy_04_Sorrow.wav",
+            "wem_relative_path": "Pal/Content/WwiseAudio/Media/685576437.wem"
+        },
+        "Anger": {
+            "media_id": 574794727,
+            "wav_name": "VO_BlackPuppy_03_Anger.wav",
+            "wem_relative_path": "Pal/Content/WwiseAudio/Media/574794727.wem"
+        }
+    },
+    "GrassPanda": {
+        "Death": {
+            "media_id": 107759334,
+            "wav_name": "VO_GrassPanda_06_Death.wav",
+            "wem_relative_path": "Pal/Content/WwiseAudio/Media/107759334.wem"
+        },
+        "Joy": {
+            "media_id": 92786792,
+            "wav_name": "VO_GrassPanda_02_Joy.wav",
+            "wem_relative_path": "Pal/Content/WwiseAudio/Media/92786792.wem"
+        },
+        "Normal": {
+            "media_id": 339082078,
+            "wav_name": "VO_GrassPanda_01_Normal.wav",
+            "wem_relative_path": "Pal/Content/WwiseAudio/Media/339082078.wem"
+        },
+        "Pain": {
+            "media_id": 107791643,
+            "wav_name": "VO_GrassPanda_05_Pain.wav",
+            "wem_relative_path": "Pal/Content/WwiseAudio/Media/107791643.wem"
+        },
+        "Sorrow": {
+            "media_id": 20058894,
+            "wav_name": "VO_GrassPanda_04_Sorrow.wav",
+            "wem_relative_path": "Pal/Content/WwiseAudio/Media/20058894.wem"
+        },
+        "Anger": {
+            "media_id": 528316373,
+            "wav_name": "VO_GrassPanda_03_Anger.wav",
+            "wem_relative_path": "Pal/Content/WwiseAudio/Media/528316373.wem"
+        }
+    },
+    "KingAlpaca": {
+        "Death": {
+            "media_id": 351910361,
+            "wav_name": "VO_KingAlpaca_06_Death.wav",
+            "wem_relative_path": "Pal/Content/WwiseAudio/Media/351910361.wem"
+        },
+        "Joy": {
+            "media_id": 791935018,
+            "wav_name": "VO_KingAlpaca_02_Joy.wav",
+            "wem_relative_path": "Pal/Content/WwiseAudio/Media/791935018.wem"
+        },
+        "Normal": {
+            "media_id": 485462522,
+            "wav_name": "VO_KingAlpaca_01_Normal.wav",
+            "wem_relative_path": "Pal/Content/WwiseAudio/Media/485462522.wem"
+        },
+        "Pain": {
+            "media_id": 535173305,
+            "wav_name": "VO_KingAlpaca_05_Pain.wav",
+            "wem_relative_path": "Pal/Content/WwiseAudio/Media/535173305.wem"
+        },
+        "Sorrow": {
+            "media_id": 376550360,
+            "wav_name": "VO_KingAlpaca_04_Sorrow.wav",
+            "wem_relative_path": "Pal/Content/WwiseAudio/Media/376550360.wem"
+        },
+        "Anger": {
+            "media_id": 594404870,
+            "wav_name": "VO_KingAlpaca_03_Anger.wav",
+            "wem_relative_path": "Pal/Content/WwiseAudio/Media/594404870.wem"
+        }
+    },
+    "SifuDog": {
+        "Death": {
+            "media_id": 490990452,
+            "wav_name": "VO_SifuDog_06_Death.wav",
+            "wem_relative_path": "Pal/Content/WwiseAudio/Media/490990452.wem"
+        },
+        "Joy": {
+            "media_id": 471999740,
+            "wav_name": "VO_SifuDog_02_Joy.wav",
+            "wem_relative_path": "Pal/Content/WwiseAudio/Media/471999740.wem"
+        },
+        "Normal": {
+            "media_id": 1049458723,
+            "wav_name": "VO_SifuDog_01_Normal.wav",
+            "wem_relative_path": "Pal/Content/WwiseAudio/Media/1049458723.wem"
+        },
+        "Pain": {
+            "media_id": 1032804257,
+            "wav_name": "VO_SifuDog_05_Pain.wav",
+            "wem_relative_path": "Pal/Content/WwiseAudio/Media/1032804257.wem"
+        },
+        "Sorrow": {
+            "media_id": 1071076078,
+            "wav_name": "VO_SifuDog_04_Sorrow.wav",
+            "wem_relative_path": "Pal/Content/WwiseAudio/Media/1071076078.wem"
+        },
+        "Anger": {
+            "media_id": 140333164,
+            "wav_name": "VO_SifuDog_03_Anger.wav",
+            "wem_relative_path": "Pal/Content/WwiseAudio/Media/140333164.wem"
+        }
+    },
+    "BlueThunderHorse": {
+        "Death": {
+            "media_id": 392690650,
+            "wav_name": "VO_BlueThunderHorse_06_Death.wav",
+            "wem_relative_path": "Pal/Content/WwiseAudio/Media/392690650.wem"
+        },
+        "Joy": {
+            "media_id": 634442216,
+            "wav_name": "VO_BlueThunderHorse_02_Joy.wav",
+            "wem_relative_path": "Pal/Content/WwiseAudio/Media/634442216.wem"
+        },
+        "Normal": {
+            "media_id": 570358281,
+            "wav_name": "VO_BlueThunderHorse_01_Normal.wav",
+            "wem_relative_path": "Pal/Content/WwiseAudio/Media/570358281.wem"
+        },
+        "Pain": {
+            "media_id": 656497150,
+            "wav_name": "VO_BlueThunderHorse_05_Pain.wav",
+            "wem_relative_path": "Pal/Content/WwiseAudio/Media/656497150.wem"
+        },
+        "Sorrow": {
+            "media_id": 300941719,
+            "wav_name": "VO_BlueThunderHorse_04_Sorrow.wav",
+            "wem_relative_path": "Pal/Content/WwiseAudio/Media/300941719.wem"
+        },
+        "Anger": {
+            "media_id": 823216793,
+            "wav_name": "VO_BlueThunderHorse_03_Anger.wav",
+            "wem_relative_path": "Pal/Content/WwiseAudio/Media/823216793.wem"
+        }
+    },
+    "SkyDragon": {
+        "Death": {
+            "media_id": 649991034,
+            "wav_name": "VO_SkyDragon_06_Death.wav",
+            "wem_relative_path": "Pal/Content/WwiseAudio/Media/649991034.wem"
+        },
+        "Joy": {
+            "media_id": 240663765,
+            "wav_name": "VO_SkyDragon_02_Joy.wav",
+            "wem_relative_path": "Pal/Content/WwiseAudio/Media/240663765.wem"
+        },
+        "Normal": {
+            "media_id": 576425209,
+            "wav_name": "VO_SkyDragon_01_Normal.wav",
+            "wem_relative_path": "Pal/Content/WwiseAudio/Media/576425209.wem"
+        },
+        "Pain": {
+            "media_id": 30255475,
+            "wav_name": "VO_SkyDragon_05_Pain.wav",
+            "wem_relative_path": "Pal/Content/WwiseAudio/Media/30255475.wem"
+        },
+        "Sorrow": {
+            "media_id": 407276351,
+            "wav_name": "VO_SkyDragon_04_Sorrow.wav",
+            "wem_relative_path": "Pal/Content/WwiseAudio/Media/407276351.wem"
+        },
+        "Anger": {
+            "media_id": 236570859,
+            "wav_name": "VO_SkyDragon_03_Anger.wav",
+            "wem_relative_path": "Pal/Content/WwiseAudio/Media/236570859.wem"
+        }
+    },
+    "SharkKid": {
+        "Death": {
+            "media_id": 867467049,
+            "wav_name": "VO_SharkKid_06_Death.wav",
+            "wem_relative_path": "Pal/Content/WwiseAudio/Media/867467049.wem"
+        },
+        "Joy": {
+            "media_id": 706640,
+            "wav_name": "VO_SharkKid_02_Joy.wav",
+            "wem_relative_path": "Pal/Content/WwiseAudio/Media/706640.wem"
+        },
+        "Normal": {
+            "media_id": 186686972,
+            "wav_name": "VO_SharkKid_01_Normal.wav",
+            "wem_relative_path": "Pal/Content/WwiseAudio/Media/186686972.wem"
+        },
+        "Pain": {
+            "media_id": 403009662,
+            "wav_name": "VO_SharkKid_05_Pain.wav",
+            "wem_relative_path": "Pal/Content/WwiseAudio/Media/403009662.wem"
+        },
+        "Sorrow": {
+            "media_id": 710871079,
+            "wav_name": "VO_SharkKid_04_Sorrow.wav",
+            "wem_relative_path": "Pal/Content/WwiseAudio/Media/710871079.wem"
+        },
+        "Anger": {
+            "media_id": 671682799,
+            "wav_name": "VO_SharkKid_03_Anger.wav",
+            "wem_relative_path": "Pal/Content/WwiseAudio/Media/671682799.wem"
+        }
+    },
+    "BirdDragon": {
+        "Death": {
+            "media_id": 919638263,
+            "wav_name": "VO_BirdDragon_06_Death.wav",
+            "wem_relative_path": "Pal/Content/WwiseAudio/Media/919638263.wem"
+        },
+        "Joy": {
+            "media_id": 66080953,
+            "wav_name": "VO_BirdDragon_02_Joy.wav",
+            "wem_relative_path": "Pal/Content/WwiseAudio/Media/66080953.wem"
+        },
+        "Normal": {
+            "media_id": 593646648,
+            "wav_name": "VO_BirdDragon_01_Normal.wav",
+            "wem_relative_path": "Pal/Content/WwiseAudio/Media/593646648.wem"
+        },
+        "Pain": {
+            "media_id": 41501179,
+            "wav_name": "VO_BirdDragon_05_Pain.wav",
+            "wem_relative_path": "Pal/Content/WwiseAudio/Media/41501179.wem"
+        },
+        "Sorrow": {
+            "media_id": 391736837,
+            "wav_name": "VO_BirdDragon_04_Sorrow.wav",
+            "wem_relative_path": "Pal/Content/WwiseAudio/Media/391736837.wem"
+        },
+        "Anger": {
+            "media_id": 351945746,
+            "wav_name": "VO_BirdDragon_03_Anger.wav",
+            "wem_relative_path": "Pal/Content/WwiseAudio/Media/351945746.wem"
+        }
+    },
+    "CuteFox": {
+        "Death": {
+            "media_id": 408907995,
+            "wav_name": "VO_CuteFox_06_Death.wav",
+            "wem_relative_path": "Pal/Content/WwiseAudio/Media/408907995.wem"
+        },
+        "Joy": {
+            "media_id": 503291423,
+            "wav_name": "VO_CuteFox_02_Joy.wav",
+            "wem_relative_path": "Pal/Content/WwiseAudio/Media/503291423.wem"
+        },
+        "Normal": {
+            "media_id": 599237966,
+            "wav_name": "VO_CuteFox_01_Normal.wav",
+            "wem_relative_path": "Pal/Content/WwiseAudio/Media/599237966.wem"
+        },
+        "Pain": {
+            "media_id": 231901449,
+            "wav_name": "VO_CuteFox_05_Pain.wav",
+            "wem_relative_path": "Pal/Content/WwiseAudio/Media/231901449.wem"
+        },
+        "Sorrow": {
+            "media_id": 701291169,
+            "wav_name": "VO_CuteFox_04_Sorrow.wav",
+            "wem_relative_path": "Pal/Content/WwiseAudio/Media/701291169.wem"
+        },
+        "Anger": {
+            "media_id": 842108622,
+            "wav_name": "VO_CuteFox_03_Anger.wav",
+            "wem_relative_path": "Pal/Content/WwiseAudio/Media/842108622.wem"
+        }
+    },
+    "Horus": {
+        "Death": {
+            "media_id": 882512941,
+            "wav_name": "VO_Horus_06_Death.wav",
+            "wem_relative_path": "Pal/Content/WwiseAudio/Media/882512941.wem"
+        },
+        "Joy": {
+            "media_id": 394992329,
+            "wav_name": "VO_Horus_02_Joy.wav",
+            "wem_relative_path": "Pal/Content/WwiseAudio/Media/394992329.wem"
+        },
+        "Normal": {
+            "media_id": 1019699118,
+            "wav_name": "VO_Horus_01_Normal.wav",
+            "wem_relative_path": "Pal/Content/WwiseAudio/Media/1019699118.wem"
+        },
+        "Pain": {
+            "media_id": 424023866,
+            "wav_name": "VO_Horus_05_Pain.wav",
+            "wem_relative_path": "Pal/Content/WwiseAudio/Media/424023866.wem"
+        },
+        "Sorrow": {
+            "media_id": 16661114,
+            "wav_name": "VO_Horus_04_Sorrow.wav",
+            "wem_relative_path": "Pal/Content/WwiseAudio/Media/16661114.wem"
+        },
+        "Anger": {
+            "media_id": 365453183,
+            "wav_name": "VO_Horus_03_Anger.wav",
+            "wem_relative_path": "Pal/Content/WwiseAudio/Media/365453183.wem"
+        }
+    },
+    "CatVampire": {
+        "Death": {
+            "media_id": 597581889,
+            "wav_name": "VO_CatVampire_06_Death.wav",
+            "wem_relative_path": "Pal/Content/WwiseAudio/Media/597581889.wem"
+        },
+        "Joy": {
+            "media_id": 352382140,
+            "wav_name": "VO_CatVampire_02_Joy.wav",
+            "wem_relative_path": "Pal/Content/WwiseAudio/Media/352382140.wem"
+        },
+        "Normal": {
+            "media_id": 354098727,
+            "wav_name": "VO_CatVampire_01_Normal.wav",
+            "wem_relative_path": "Pal/Content/WwiseAudio/Media/354098727.wem"
+        },
+        "Pain": {
+            "media_id": 609078117,
+            "wav_name": "VO_CatVampire_05_Pain.wav",
+            "wem_relative_path": "Pal/Content/WwiseAudio/Media/609078117.wem"
+        },
+        "Sorrow": {
+            "media_id": 1016612597,
+            "wav_name": "VO_CatVampire_04_Sorrow.wav",
+            "wem_relative_path": "Pal/Content/WwiseAudio/Media/1016612597.wem"
+        },
+        "Anger": {
+            "media_id": 606363025,
+            "wav_name": "VO_CatVampire_03_Anger.wav",
+            "wem_relative_path": "Pal/Content/WwiseAudio/Media/606363025.wem"
+        }
+    },
+    "HerculesBeetle": {
+        "Death": {
+            "media_id": 119700781,
+            "wav_name": "VO_HerculesBeetle_06_Death.wav",
+            "wem_relative_path": "Pal/Content/WwiseAudio/Media/119700781.wem"
+        },
+        "Joy": {
+            "media_id": 726068064,
+            "wav_name": "VO_HerculesBeetle_02_Joy.wav",
+            "wem_relative_path": "Pal/Content/WwiseAudio/Media/726068064.wem"
+        },
+        "Normal": {
+            "media_id": 121694298,
+            "wav_name": "VO_HerculesBeetle_01_Normal.wav",
+            "wem_relative_path": "Pal/Content/WwiseAudio/Media/121694298.wem"
+        },
+        "Pain": {
+            "media_id": 1041888854,
+            "wav_name": "VO_HerculesBeetle_05_Pain.wav",
+            "wem_relative_path": "Pal/Content/WwiseAudio/Media/1041888854.wem"
+        },
+        "Sorrow": {
+            "media_id": 1040931207,
+            "wav_name": "VO_HerculesBeetle_04_Sorrow.wav",
+            "wem_relative_path": "Pal/Content/WwiseAudio/Media/1040931207.wem"
+        },
+        "Anger": {
+            "media_id": 306081547,
+            "wav_name": "VO_HerculesBeetle_03_Anger.wav",
+            "wem_relative_path": "Pal/Content/WwiseAudio/Media/306081547.wem"
+        }
+    },
+    "ElecCat": {
+        "Death": {
+            "media_id": 508221269,
+            "wav_name": "VO_ElecCat_06_Death.wav",
+            "wem_relative_path": "Pal/Content/WwiseAudio/Media/508221269.wem"
+        },
+        "Joy": {
+            "media_id": 405342313,
+            "wav_name": "VO_ElecCat_02_Joy.wav",
+            "wem_relative_path": "Pal/Content/WwiseAudio/Media/405342313.wem"
+        },
+        "Normal": {
+            "media_id": 547403873,
+            "wav_name": "VO_ElecCat_01_Normal.wav",
+            "wem_relative_path": "Pal/Content/WwiseAudio/Media/547403873.wem"
+        },
+        "Pain": {
+            "media_id": 399284782,
+            "wav_name": "VO_ElecCat_05_Pain.wav",
+            "wem_relative_path": "Pal/Content/WwiseAudio/Media/399284782.wem"
+        },
+        "Sorrow": {
+            "media_id": 911390522,
+            "wav_name": "VO_ElecCat_04_Sorrow.wav",
+            "wem_relative_path": "Pal/Content/WwiseAudio/Media/911390522.wem"
+        },
+        "Anger": {
+            "media_id": 941908364,
+            "wav_name": "VO_ElecCat_03_Anger.wav",
+            "wem_relative_path": "Pal/Content/WwiseAudio/Media/941908364.wem"
+        }
+    },
+    "LeafPrincess": {
+        "Death": {
+            "media_id": 970801438,
+            "wav_name": "VO_LeafPrincess_06_Death.wav",
+            "wem_relative_path": "Pal/Content/WwiseAudio/Media/970801438.wem"
+        },
+        "Joy": {
+            "media_id": 434289744,
+            "wav_name": "VO_LeafPrincess_02_Joy.wav",
+            "wem_relative_path": "Pal/Content/WwiseAudio/Media/434289744.wem"
+        },
+        "Normal": {
+            "media_id": 672318551,
+            "wav_name": "VO_LeafPrincess_01_Normal.wav",
+            "wem_relative_path": "Pal/Content/WwiseAudio/Media/672318551.wem"
+        },
+        "Pain": {
+            "media_id": 101045768,
+            "wav_name": "VO_LeafPrincess_05_Pain.wav",
+            "wem_relative_path": "Pal/Content/WwiseAudio/Media/101045768.wem"
+        },
+        "Sorrow": {
+            "media_id": 682012554,
+            "wav_name": "VO_LeafPrincess_04_Sorrow.wav",
+            "wem_relative_path": "Pal/Content/WwiseAudio/Media/682012554.wem"
+        },
+        "Anger": {
+            "media_id": 435265257,
+            "wav_name": "VO_LeafPrincess_03_Anger.wav",
+            "wem_relative_path": "Pal/Content/WwiseAudio/Media/435265257.wem"
+        }
+    },
+    "HadesBird": {
+        "Death": {
+            "media_id": 840355396,
+            "wav_name": "VO_HadesBird_06_Death.wav",
+            "wem_relative_path": "Pal/Content/WwiseAudio/Media/840355396.wem"
+        },
+        "Joy": {
+            "media_id": 951555768,
+            "wav_name": "VO_HadesBird_02_Joy.wav",
+            "wem_relative_path": "Pal/Content/WwiseAudio/Media/951555768.wem"
+        },
+        "Normal": {
+            "media_id": 184188291,
+            "wav_name": "VO_HadesBird_01_Normal.wav",
+            "wem_relative_path": "Pal/Content/WwiseAudio/Media/184188291.wem"
+        },
+        "Pain": {
+            "media_id": 413034753,
+            "wav_name": "VO_HadesBird_05_Pain.wav",
+            "wem_relative_path": "Pal/Content/WwiseAudio/Media/413034753.wem"
+        },
+        "Sorrow": {
+            "media_id": 586307338,
+            "wav_name": "VO_HadesBird_04_Sorrow.wav",
+            "wem_relative_path": "Pal/Content/WwiseAudio/Media/586307338.wem"
+        },
+        "Anger": {
+            "media_id": 111435933,
+            "wav_name": "VO_HadesBird_03_Anger.wav",
+            "wem_relative_path": "Pal/Content/WwiseAudio/Media/111435933.wem"
+        }
+    },
+    "LizardMan": {
+        "Death": {
+            "media_id": 573483009,
+            "wav_name": "VO_LizardMan_06_Death.wav",
+            "wem_relative_path": "Pal/Content/WwiseAudio/Media/573483009.wem"
+        },
+        "Joy": {
+            "media_id": 1030934387,
+            "wav_name": "VO_LizardMan_02_Joy.wav",
+            "wem_relative_path": "Pal/Content/WwiseAudio/Media/1030934387.wem"
+        },
+        "Normal": {
+            "media_id": 465237560,
+            "wav_name": "VO_LizardMan_01_Normal.wav",
+            "wem_relative_path": "Pal/Content/WwiseAudio/Media/465237560.wem"
+        },
+        "Pain": {
+            "media_id": 736270836,
+            "wav_name": "VO_LizardMan_05_Pain.wav",
+            "wem_relative_path": "Pal/Content/WwiseAudio/Media/736270836.wem"
+        },
+        "Sorrow": {
+            "media_id": 486369218,
+            "wav_name": "VO_LizardMan_04_Sorrow.wav",
+            "wem_relative_path": "Pal/Content/WwiseAudio/Media/486369218.wem"
+        },
+        "Anger": {
+            "media_id": 1038035540,
+            "wav_name": "VO_LizardMan_03_Anger.wav",
+            "wem_relative_path": "Pal/Content/WwiseAudio/Media/1038035540.wem"
+        }
+    },
+    "RedArmorBird": {
+        "Death": {
+            "media_id": 573124442,
+            "wav_name": "VO_RedArmorBird_06_Death.wav",
+            "wem_relative_path": "Pal/Content/WwiseAudio/Media/573124442.wem"
+        },
+        "Joy": {
+            "media_id": 402100623,
+            "wav_name": "VO_RedArmorBird_02_Joy.wav",
+            "wem_relative_path": "Pal/Content/WwiseAudio/Media/402100623.wem"
+        },
+        "Normal": {
+            "media_id": 703014831,
+            "wav_name": "VO_RedArmorBird_01_Normal.wav",
+            "wem_relative_path": "Pal/Content/WwiseAudio/Media/703014831.wem"
+        },
+        "Pain": {
+            "media_id": 714418574,
+            "wav_name": "VO_RedArmorBird_05_Pain.wav",
+            "wem_relative_path": "Pal/Content/WwiseAudio/Media/714418574.wem"
+        }
+    },
+    "FireKirin": {
+        "Death": {
+            "media_id": 379863331,
+            "wav_name": "VO_FireKirin_06_Death.wav",
+            "wem_relative_path": "Pal/Content/WwiseAudio/Media/379863331.wem"
+        },
+        "Joy": {
+            "media_id": 903699376,
+            "wav_name": "VO_FireKirin_02_Joy.wav",
+            "wem_relative_path": "Pal/Content/WwiseAudio/Media/903699376.wem"
+        },
+        "Normal": {
+            "media_id": 478694762,
+            "wav_name": "VO_FireKirin_01_Normal.wav",
+            "wem_relative_path": "Pal/Content/WwiseAudio/Media/478694762.wem"
+        },
+        "Pain": {
+            "media_id": 858956807,
+            "wav_name": "VO_FireKirin_05_Pain.wav",
+            "wem_relative_path": "Pal/Content/WwiseAudio/Media/858956807.wem"
+        },
+        "Sorrow": {
+            "media_id": 430417478,
+            "wav_name": "VO_FireKirin_04_Sorrow.wav",
+            "wem_relative_path": "Pal/Content/WwiseAudio/Media/430417478.wem"
+        },
+        "Anger": {
+            "media_id": 185907389,
+            "wav_name": "VO_FireKirin_03_Anger.wav",
+            "wem_relative_path": "Pal/Content/WwiseAudio/Media/185907389.wem"
+        }
+    },
+    "WoolFox": {
+        "Death": {
+            "media_id": 432551616,
+            "wav_name": "VO_WoolFox_06_Death.wav",
+            "wem_relative_path": "Pal/Content/WwiseAudio/Media/432551616.wem"
+        },
+        "Joy": {
+            "media_id": 639656106,
+            "wav_name": "VO_WoolFox_02_Joy.wav",
+            "wem_relative_path": "Pal/Content/WwiseAudio/Media/639656106.wem"
+        },
+        "Normal": {
+            "media_id": 427540710,
+            "wav_name": "VO_WoolFox_01_Normal.wav",
+            "wem_relative_path": "Pal/Content/WwiseAudio/Media/427540710.wem"
+        },
+        "Pain": {
+            "media_id": 183702898,
+            "wav_name": "VO_WoolFox_05_Pain.wav",
+            "wem_relative_path": "Pal/Content/WwiseAudio/Media/183702898.wem"
+        },
+        "Sorrow": {
+            "media_id": 1003178541,
+            "wav_name": "VO_WoolFox_04_Sorrow.wav",
+            "wem_relative_path": "Pal/Content/WwiseAudio/Media/1003178541.wem"
+        },
+        "Anger": {
+            "media_id": 896052283,
+            "wav_name": "VO_WoolFox_03_Anger.wav",
+            "wem_relative_path": "Pal/Content/WwiseAudio/Media/896052283.wem"
+        }
+    },
+    "WhiteMoth": {
+        "Death": {
+            "media_id": 578769153,
+            "wav_name": "VO_WhiteMoth_06_Death.wav",
+            "wem_relative_path": "Pal/Content/WwiseAudio/Media/578769153.wem"
+        },
+        "Joy": {
+            "media_id": 507139411,
+            "wav_name": "VO_WhiteMoth_02_Joy.wav",
+            "wem_relative_path": "Pal/Content/WwiseAudio/Media/507139411.wem"
+        },
+        "Normal": {
+            "media_id": 287545395,
+            "wav_name": "VO_WhiteMoth_01_Normal.wav",
+            "wem_relative_path": "Pal/Content/WwiseAudio/Media/287545395.wem"
+        },
+        "Pain": {
+            "media_id": 647805283,
+            "wav_name": "VO_WhiteMoth_05_Pain.wav",
+            "wem_relative_path": "Pal/Content/WwiseAudio/Media/647805283.wem"
+        },
+        "Sorrow": {
+            "media_id": 461647200,
+            "wav_name": "VO_WhiteMoth_04_Sorrow.wav",
+            "wem_relative_path": "Pal/Content/WwiseAudio/Media/461647200.wem"
+        },
+        "Anger": {
+            "media_id": 970668159,
+            "wav_name": "VO_WhiteMoth_03_Anger.wav",
+            "wem_relative_path": "Pal/Content/WwiseAudio/Media/970668159.wem"
+        }
+    },
+    "LazyCatfish": {
+        "Death": {
+            "media_id": 136020658,
+            "wav_name": "VO_LazyCatfish_06_Death.wav",
+            "wem_relative_path": "Pal/Content/WwiseAudio/Media/136020658.wem"
+        },
+        "Joy": {
+            "media_id": 870478377,
+            "wav_name": "VO_LazyCatfish_02_Joy.wav",
+            "wem_relative_path": "Pal/Content/WwiseAudio/Media/870478377.wem"
+        },
+        "Normal": {
+            "media_id": 141587587,
+            "wav_name": "VO_LazyCatfish_01_Normal.wav",
+            "wem_relative_path": "Pal/Content/WwiseAudio/Media/141587587.wem"
+        },
+        "Pain": {
+            "media_id": 334153302,
+            "wav_name": "VO_LazyCatfish_05_Pain.wav",
+            "wem_relative_path": "Pal/Content/WwiseAudio/Media/334153302.wem"
+        },
+        "Sorrow": {
+            "media_id": 946517746,
+            "wav_name": "VO_LazyCatfish_04_Sorrow.wav",
+            "wem_relative_path": "Pal/Content/WwiseAudio/Media/946517746.wem"
+        },
+        "Anger": {
+            "media_id": 115648191,
+            "wav_name": "VO_LazyCatfish_03_Anger.wav",
+            "wem_relative_path": "Pal/Content/WwiseAudio/Media/115648191.wem"
+        }
+    },
+    "FoxMage": {
+        "Death": {
+            "media_id": 651805898,
+            "wav_name": "VO_FoxMage_06_Death.wav",
+            "wem_relative_path": "Pal/Content/WwiseAudio/Media/651805898.wem"
+        },
+        "Joy": {
+            "media_id": 311051996,
+            "wav_name": "VO_FoxMage_02_Joy.wav",
+            "wem_relative_path": "Pal/Content/WwiseAudio/Media/311051996.wem"
+        },
+        "Normal": {
+            "media_id": 298767672,
+            "wav_name": "VO_FoxMage_01_Normal.wav",
+            "wem_relative_path": "Pal/Content/WwiseAudio/Media/298767672.wem"
+        },
+        "Pain": {
+            "media_id": 574339863,
+            "wav_name": "VO_FoxMage_05_Pain.wav",
+            "wem_relative_path": "Pal/Content/WwiseAudio/Media/574339863.wem"
+        },
+        "Sorrow": {
+            "media_id": 986118716,
+            "wav_name": "VO_FoxMage_04_Sorrow.wav",
+            "wem_relative_path": "Pal/Content/WwiseAudio/Media/986118716.wem"
+        },
+        "Anger": {
+            "media_id": 93190698,
+            "wav_name": "VO_FoxMage_03_Anger.wav",
+            "wem_relative_path": "Pal/Content/WwiseAudio/Media/93190698.wem"
+        }
+    },
+    "GhostRabbit": {
+        "Death": {
+            "media_id": 3912789,
+            "wav_name": "VO_GhostRabbit_06_Death.wav",
+            "wem_relative_path": "Pal/Content/WwiseAudio/Media/3912789.wem"
+        },
+        "Joy": {
+            "media_id": 502096002,
+            "wav_name": "VO_GhostRabbit_02_Joy.wav",
+            "wem_relative_path": "Pal/Content/WwiseAudio/Media/502096002.wem"
+        },
+        "Normal": {
+            "media_id": 570450222,
+            "wav_name": "VO_GhostRabbit_01_Normal.wav",
+            "wem_relative_path": "Pal/Content/WwiseAudio/Media/570450222.wem"
+        },
+        "Pain": {
+            "media_id": 371970874,
+            "wav_name": "VO_GhostRabbit_05_Pain.wav",
+            "wem_relative_path": "Pal/Content/WwiseAudio/Media/371970874.wem"
+        },
+        "Sorrow": {
+            "media_id": 881494692,
+            "wav_name": "VO_GhostRabbit_04_Sorrow.wav",
+            "wem_relative_path": "Pal/Content/WwiseAudio/Media/881494692.wem"
+        },
+        "Anger": {
+            "media_id": 48080044,
+            "wav_name": "VO_GhostRabbit_03_Anger.wav",
+            "wem_relative_path": "Pal/Content/WwiseAudio/Media/48080044.wem"
+        }
+    },
+    "TentacleTurtle": {
+        "Death": {
+            "media_id": 505365247,
+            "wav_name": "VO_TentacleTurtle_06_Death.wav",
+            "wem_relative_path": "Pal/Content/WwiseAudio/Media/505365247.wem"
+        },
+        "Joy": {
+            "media_id": 118085958,
+            "wav_name": "VO_TentacleTurtle_02_Joy.wav",
+            "wem_relative_path": "Pal/Content/WwiseAudio/Media/118085958.wem"
+        },
+        "Normal": {
+            "media_id": 202983066,
+            "wav_name": "VO_TentacleTurtle_01_Normal.wav",
+            "wem_relative_path": "Pal/Content/WwiseAudio/Media/202983066.wem"
+        },
+        "Pain": {
+            "media_id": 288567244,
+            "wav_name": "VO_TentacleTurtle_05_Pain.wav",
+            "wem_relative_path": "Pal/Content/WwiseAudio/Media/288567244.wem"
+        },
+        "Sorrow": {
+            "media_id": 881695100,
+            "wav_name": "VO_TentacleTurtle_04_Sorrow.wav",
+            "wem_relative_path": "Pal/Content/WwiseAudio/Media/881695100.wem"
+        },
+        "Anger": {
+            "media_id": 937628779,
+            "wav_name": "VO_TentacleTurtle_03_Anger.wav",
+            "wem_relative_path": "Pal/Content/WwiseAudio/Media/937628779.wem"
+        }
+    },
+    "NightLady": {
+        "Death": {
+            "media_id": 50688644,
+            "wav_name": "VO_NightLady_06_Death.wav",
+            "wem_relative_path": "Pal/Content/WwiseAudio/Media/50688644.wem"
+        },
+        "Joy": {
+            "media_id": 1040866452,
+            "wav_name": "VO_NightLady_02_Joy.wav",
+            "wem_relative_path": "Pal/Content/WwiseAudio/Media/1040866452.wem"
+        },
+        "Normal": {
+            "media_id": 143670252,
+            "wav_name": "VO_NightLady_01_Normal.wav",
+            "wem_relative_path": "Pal/Content/WwiseAudio/Media/143670252.wem"
+        },
+        "Pain": {
+            "media_id": 910221906,
+            "wav_name": "VO_NightLady_05_Pain.wav",
+            "wem_relative_path": "Pal/Content/WwiseAudio/Media/910221906.wem"
+        },
+        "Sorrow": {
+            "media_id": 338264386,
+            "wav_name": "VO_NightLady_04_Sorrow.wav",
+            "wem_relative_path": "Pal/Content/WwiseAudio/Media/338264386.wem"
+        },
+        "Anger": {
+            "media_id": 841729763,
+            "wav_name": "VO_NightLady_03_Anger.wav",
+            "wem_relative_path": "Pal/Content/WwiseAudio/Media/841729763.wem"
+        }
+    },
+    "SnowPeafowl": {
+        "Death": {
+            "media_id": 148645822,
+            "wav_name": "VO_SnowPeafowl_06_Death.wav",
+            "wem_relative_path": "Pal/Content/WwiseAudio/Media/148645822.wem"
+        },
+        "Joy": {
+            "media_id": 324772019,
+            "wav_name": "VO_SnowPeafowl_02_Joy.wav",
+            "wem_relative_path": "Pal/Content/WwiseAudio/Media/324772019.wem"
+        },
+        "Normal": {
+            "media_id": 264693496,
+            "wav_name": "VO_SnowPeafowl_01_Normal.wav",
+            "wem_relative_path": "Pal/Content/WwiseAudio/Media/264693496.wem"
+        },
+        "Pain": {
+            "media_id": 336741187,
+            "wav_name": "VO_SnowPeafowl_05_Pain.wav",
+            "wem_relative_path": "Pal/Content/WwiseAudio/Media/336741187.wem"
+        },
+        "Sorrow": {
+            "media_id": 286636001,
+            "wav_name": "VO_SnowPeafowl_04_Sorrow.wav",
+            "wem_relative_path": "Pal/Content/WwiseAudio/Media/286636001.wem"
+        },
+        "Anger": {
+            "media_id": 181036438,
+            "wav_name": "VO_SnowPeafowl_03_Anger.wav",
+            "wem_relative_path": "Pal/Content/WwiseAudio/Media/181036438.wem"
+        }
+    },
+    "PoseidonOrca": {
+        "Death": {
+            "media_id": 429128080,
+            "wav_name": "VO_PoseidonOrca_06_Death.wav",
+            "wem_relative_path": "Pal/Content/WwiseAudio/Media/429128080.wem"
+        },
+        "Joy": {
+            "media_id": 148349908,
+            "wav_name": "VO_PoseidonOrca_02_Joy.wav",
+            "wem_relative_path": "Pal/Content/WwiseAudio/Media/148349908.wem"
+        },
+        "Normal": {
+            "media_id": 126868158,
+            "wav_name": "VO_PoseidonOrca_01_Normal.wav",
+            "wem_relative_path": "Pal/Content/WwiseAudio/Media/126868158.wem"
+        },
+        "Pain": {
+            "media_id": 222225316,
+            "wav_name": "VO_PoseidonOrca_05_Pain.wav",
+            "wem_relative_path": "Pal/Content/WwiseAudio/Media/222225316.wem"
+        },
+        "Sorrow": {
+            "media_id": 596640094,
+            "wav_name": "VO_PoseidonOrca_04_Sorrow.wav",
+            "wem_relative_path": "Pal/Content/WwiseAudio/Media/596640094.wem"
+        },
+        "Anger": {
+            "media_id": 587420592,
+            "wav_name": "VO_PoseidonOrca_03_Anger.wav",
+            "wem_relative_path": "Pal/Content/WwiseAudio/Media/587420592.wem"
+        }
+    },
+    "Kelpie": {
+        "Death": {
+            "media_id": 1060230738,
+            "wav_name": "VO_Kelpie_06_Death.wav",
+            "wem_relative_path": "Pal/Content/WwiseAudio/Media/1060230738.wem"
+        },
+        "Joy": {
+            "media_id": 668469895,
+            "wav_name": "VO_Kelpie_02_Joy.wav",
+            "wem_relative_path": "Pal/Content/WwiseAudio/Media/668469895.wem"
+        },
+        "Normal": {
+            "media_id": 474717600,
+            "wav_name": "VO_Kelpie_01_Normal.wav",
+            "wem_relative_path": "Pal/Content/WwiseAudio/Media/474717600.wem"
+        },
+        "Pain": {
+            "media_id": 353788259,
+            "wav_name": "VO_Kelpie_05_Pain.wav",
+            "wem_relative_path": "Pal/Content/WwiseAudio/Media/353788259.wem"
+        },
+        "Sorrow": {
+            "media_id": 970312148,
+            "wav_name": "VO_Kelpie_04_Sorrow.wav",
+            "wem_relative_path": "Pal/Content/WwiseAudio/Media/970312148.wem"
+        },
+        "Anger": {
+            "media_id": 866948733,
+            "wav_name": "VO_Kelpie_03_Anger.wav",
+            "wem_relative_path": "Pal/Content/WwiseAudio/Media/866948733.wem"
+        }
+    },
+    "WhiteAlienDragon": {
+        "Death": {
+            "media_id": 454536644,
+            "wav_name": "VO_WhiteAlienDragon_06_Death.wav",
+            "wem_relative_path": "Pal/Content/WwiseAudio/Media/454536644.wem"
+        },
+        "Joy": {
+            "media_id": 691162778,
+            "wav_name": "VO_WhiteAlienDragon_02_Joy.wav",
+            "wem_relative_path": "Pal/Content/WwiseAudio/Media/691162778.wem"
+        },
+        "Normal": {
+            "media_id": 889038457,
+            "wav_name": "VO_WhiteAlienDragon_01_Normal.wav",
+            "wem_relative_path": "Pal/Content/WwiseAudio/Media/889038457.wem"
+        },
+        "Pain": {
+            "media_id": 516354118,
+            "wav_name": "VO_WhiteAlienDragon_05_Pain.wav",
+            "wem_relative_path": "Pal/Content/WwiseAudio/Media/516354118.wem"
+        },
+        "Sorrow": {
+            "media_id": 632633957,
+            "wav_name": "VO_WhiteAlienDragon_04_Sorrow.wav",
+            "wem_relative_path": "Pal/Content/WwiseAudio/Media/632633957.wem"
+        },
+        "Anger": {
+            "media_id": 247987734,
+            "wav_name": "VO_WhiteAlienDragon_03_Anger.wav",
+            "wem_relative_path": "Pal/Content/WwiseAudio/Media/247987734.wem"
+        }
+    },
+    "ThunderBird": {
+        "Death": {
+            "media_id": 397971558,
+            "wav_name": "VO_ThunderBird_06_Death.wav",
+            "wem_relative_path": "Pal/Content/WwiseAudio/Media/397971558.wem"
+        },
+        "Joy": {
+            "media_id": 458221848,
+            "wav_name": "VO_ThunderBird_02_Joy.wav",
+            "wem_relative_path": "Pal/Content/WwiseAudio/Media/458221848.wem"
+        },
+        "Normal": {
+            "media_id": 339176810,
+            "wav_name": "VO_ThunderBird_01_Normal.wav",
+            "wem_relative_path": "Pal/Content/WwiseAudio/Media/339176810.wem"
+        },
+        "Pain": {
+            "media_id": 352842892,
+            "wav_name": "VO_ThunderBird_05_Pain.wav",
+            "wem_relative_path": "Pal/Content/WwiseAudio/Media/352842892.wem"
+        },
+        "Sorrow": {
+            "media_id": 130066909,
+            "wav_name": "VO_ThunderBird_04_Sorrow.wav",
+            "wem_relative_path": "Pal/Content/WwiseAudio/Media/130066909.wem"
+        },
+        "Anger": {
+            "media_id": 389357140,
+            "wav_name": "VO_ThunderBird_03_Anger.wav",
+            "wem_relative_path": "Pal/Content/WwiseAudio/Media/389357140.wem"
+        }
+    },
+    "WhiteShieldDragon": {
+        "Death": {
+            "media_id": 866129465,
+            "wav_name": "VO_WhiteShieldDragon_06_Death.wav",
+            "wem_relative_path": "Pal/Content/WwiseAudio/Media/866129465.wem"
+        },
+        "Joy": {
+            "media_id": 686867129,
+            "wav_name": "VO_WhiteShieldDragon_02_Joy.wav",
+            "wem_relative_path": "Pal/Content/WwiseAudio/Media/686867129.wem"
+        },
+        "Normal": {
+            "media_id": 839395384,
+            "wav_name": "VO_WhiteShieldDragon_01_Normal.wav",
+            "wem_relative_path": "Pal/Content/WwiseAudio/Media/839395384.wem"
+        },
+        "Pain": {
+            "media_id": 966969476,
+            "wav_name": "VO_WhiteShieldDragon_05_Pain.wav",
+            "wem_relative_path": "Pal/Content/WwiseAudio/Media/966969476.wem"
+        },
+        "Sorrow": {
+            "media_id": 115157135,
+            "wav_name": "VO_WhiteShieldDragon_04_Sorrow.wav",
+            "wem_relative_path": "Pal/Content/WwiseAudio/Media/115157135.wem"
+        },
+        "Anger": {
+            "media_id": 342532748,
+            "wav_name": "VO_WhiteShieldDragon_03_Anger.wav",
+            "wem_relative_path": "Pal/Content/WwiseAudio/Media/342532748.wem"
+        }
+    },
+    "NightBlueHorse": {
+        "Death": {
+            "media_id": 1053538934,
+            "wav_name": "VO_NightBlueHorse_06_Death.wav",
+            "wem_relative_path": "Pal/Content/WwiseAudio/Media/1053538934.wem"
+        },
+        "Normal": {
+            "media_id": 691563594,
+            "wav_name": "VO_NightBlueHorse_01_Normal.wav",
+            "wem_relative_path": "Pal/Content/WwiseAudio/Media/691563594.wem"
+        },
+        "Pain": {
+            "media_id": 135120251,
+            "wav_name": "VO_NightBlueHorse_05_Pain.wav",
+            "wem_relative_path": "Pal/Content/WwiseAudio/Media/135120251.wem"
+        },
+        "Sorrow": {
+            "media_id": 1042071155,
+            "wav_name": "VO_NightBlueHorse_04_Sorrow.wav",
+            "wem_relative_path": "Pal/Content/WwiseAudio/Media/1042071155.wem"
+        },
+        "Anger": {
+            "media_id": 643451341,
+            "wav_name": "VO_NightBlueHorse_03_Anger.wav",
+            "wem_relative_path": "Pal/Content/WwiseAudio/Media/643451341.wem"
+        }
+    },
+    "GoldenHorse": {
+        "Death": {
+            "media_id": 522244260,
+            "wav_name": "VO_GoldenHorse_06_Death.wav",
+            "wem_relative_path": "Pal/Content/WwiseAudio/Media/522244260.wem"
+        },
+        "Joy": {
+            "media_id": 770119417,
+            "wav_name": "VO_GoldenHorse_02_Joy.wav",
+            "wem_relative_path": "Pal/Content/WwiseAudio/Media/770119417.wem"
+        },
+        "Normal": {
+            "media_id": 657991992,
+            "wav_name": "VO_GoldenHorse_01_Normal.wav",
+            "wem_relative_path": "Pal/Content/WwiseAudio/Media/657991992.wem"
+        },
+        "Pain": {
+            "media_id": 371911974,
+            "wav_name": "VO_GoldenHorse_05_Pain.wav",
+            "wem_relative_path": "Pal/Content/WwiseAudio/Media/371911974.wem"
+        },
+        "Sorrow": {
+            "media_id": 200550706,
+            "wav_name": "VO_GoldenHorse_04_Sorrow.wav",
+            "wem_relative_path": "Pal/Content/WwiseAudio/Media/200550706.wem"
+        },
+        "Anger": {
+            "media_id": 845506044,
+            "wav_name": "VO_GoldenHorse_03_Anger.wav",
+            "wem_relative_path": "Pal/Content/WwiseAudio/Media/845506044.wem"
+        }
+    },
+    "FlowerDoll": {
+        "Death": {
+            "media_id": 12959117,
+            "wav_name": "VO_FlowerDoll_06_Death.wav",
+            "wem_relative_path": "Pal/Content/WwiseAudio/Media/12959117.wem"
+        },
+        "Joy": {
+            "media_id": 1023627744,
+            "wav_name": "VO_FlowerDoll_02_Joy.wav",
+            "wem_relative_path": "Pal/Content/WwiseAudio/Media/1023627744.wem"
+        },
+        "Normal": {
+            "media_id": 791900774,
+            "wav_name": "VO_FlowerDoll_01_Normal.wav",
+            "wem_relative_path": "Pal/Content/WwiseAudio/Media/791900774.wem"
+        },
+        "Pain": {
+            "media_id": 1019997310,
+            "wav_name": "VO_FlowerDoll_05_Pain.wav",
+            "wem_relative_path": "Pal/Content/WwiseAudio/Media/1019997310.wem"
+        },
+        "Sorrow": {
+            "media_id": 716114570,
+            "wav_name": "VO_FlowerDoll_04_Sorrow.wav",
+            "wem_relative_path": "Pal/Content/WwiseAudio/Media/716114570.wem"
+        },
+        "Anger": {
+            "media_id": 467974194,
+            "wav_name": "VO_FlowerDoll_03_Anger.wav",
+            "wem_relative_path": "Pal/Content/WwiseAudio/Media/467974194.wem"
+        }
+    },
+    "BlackGriffon": {
+        "Death": {
+            "media_id": 510347113,
+            "wav_name": "VO_BlackGriffon_06_Death.wav",
+            "wem_relative_path": "Pal/Content/WwiseAudio/Media/510347113.wem"
+        },
+        "Joy": {
+            "media_id": 1293978,
+            "wav_name": "VO_BlackGriffon_02_Joy.wav",
+            "wem_relative_path": "Pal/Content/WwiseAudio/Media/1293978.wem"
+        },
+        "Normal": {
+            "media_id": 14386838,
+            "wav_name": "VO_BlackGriffon_01_Normal.wav",
+            "wem_relative_path": "Pal/Content/WwiseAudio/Media/14386838.wem"
+        },
+        "Pain": {
+            "media_id": 1031882519,
+            "wav_name": "VO_BlackGriffon_05_Pain.wav",
+            "wem_relative_path": "Pal/Content/WwiseAudio/Media/1031882519.wem"
+        },
+        "Sorrow": {
+            "media_id": 364194368,
+            "wav_name": "VO_BlackGriffon_04_Sorrow.wav",
+            "wem_relative_path": "Pal/Content/WwiseAudio/Media/364194368.wem"
+        },
+        "Anger": {
+            "media_id": 810603004,
+            "wav_name": "VO_BlackGriffon_03_Anger.wav",
+            "wem_relative_path": "Pal/Content/WwiseAudio/Media/810603004.wem"
+        }
+    },
+    "FlameBambi": {
+        "Death": {
+            "media_id": 279825937,
+            "wav_name": "VO_FlameBambi_06_Death.wav",
+            "wem_relative_path": "Pal/Content/WwiseAudio/Media/279825937.wem"
+        },
+        "Joy": {
+            "media_id": 60577433,
+            "wav_name": "VO_FlameBambi_02_Joy.wav",
+            "wem_relative_path": "Pal/Content/WwiseAudio/Media/60577433.wem"
+        },
+        "Normal": {
+            "media_id": 48126139,
+            "wav_name": "VO_FlameBambi_01_Normal.wav",
+            "wem_relative_path": "Pal/Content/WwiseAudio/Media/48126139.wem"
+        },
+        "Pain": {
+            "media_id": 1051748245,
+            "wav_name": "VO_FlameBambi_05_Pain.wav",
+            "wem_relative_path": "Pal/Content/WwiseAudio/Media/1051748245.wem"
+        },
+        "Sorrow": {
+            "media_id": 214432248,
+            "wav_name": "VO_FlameBambi_04_Sorrow.wav",
+            "wem_relative_path": "Pal/Content/WwiseAudio/Media/214432248.wem"
+        },
+        "Anger": {
+            "media_id": 531672400,
+            "wav_name": "VO_FlameBambi_03_Anger.wav",
+            "wem_relative_path": "Pal/Content/WwiseAudio/Media/531672400.wem"
+        }
+    },
+    "GhostBeast": {
+        "Death": {
+            "media_id": 492198063,
+            "wav_name": "VO_GhostBeast_06_Death.wav",
+            "wem_relative_path": "Pal/Content/WwiseAudio/Media/492198063.wem"
+        },
+        "Joy": {
+            "media_id": 977977072,
+            "wav_name": "VO_GhostBeast_02_Joy.wav",
+            "wem_relative_path": "Pal/Content/WwiseAudio/Media/977977072.wem"
+        },
+        "Normal": {
+            "media_id": 734655466,
+            "wav_name": "VO_GhostBeast_01_Normal.wav",
+            "wem_relative_path": "Pal/Content/WwiseAudio/Media/734655466.wem"
+        },
+        "Pain": {
+            "media_id": 452791300,
+            "wav_name": "VO_GhostBeast_05_Pain.wav",
+            "wem_relative_path": "Pal/Content/WwiseAudio/Media/452791300.wem"
+        },
+        "Sorrow": {
+            "media_id": 273382545,
+            "wav_name": "VO_GhostBeast_04_Sorrow.wav",
+            "wem_relative_path": "Pal/Content/WwiseAudio/Media/273382545.wem"
+        },
+        "Anger": {
+            "media_id": 408793929,
+            "wav_name": "VO_GhostBeast_03_Anger.wav",
+            "wem_relative_path": "Pal/Content/WwiseAudio/Media/408793929.wem"
+        }
+    },
+    "CuteMole": {
+        "Death": {
+            "media_id": 1051383665,
+            "wav_name": "VO_CuteMole_06_Death.wav",
+            "wem_relative_path": "Pal/Content/WwiseAudio/Media/1051383665.wem"
+        },
+        "Joy": {
+            "media_id": 543325738,
+            "wav_name": "VO_CuteMole_02_Joy.wav",
+            "wem_relative_path": "Pal/Content/WwiseAudio/Media/543325738.wem"
+        },
+        "Normal": {
+            "media_id": 442542152,
+            "wav_name": "VO_CuteMole_01_Normal.wav",
+            "wem_relative_path": "Pal/Content/WwiseAudio/Media/442542152.wem"
+        },
+        "Pain": {
+            "media_id": 571449239,
+            "wav_name": "VO_CuteMole_05_Pain.wav",
+            "wem_relative_path": "Pal/Content/WwiseAudio/Media/571449239.wem"
+        },
+        "Sorrow": {
+            "media_id": 37574818,
+            "wav_name": "VO_CuteMole_04_Sorrow.wav",
+            "wem_relative_path": "Pal/Content/WwiseAudio/Media/37574818.wem"
+        },
+        "Anger": {
+            "media_id": 853109320,
+            "wav_name": "VO_CuteMole_03_Anger.wav",
+            "wem_relative_path": "Pal/Content/WwiseAudio/Media/853109320.wem"
+        }
+    },
+    "JetDragon": {
+        "Death": {
+            "media_id": 977109776,
+            "wav_name": "VO_JetDragon_06_Death.wav",
+            "wem_relative_path": "Pal/Content/WwiseAudio/Media/977109776.wem"
+        },
+        "Joy": {
+            "media_id": 93212890,
+            "wav_name": "VO_JetDragon_02_Joy.wav",
+            "wem_relative_path": "Pal/Content/WwiseAudio/Media/93212890.wem"
+        },
+        "Normal": {
+            "media_id": 474464904,
+            "wav_name": "VO_JetDragon_01_Normal.wav",
+            "wem_relative_path": "Pal/Content/WwiseAudio/Media/474464904.wem"
+        },
+        "Pain": {
+            "media_id": 144271513,
+            "wav_name": "VO_JetDragon_05_Pain.wav",
+            "wem_relative_path": "Pal/Content/WwiseAudio/Media/144271513.wem"
+        },
+        "Sorrow": {
+            "media_id": 543820472,
+            "wav_name": "VO_JetDragon_04_Sorrow.wav",
+            "wem_relative_path": "Pal/Content/WwiseAudio/Media/543820472.wem"
+        },
+        "Anger": {
+            "media_id": 53353968,
+            "wav_name": "VO_JetDragon_03_Anger.wav",
+            "wem_relative_path": "Pal/Content/WwiseAudio/Media/53353968.wem"
+        }
+    },
+    "MopKing": {
+        "Death": {
+            "media_id": 685509211,
+            "wav_name": "VO_MopKing_06_Death.wav",
+            "wem_relative_path": "Pal/Content/WwiseAudio/Media/685509211.wem"
+        },
+        "Joy": {
+            "media_id": 725543884,
+            "wav_name": "VO_MopKing_02_Joy.wav",
+            "wem_relative_path": "Pal/Content/WwiseAudio/Media/725543884.wem"
+        },
+        "Normal": {
+            "media_id": 906814248,
+            "wav_name": "VO_MopKing_01_Normal.wav",
+            "wem_relative_path": "Pal/Content/WwiseAudio/Media/906814248.wem"
+        },
+        "Pain": {
+            "media_id": 102395151,
+            "wav_name": "VO_MopKing_05_Pain.wav",
+            "wem_relative_path": "Pal/Content/WwiseAudio/Media/102395151.wem"
+        },
+        "Sorrow": {
+            "media_id": 467753746,
+            "wav_name": "VO_MopKing_04_Sorrow.wav",
+            "wem_relative_path": "Pal/Content/WwiseAudio/Media/467753746.wem"
+        },
+        "Anger": {
+            "media_id": 315335575,
+            "wav_name": "VO_MopKing_03_Anger.wav",
+            "wem_relative_path": "Pal/Content/WwiseAudio/Media/315335575.wem"
+        }
+    },
+    "LeafMomonga": {
+        "Death": {
+            "media_id": 943168926,
+            "wav_name": "VO_LeafMomonga_06_Death.wav",
+            "wem_relative_path": "Pal/Content/WwiseAudio/Media/943168926.wem"
+        },
+        "Joy": {
+            "media_id": 937601936,
+            "wav_name": "VO_LeafMomonga_02_Joy.wav",
+            "wem_relative_path": "Pal/Content/WwiseAudio/Media/937601936.wem"
+        },
+        "Normal": {
+            "media_id": 895011241,
+            "wav_name": "VO_LeafMomonga_01_Normal.wav",
+            "wem_relative_path": "Pal/Content/WwiseAudio/Media/895011241.wem"
+        },
+        "Pain": {
+            "media_id": 541164074,
+            "wav_name": "VO_LeafMomonga_05_Pain.wav",
+            "wem_relative_path": "Pal/Content/WwiseAudio/Media/541164074.wem"
+        },
+        "Sorrow": {
+            "media_id": 897139884,
+            "wav_name": "VO_LeafMomonga_04_Sorrow.wav",
+            "wem_relative_path": "Pal/Content/WwiseAudio/Media/897139884.wem"
+        },
+        "Anger": {
+            "media_id": 170426109,
+            "wav_name": "VO_LeafMomonga_03_Anger.wav",
+            "wem_relative_path": "Pal/Content/WwiseAudio/Media/170426109.wem"
+        }
+    },
+    "CaptainPenguin": {
+        "Death": {
+            "media_id": 471490964,
+            "wav_name": "VO_CaptainPenguin_06_Death.wav",
+            "wem_relative_path": "Pal/Content/WwiseAudio/Media/471490964.wem"
+        },
+        "Joy": {
+            "media_id": 314775559,
+            "wav_name": "VO_CaptainPenguin_02_Joy.wav",
+            "wem_relative_path": "Pal/Content/WwiseAudio/Media/314775559.wem"
+        },
+        "Normal": {
+            "media_id": 1046233901,
+            "wav_name": "VO_CaptainPenguin_01_Normal.wav",
+            "wem_relative_path": "Pal/Content/WwiseAudio/Media/1046233901.wem"
+        },
+        "Pain": {
+            "media_id": 1069579471,
+            "wav_name": "VO_CaptainPenguin_05_Pain.wav",
+            "wem_relative_path": "Pal/Content/WwiseAudio/Media/1069579471.wem"
+        },
+        "Sorrow": {
+            "media_id": 623190793,
+            "wav_name": "VO_CaptainPenguin_04_Sorrow.wav",
+            "wem_relative_path": "Pal/Content/WwiseAudio/Media/623190793.wem"
+        },
+        "Anger": {
+            "media_id": 372115223,
+            "wav_name": "VO_CaptainPenguin_03_Anger.wav",
+            "wem_relative_path": "Pal/Content/WwiseAudio/Media/372115223.wem"
+        }
+    },
+    "Serpent": {
+        "Death": {
+            "media_id": 423099798,
+            "wav_name": "VO_Serpent_06_Death.wav",
+            "wem_relative_path": "Pal/Content/WwiseAudio/Media/423099798.wem"
+        },
+        "Joy": {
+            "media_id": 339869658,
+            "wav_name": "VO_Serpent_02_Joy.wav",
+            "wem_relative_path": "Pal/Content/WwiseAudio/Media/339869658.wem"
+        },
+        "Normal": {
+            "media_id": 823115286,
+            "wav_name": "VO_Serpent_01_Normal.wav",
+            "wem_relative_path": "Pal/Content/WwiseAudio/Media/823115286.wem"
+        },
+        "Pain": {
+            "media_id": 604617934,
+            "wav_name": "VO_Serpent_05_Pain.wav",
+            "wem_relative_path": "Pal/Content/WwiseAudio/Media/604617934.wem"
+        },
+        "Sorrow": {
+            "media_id": 698828595,
+            "wav_name": "VO_Serpent_04_Sorrow.wav",
+            "wem_relative_path": "Pal/Content/WwiseAudio/Media/698828595.wem"
+        },
+        "Anger": {
+            "media_id": 1057109054,
+            "wav_name": "VO_Serpent_03_Anger.wav",
+            "wem_relative_path": "Pal/Content/WwiseAudio/Media/1057109054.wem"
+        }
+    },
+    "MoonQueen": {
+        "Death": {
+            "media_id": 99926672,
+            "wav_name": "VO_MoonQueen_06_Death.wav",
+            "wem_relative_path": "Pal/Content/WwiseAudio/Media/99926672.wem"
+        },
+        "Joy": {
+            "media_id": 836580041,
+            "wav_name": "VO_MoonQueen_02_Joy.wav",
+            "wem_relative_path": "Pal/Content/WwiseAudio/Media/836580041.wem"
+        },
+        "Normal": {
+            "media_id": 144398225,
+            "wav_name": "VO_MoonQueen_01_Normal.wav",
+            "wem_relative_path": "Pal/Content/WwiseAudio/Media/144398225.wem"
+        },
+        "Pain": {
+            "media_id": 108539294,
+            "wav_name": "VO_MoonQueen_05_Pain.wav",
+            "wem_relative_path": "Pal/Content/WwiseAudio/Media/108539294.wem"
+        },
+        "Sorrow": {
+            "media_id": 274160979,
+            "wav_name": "VO_MoonQueen_04_Sorrow.wav",
+            "wem_relative_path": "Pal/Content/WwiseAudio/Media/274160979.wem"
+        },
+        "Anger": {
+            "media_id": 468147173,
+            "wav_name": "VO_MoonQueen_03_Anger.wav",
+            "wem_relative_path": "Pal/Content/WwiseAudio/Media/468147173.wem"
+        }
+    },
+    "NegativeOctopus": {
+        "Death": {
+            "media_id": 915439825,
+            "wav_name": "VO_NegativeOctopus_06_Death.wav",
+            "wem_relative_path": "Pal/Content/WwiseAudio/Media/915439825.wem"
+        },
+        "Joy": {
+            "media_id": 912989616,
+            "wav_name": "VO_NegativeOctopus_02_Joy.wav",
+            "wem_relative_path": "Pal/Content/WwiseAudio/Media/912989616.wem"
+        },
+        "Normal": {
+            "media_id": 190027301,
+            "wav_name": "VO_NegativeOctopus_01_Normal.wav",
+            "wem_relative_path": "Pal/Content/WwiseAudio/Media/190027301.wem"
+        },
+        "Pain": {
+            "media_id": 1066404198,
+            "wav_name": "VO_NegativeOctopus_05_Pain.wav",
+            "wem_relative_path": "Pal/Content/WwiseAudio/Media/1066404198.wem"
+        },
+        "Sorrow": {
+            "media_id": 499844946,
+            "wav_name": "VO_NegativeOctopus_04_Sorrow.wav",
+            "wem_relative_path": "Pal/Content/WwiseAudio/Media/499844946.wem"
+        },
+        "Anger": {
+            "media_id": 47473351,
+            "wav_name": "VO_NegativeOctopus_03_Anger.wav",
+            "wem_relative_path": "Pal/Content/WwiseAudio/Media/47473351.wem"
+        }
+    },
+    "Mutant": {
+        "Joy": {
+            "media_id": 364525021,
+            "wav_name": "VO_Mutant_02_Joy.wav",
+            "wem_relative_path": "Pal/Content/WwiseAudio/Media/364525021.wem"
+        },
+        "Pain": {
+            "media_id": 29398904,
+            "wav_name": "VO_Mutant_05_Pain.wav",
+            "wem_relative_path": "Pal/Content/WwiseAudio/Media/29398904.wem"
+        },
+        "Sorrow": {
+            "media_id": 965967896,
+            "wav_name": "VO_Mutant_04_Sorrow.wav",
+            "wem_relative_path": "Pal/Content/WwiseAudio/Media/965967896.wem"
+        },
+        "Anger": {
+            "media_id": 457733760,
+            "wav_name": "VO_Mutant_03_Anger.wav",
+            "wem_relative_path": "Pal/Content/WwiseAudio/Media/457733760.wem"
+        }
+    },
+    "SweetsSheep": {
+        "Death": {
+            "media_id": 122240089,
+            "wav_name": "VO_SweetsSheep_06_Death.wav",
+            "wem_relative_path": "Pal/Content/WwiseAudio/Media/122240089.wem"
+        },
+        "Joy": {
+            "media_id": 648963960,
+            "wav_name": "VO_SweetsSheep_02_Joy.wav",
+            "wem_relative_path": "Pal/Content/WwiseAudio/Media/648963960.wem"
+        },
+        "Normal": {
+            "media_id": 149733097,
+            "wav_name": "VO_SweetsSheep_01_Normal.wav",
+            "wem_relative_path": "Pal/Content/WwiseAudio/Media/149733097.wem"
+        },
+        "Pain": {
+            "media_id": 680453694,
+            "wav_name": "VO_SweetsSheep_05_Pain.wav",
+            "wem_relative_path": "Pal/Content/WwiseAudio/Media/680453694.wem"
+        },
+        "Sorrow": {
+            "media_id": 1062678290,
+            "wav_name": "VO_SweetsSheep_04_Sorrow.wav",
+            "wem_relative_path": "Pal/Content/WwiseAudio/Media/1062678290.wem"
+        },
+        "Anger": {
+            "media_id": 722313079,
+            "wav_name": "VO_SweetsSheep_03_Anger.wav",
+            "wem_relative_path": "Pal/Content/WwiseAudio/Media/722313079.wem"
+        }
+    },
+    "PinkCat": {
+        "Death": {
+            "media_id": 842808624,
+            "wav_name": "VO_PinkCat_06_Death.wav",
+            "wem_relative_path": "Pal/Content/WwiseAudio/Media/842808624.wem"
+        },
+        "Joy": {
+            "media_id": 573810681,
+            "wav_name": "VO_PinkCat_02_Joy.wav",
+            "wem_relative_path": "Pal/Content/WwiseAudio/Media/573810681.wem"
+        },
+        "Pain": {
+            "media_id": 980873458,
+            "wav_name": "VO_PinkCat_05_Pain.wav",
+            "wem_relative_path": "Pal/Content/WwiseAudio/Media/980873458.wem"
+        },
+        "Sorrow": {
+            "media_id": 942072444,
+            "wav_name": "VO_PinkCat_04_Sorrow.wav",
+            "wem_relative_path": "Pal/Content/WwiseAudio/Media/942072444.wem"
+        },
+        "Anger": {
+            "media_id": 477932227,
+            "wav_name": "VO_PinkCat_03_Anger.wav",
+            "wem_relative_path": "Pal/Content/WwiseAudio/Media/477932227.wem"
+        }
+    },
+    "ScorpionMan": {
+        "Death": {
+            "media_id": 769907841,
+            "wav_name": "VO_ScorpionMan_06_Death.wav",
+            "wem_relative_path": "Pal/Content/WwiseAudio/Media/769907841.wem"
+        },
+        "Joy": {
+            "media_id": 1047527997,
+            "wav_name": "VO_ScorpionMan_02_Joy.wav",
+            "wem_relative_path": "Pal/Content/WwiseAudio/Media/1047527997.wem"
+        },
+        "Normal": {
+            "media_id": 416603582,
+            "wav_name": "VO_ScorpionMan_01_Normal.wav",
+            "wem_relative_path": "Pal/Content/WwiseAudio/Media/416603582.wem"
+        },
+        "Pain": {
+            "media_id": 102157692,
+            "wav_name": "VO_ScorpionMan_05_Pain.wav",
+            "wem_relative_path": "Pal/Content/WwiseAudio/Media/102157692.wem"
+        },
+        "Sorrow": {
+            "media_id": 308704263,
+            "wav_name": "VO_ScorpionMan_04_Sorrow.wav",
+            "wem_relative_path": "Pal/Content/WwiseAudio/Media/308704263.wem"
+        },
+        "Anger": {
+            "media_id": 199187573,
+            "wav_name": "VO_ScorpionMan_03_Anger.wav",
+            "wem_relative_path": "Pal/Content/WwiseAudio/Media/199187573.wem"
+        }
+    },
+    "Carbunclo": {
+        "Death": {
+            "media_id": 176640192,
+            "wav_name": "VO_Carbunclo_06_Death.wav",
+            "wem_relative_path": "Pal/Content/WwiseAudio/Media/176640192.wem"
+        },
+        "Joy": {
+            "media_id": 240770060,
+            "wav_name": "VO_Carbunclo_02_Joy.wav",
+            "wem_relative_path": "Pal/Content/WwiseAudio/Media/240770060.wem"
+        },
+        "Normal": {
+            "media_id": 161727105,
+            "wav_name": "VO_Carbunclo_01_Normal.wav",
+            "wem_relative_path": "Pal/Content/WwiseAudio/Media/161727105.wem"
+        },
+        "Pain": {
+            "media_id": 540357450,
+            "wav_name": "VO_Carbunclo_05_Pain.wav",
+            "wem_relative_path": "Pal/Content/WwiseAudio/Media/540357450.wem"
+        },
+        "Sorrow": {
+            "media_id": 686925915,
+            "wav_name": "VO_Carbunclo_04_Sorrow.wav",
+            "wem_relative_path": "Pal/Content/WwiseAudio/Media/686925915.wem"
+        },
+        "Anger": {
+            "media_id": 890757275,
+            "wav_name": "VO_Carbunclo_03_Anger.wav",
+            "wem_relative_path": "Pal/Content/WwiseAudio/Media/890757275.wem"
+        }
+    },
+    "BadCatgirl": {
+        "Death": {
+            "media_id": 712171190,
+            "wav_name": "VO_BadCatgirl_06_Death.wav",
+            "wem_relative_path": "Pal/Content/WwiseAudio/Media/712171190.wem"
+        },
+        "Joy": {
+            "media_id": 191233074,
+            "wav_name": "VO_BadCatgirl_02_Joy.wav",
+            "wem_relative_path": "Pal/Content/WwiseAudio/Media/191233074.wem"
+        },
+        "Normal": {
+            "media_id": 403508974,
+            "wav_name": "VO_BadCatgirl_01_Normal.wav",
+            "wem_relative_path": "Pal/Content/WwiseAudio/Media/403508974.wem"
+        },
+        "Pain": {
+            "media_id": 487727543,
+            "wav_name": "VO_BadCatgirl_05_Pain.wav",
+            "wem_relative_path": "Pal/Content/WwiseAudio/Media/487727543.wem"
+        },
+        "Sorrow": {
+            "media_id": 217353712,
+            "wav_name": "VO_BadCatgirl_04_Sorrow.wav",
+            "wem_relative_path": "Pal/Content/WwiseAudio/Media/217353712.wem"
+        },
+        "Anger": {
+            "media_id": 304080049,
+            "wav_name": "VO_BadCatgirl_03_Anger.wav",
+            "wem_relative_path": "Pal/Content/WwiseAudio/Media/304080049.wem"
+        }
+    },
+    "DarkScorpion": {
+        "Death": {
+            "media_id": 12269141,
+            "wav_name": "VO_DarkScorpion_06_Death.wav",
+            "wem_relative_path": "Pal/Content/WwiseAudio/Media/12269141.wem"
+        },
+        "Joy": {
+            "media_id": 923356695,
+            "wav_name": "VO_DarkScorpion_02_Joy.wav",
+            "wem_relative_path": "Pal/Content/WwiseAudio/Media/923356695.wem"
+        },
+        "Normal": {
+            "media_id": 34633536,
+            "wav_name": "VO_DarkScorpion_01_Normal.wav",
+            "wem_relative_path": "Pal/Content/WwiseAudio/Media/34633536.wem"
+        },
+        "Pain": {
+            "media_id": 295409953,
+            "wav_name": "VO_DarkScorpion_05_Pain.wav",
+            "wem_relative_path": "Pal/Content/WwiseAudio/Media/295409953.wem"
+        },
+        "Sorrow": {
+            "media_id": 821647515,
+            "wav_name": "VO_DarkScorpion_04_Sorrow.wav",
+            "wem_relative_path": "Pal/Content/WwiseAudio/Media/821647515.wem"
+        },
+        "Anger": {
+            "media_id": 1061560712,
+            "wav_name": "VO_DarkScorpion_03_Anger.wav",
+            "wem_relative_path": "Pal/Content/WwiseAudio/Media/1061560712.wem"
+        }
+    },
+    "Yeti": {
+        "Death": {
+            "media_id": 607537661,
+            "wav_name": "VO_Yeti_06_Death.wav",
+            "wem_relative_path": "Pal/Content/WwiseAudio/Media/607537661.wem"
+        },
+        "Joy": {
+            "media_id": 686840829,
+            "wav_name": "VO_Yeti_02_Joy.wav",
+            "wem_relative_path": "Pal/Content/WwiseAudio/Media/686840829.wem"
+        },
+        "Normal": {
+            "media_id": 828638477,
+            "wav_name": "VO_Yeti_01_Normal.wav",
+            "wem_relative_path": "Pal/Content/WwiseAudio/Media/828638477.wem"
+        },
+        "Pain": {
+            "media_id": 1021213305,
+            "wav_name": "VO_Yeti_05_Pain.wav",
+            "wem_relative_path": "Pal/Content/WwiseAudio/Media/1021213305.wem"
+        },
+        "Sorrow": {
+            "media_id": 540431964,
+            "wav_name": "VO_Yeti_04_Sorrow.wav",
+            "wem_relative_path": "Pal/Content/WwiseAudio/Media/540431964.wem"
+        },
+        "Anger": {
+            "media_id": 439260821,
+            "wav_name": "VO_Yeti_03_Anger.wav",
+            "wem_relative_path": "Pal/Content/WwiseAudio/Media/439260821.wem"
+        }
+    },
+    "DarkMechaDragon": {
+        "Death": {
+            "media_id": 446981297,
+            "wav_name": "VO_DarkMechaDragon_06_Death.wav",
+            "wem_relative_path": "Pal/Content/WwiseAudio/Media/446981297.wem"
+        },
+        "Joy": {
+            "media_id": 753994572,
+            "wav_name": "VO_DarkMechaDragon_02_Joy.wav",
+            "wem_relative_path": "Pal/Content/WwiseAudio/Media/753994572.wem"
+        },
+        "Normal": {
+            "media_id": 1031090780,
+            "wav_name": "VO_DarkMechaDragon_01_Normal.wav",
+            "wem_relative_path": "Pal/Content/WwiseAudio/Media/1031090780.wem"
+        },
+        "Pain": {
+            "media_id": 698379539,
+            "wav_name": "VO_DarkMechaDragon_05_Pain.wav",
+            "wem_relative_path": "Pal/Content/WwiseAudio/Media/698379539.wem"
+        },
+        "Sorrow": {
+            "media_id": 44182373,
+            "wav_name": "VO_DarkMechaDragon_04_Sorrow.wav",
+            "wem_relative_path": "Pal/Content/WwiseAudio/Media/44182373.wem"
+        },
+        "Anger": {
+            "media_id": 428308653,
+            "wav_name": "VO_DarkMechaDragon_03_Anger.wav",
+            "wem_relative_path": "Pal/Content/WwiseAudio/Media/428308653.wem"
+        }
+    },
+    "Penguin": {
+        "Death": {
+            "media_id": 607220847,
+            "wav_name": "VO_Penguin_06_Death.wav",
+            "wem_relative_path": "Pal/Content/WwiseAudio/Media/607220847.wem"
+        },
+        "Joy": {
+            "media_id": 892012670,
+            "wav_name": "VO_Penguin_02_Joy.wav",
+            "wem_relative_path": "Pal/Content/WwiseAudio/Media/892012670.wem"
+        },
+        "Normal": {
+            "media_id": 291409068,
+            "wav_name": "VO_Penguin_01_Normal.wav",
+            "wem_relative_path": "Pal/Content/WwiseAudio/Media/291409068.wem"
+        },
+        "Pain": {
+            "media_id": 796808424,
+            "wav_name": "VO_Penguin_05_Pain.wav",
+            "wem_relative_path": "Pal/Content/WwiseAudio/Media/796808424.wem"
+        },
+        "Sorrow": {
+            "media_id": 169157231,
+            "wav_name": "VO_Penguin_04_Sorrow.wav",
+            "wem_relative_path": "Pal/Content/WwiseAudio/Media/169157231.wem"
+        },
+        "Anger": {
+            "media_id": 683501269,
+            "wav_name": "VO_Penguin_03_Anger.wav",
+            "wem_relative_path": "Pal/Content/WwiseAudio/Media/683501269.wem"
+        }
+    },
+    "IceHorse": {
+        "Death": {
+            "media_id": 380152698,
+            "wav_name": "VO_IceHorse_06_Death.wav",
+            "wem_relative_path": "Pal/Content/WwiseAudio/Media/380152698.wem"
+        },
+        "Joy": {
+            "media_id": 517485182,
+            "wav_name": "VO_IceHorse_02_Joy.wav",
+            "wem_relative_path": "Pal/Content/WwiseAudio/Media/517485182.wem"
+        },
+        "Normal": {
+            "media_id": 196157404,
+            "wav_name": "VO_IceHorse_01_Normal.wav",
+            "wem_relative_path": "Pal/Content/WwiseAudio/Media/196157404.wem"
+        },
+        "Pain": {
+            "media_id": 1005323825,
+            "wav_name": "VO_IceHorse_05_Pain.wav",
+            "wem_relative_path": "Pal/Content/WwiseAudio/Media/1005323825.wem"
+        },
+        "Sorrow": {
+            "media_id": 254525797,
+            "wav_name": "VO_IceHorse_04_Sorrow.wav",
+            "wem_relative_path": "Pal/Content/WwiseAudio/Media/254525797.wem"
+        },
+        "Anger": {
+            "media_id": 866518074,
+            "wav_name": "VO_IceHorse_03_Anger.wav",
+            "wem_relative_path": "Pal/Content/WwiseAudio/Media/866518074.wem"
+        }
+    },
+    "DarkCrow": {
+        "Death": {
+            "media_id": 369187356,
+            "wav_name": "VO_DarkCrow_06_Death.wav",
+            "wem_relative_path": "Pal/Content/WwiseAudio/Media/369187356.wem"
+        },
+        "Joy": {
+            "media_id": 171347921,
+            "wav_name": "VO_DarkCrow_02_Joy.wav",
+            "wem_relative_path": "Pal/Content/WwiseAudio/Media/171347921.wem"
+        },
+        "Normal": {
+            "media_id": 547374133,
+            "wav_name": "VO_DarkCrow_01_Normal.wav",
+            "wem_relative_path": "Pal/Content/WwiseAudio/Media/547374133.wem"
+        },
+        "Pain": {
+            "media_id": 908274773,
+            "wav_name": "VO_DarkCrow_05_Pain.wav",
+            "wem_relative_path": "Pal/Content/WwiseAudio/Media/908274773.wem"
+        },
+        "Sorrow": {
+            "media_id": 727177191,
+            "wav_name": "VO_DarkCrow_04_Sorrow.wav",
+            "wem_relative_path": "Pal/Content/WwiseAudio/Media/727177191.wem"
+        },
+        "Anger": {
+            "media_id": 1034205660,
+            "wav_name": "VO_DarkCrow_03_Anger.wav",
+            "wem_relative_path": "Pal/Content/WwiseAudio/Media/1034205660.wem"
+        }
+    },
+    "CandleGhost": {
+        "Death": {
+            "media_id": 293459334,
+            "wav_name": "VO_CandleGhost_06_Death.wav",
+            "wem_relative_path": "Pal/Content/WwiseAudio/Media/293459334.wem"
+        },
+        "Joy": {
+            "media_id": 639364366,
+            "wav_name": "VO_CandleGhost_02_Joy.wav",
+            "wem_relative_path": "Pal/Content/WwiseAudio/Media/639364366.wem"
+        },
+        "Normal": {
+            "media_id": 751743205,
+            "wav_name": "VO_CandleGhost_01_Normal.wav",
+            "wem_relative_path": "Pal/Content/WwiseAudio/Media/751743205.wem"
+        },
+        "Pain": {
+            "media_id": 612650190,
+            "wav_name": "VO_CandleGhost_05_Pain.wav",
+            "wem_relative_path": "Pal/Content/WwiseAudio/Media/612650190.wem"
+        },
+        "Sorrow": {
+            "media_id": 878432804,
+            "wav_name": "VO_CandleGhost_04_Sorrow.wav",
+            "wem_relative_path": "Pal/Content/WwiseAudio/Media/878432804.wem"
+        },
+        "Anger": {
+            "media_id": 868875145,
+            "wav_name": "VO_CandleGhost_03_Anger.wav",
+            "wem_relative_path": "Pal/Content/WwiseAudio/Media/868875145.wem"
+        }
+    },
+    "FeatherOstrich": {
+        "Death": {
+            "media_id": 1047293280,
+            "wav_name": "VO_FeatherOstrich_06_Death.wav",
+            "wem_relative_path": "Pal/Content/WwiseAudio/Media/1047293280.wem"
+        },
+        "Joy": {
+            "media_id": 43726691,
+            "wav_name": "VO_FeatherOstrich_02_Joy.wav",
+            "wem_relative_path": "Pal/Content/WwiseAudio/Media/43726691.wem"
+        },
+        "Normal": {
+            "media_id": 617315602,
+            "wav_name": "VO_FeatherOstrich_01_Normal.wav",
+            "wem_relative_path": "Pal/Content/WwiseAudio/Media/617315602.wem"
+        },
+        "Pain": {
+            "media_id": 862980277,
+            "wav_name": "VO_FeatherOstrich_05_Pain.wav",
+            "wem_relative_path": "Pal/Content/WwiseAudio/Media/862980277.wem"
+        },
+        "Sorrow": {
+            "media_id": 1010953292,
+            "wav_name": "VO_FeatherOstrich_04_Sorrow.wav",
+            "wem_relative_path": "Pal/Content/WwiseAudio/Media/1010953292.wem"
+        },
+        "Anger": {
+            "media_id": 212541460,
+            "wav_name": "VO_FeatherOstrich_03_Anger.wav",
+            "wem_relative_path": "Pal/Content/WwiseAudio/Media/212541460.wem"
+        }
+    },
+    "LegendDeer": {
+        "Death": {
+            "media_id": 545023210,
+            "wav_name": "VO_LegendDeer_06_Death.wav",
+            "wem_relative_path": "Pal/Content/WwiseAudio/Media/545023210.wem"
+        },
+        "Joy": {
+            "media_id": 878091222,
+            "wav_name": "VO_LegendDeer_02_Joy.wav",
+            "wem_relative_path": "Pal/Content/WwiseAudio/Media/878091222.wem"
+        },
+        "Normal": {
+            "media_id": 822310140,
+            "wav_name": "VO_LegendDeer_01_Normal.wav",
+            "wem_relative_path": "Pal/Content/WwiseAudio/Media/822310140.wem"
+        },
+        "Pain": {
+            "media_id": 613897416,
+            "wav_name": "VO_LegendDeer_05_Pain.wav",
+            "wem_relative_path": "Pal/Content/WwiseAudio/Media/613897416.wem"
+        },
+        "Sorrow": {
+            "media_id": 731990204,
+            "wav_name": "VO_LegendDeer_04_Sorrow.wav",
+            "wem_relative_path": "Pal/Content/WwiseAudio/Media/731990204.wem"
+        },
+        "Anger": {
+            "media_id": 244195744,
+            "wav_name": "VO_LegendDeer_03_Anger.wav",
+            "wem_relative_path": "Pal/Content/WwiseAudio/Media/244195744.wem"
+        }
+    },
+    "BlueberryFairy": {
+        "Death": {
+            "media_id": 966336698,
+            "wav_name": "VO_BlueberryFairy_06_Death.wav",
+            "wem_relative_path": "Pal/Content/WwiseAudio/Media/966336698.wem"
+        },
+        "Joy": {
+            "media_id": 239637605,
+            "wav_name": "VO_BlueberryFairy_02_Joy.wav",
+            "wem_relative_path": "Pal/Content/WwiseAudio/Media/239637605.wem"
+        },
+        "Normal": {
+            "media_id": 365452962,
+            "wav_name": "VO_BlueberryFairy_01_Normal.wav",
+            "wem_relative_path": "Pal/Content/WwiseAudio/Media/365452962.wem"
+        },
+        "Pain": {
+            "media_id": 230456599,
+            "wav_name": "VO_BlueberryFairy_05_Pain.wav",
+            "wem_relative_path": "Pal/Content/WwiseAudio/Media/230456599.wem"
+        },
+        "Sorrow": {
+            "media_id": 983452024,
+            "wav_name": "VO_BlueberryFairy_04_Sorrow.wav",
+            "wem_relative_path": "Pal/Content/WwiseAudio/Media/983452024.wem"
+        },
+        "Anger": {
+            "media_id": 13013991,
+            "wav_name": "VO_BlueberryFairy_03_Anger.wav",
+            "wem_relative_path": "Pal/Content/WwiseAudio/Media/13013991.wem"
+        }
+    },
+    "FlowerRabbit": {
+        "Death": {
+            "media_id": 819452448,
+            "wav_name": "VO_FlowerRabbit_06_Death.wav",
+            "wem_relative_path": "Pal/Content/WwiseAudio/Media/819452448.wem"
+        },
+        "Joy": {
+            "media_id": 299821073,
+            "wav_name": "VO_FlowerRabbit_02_Joy.wav",
+            "wem_relative_path": "Pal/Content/WwiseAudio/Media/299821073.wem"
+        },
+        "Normal": {
+            "media_id": 35920181,
+            "wav_name": "VO_FlowerRabbit_01_Normal.wav",
+            "wem_relative_path": "Pal/Content/WwiseAudio/Media/35920181.wem"
+        },
+        "Pain": {
+            "media_id": 757132794,
+            "wav_name": "VO_FlowerRabbit_05_Pain.wav",
+            "wem_relative_path": "Pal/Content/WwiseAudio/Media/757132794.wem"
+        },
+        "Sorrow": {
+            "media_id": 814290687,
+            "wav_name": "VO_FlowerRabbit_04_Sorrow.wav",
+            "wem_relative_path": "Pal/Content/WwiseAudio/Media/814290687.wem"
+        },
+        "Anger": {
+            "media_id": 520359003,
+            "wav_name": "VO_FlowerRabbit_03_Anger.wav",
+            "wem_relative_path": "Pal/Content/WwiseAudio/Media/520359003.wem"
+        }
+    },
+    "MimicDog": {
+        "Death": {
+            "media_id": 409386499,
+            "wav_name": "VO_MimicDog_06_Death.wav",
+            "wem_relative_path": "Pal/Content/WwiseAudio/Media/409386499.wem"
+        },
+        "Joy": {
+            "media_id": 469169507,
+            "wav_name": "VO_MimicDog_02_Joy.wav",
+            "wem_relative_path": "Pal/Content/WwiseAudio/Media/469169507.wem"
+        },
+        "Normal": {
+            "media_id": 342933141,
+            "wav_name": "VO_MimicDog_01_Normal.wav",
+            "wem_relative_path": "Pal/Content/WwiseAudio/Media/342933141.wem"
+        },
+        "Pain": {
+            "media_id": 430036331,
+            "wav_name": "VO_MimicDog_05_Pain.wav",
+            "wem_relative_path": "Pal/Content/WwiseAudio/Media/430036331.wem"
+        },
+        "Sorrow": {
+            "media_id": 1015460651,
+            "wav_name": "VO_MimicDog_04_Sorrow.wav",
+            "wem_relative_path": "Pal/Content/WwiseAudio/Media/1015460651.wem"
+        },
+        "Anger": {
+            "media_id": 639264166,
+            "wav_name": "VO_MimicDog_03_Anger.wav",
+            "wem_relative_path": "Pal/Content/WwiseAudio/Media/639264166.wem"
+        }
+    },
+    "SakuraSaurus": {
+        "Death": {
+            "media_id": 1068957951,
+            "wav_name": "VO_SakuraSaurus_06_Death.wav",
+            "wem_relative_path": "Pal/Content/WwiseAudio/Media/1068957951.wem"
+        },
+        "Joy": {
+            "media_id": 251503044,
+            "wav_name": "VO_SakuraSaurus_02_Joy.wav",
+            "wem_relative_path": "Pal/Content/WwiseAudio/Media/251503044.wem"
+        },
+        "Normal": {
+            "media_id": 1020562522,
+            "wav_name": "VO_SakuraSaurus_01_Normal.wav",
+            "wem_relative_path": "Pal/Content/WwiseAudio/Media/1020562522.wem"
+        },
+        "Pain": {
+            "media_id": 1031860591,
+            "wav_name": "VO_SakuraSaurus_05_Pain.wav",
+            "wem_relative_path": "Pal/Content/WwiseAudio/Media/1031860591.wem"
+        },
+        "Sorrow": {
+            "media_id": 279014051,
+            "wav_name": "VO_SakuraSaurus_04_Sorrow.wav",
+            "wem_relative_path": "Pal/Content/WwiseAudio/Media/279014051.wem"
+        },
+        "Anger": {
+            "media_id": 943759451,
+            "wav_name": "VO_SakuraSaurus_03_Anger.wav",
+            "wem_relative_path": "Pal/Content/WwiseAudio/Media/943759451.wem"
+        }
+    },
+    "Baphomet": {
+        "Death": {
+            "media_id": 1056318377,
+            "wav_name": "VO_Baphomet_06_Death.wav",
+            "wem_relative_path": "Pal/Content/WwiseAudio/Media/1056318377.wem"
+        },
+        "Joy": {
+            "media_id": 334887976,
+            "wav_name": "VO_Baphomet_02_Joy.wav",
+            "wem_relative_path": "Pal/Content/WwiseAudio/Media/334887976.wem"
+        },
+        "Normal": {
+            "media_id": 928220639,
+            "wav_name": "VO_Baphomet_01_Normal.wav",
+            "wem_relative_path": "Pal/Content/WwiseAudio/Media/928220639.wem"
+        },
+        "Pain": {
+            "media_id": 408647773,
+            "wav_name": "VO_Baphomet_05_Pain.wav",
+            "wem_relative_path": "Pal/Content/WwiseAudio/Media/408647773.wem"
+        },
+        "Sorrow": {
+            "media_id": 105789477,
+            "wav_name": "VO_Baphomet_04_Sorrow.wav",
+            "wem_relative_path": "Pal/Content/WwiseAudio/Media/105789477.wem"
+        },
+        "Anger": {
+            "media_id": 213643656,
+            "wav_name": "VO_Baphomet_03_Anger.wav",
+            "wem_relative_path": "Pal/Content/WwiseAudio/Media/213643656.wem"
+        }
+    },
+    "WingGolem": {
+        "Death": {
+            "media_id": 844590616,
+            "wav_name": "VO_WingGolem_06_Death.wav",
+            "wem_relative_path": "Pal/Content/WwiseAudio/Media/844590616.wem"
+        },
+        "Joy": {
+            "media_id": 784708883,
+            "wav_name": "VO_WingGolem_02_Joy.wav",
+            "wem_relative_path": "Pal/Content/WwiseAudio/Media/784708883.wem"
+        },
+        "Normal": {
+            "media_id": 763370359,
+            "wav_name": "VO_WingGolem_01_Normal.wav",
+            "wem_relative_path": "Pal/Content/WwiseAudio/Media/763370359.wem"
+        },
+        "Pain": {
+            "media_id": 537333934,
+            "wav_name": "VO_WingGolem_05_Pain.wav",
+            "wem_relative_path": "Pal/Content/WwiseAudio/Media/537333934.wem"
+        },
+        "Sorrow": {
+            "media_id": 341616038,
+            "wav_name": "VO_WingGolem_04_Sorrow.wav",
+            "wem_relative_path": "Pal/Content/WwiseAudio/Media/341616038.wem"
+        },
+        "Anger": {
+            "media_id": 549405587,
+            "wav_name": "VO_WingGolem_03_Anger.wav",
+            "wem_relative_path": "Pal/Content/WwiseAudio/Media/549405587.wem"
+        }
+    },
+    "WhiteTiger": {
+        "Death": {
+            "media_id": 590982424,
+            "wav_name": "VO_WhiteTiger_06_Death.wav",
+            "wem_relative_path": "Pal/Content/WwiseAudio/Media/590982424.wem"
+        },
+        "Joy": {
+            "media_id": 702019113,
+            "wav_name": "VO_WhiteTiger_02_Joy.wav",
+            "wem_relative_path": "Pal/Content/WwiseAudio/Media/702019113.wem"
+        },
+        "Normal": {
+            "media_id": 240155576,
+            "wav_name": "VO_WhiteTiger_01_Normal.wav",
+            "wem_relative_path": "Pal/Content/WwiseAudio/Media/240155576.wem"
+        },
+        "Pain": {
+            "media_id": 111880105,
+            "wav_name": "VO_WhiteTiger_05_Pain.wav",
+            "wem_relative_path": "Pal/Content/WwiseAudio/Media/111880105.wem"
+        },
+        "Sorrow": {
+            "media_id": 382320554,
+            "wav_name": "VO_WhiteTiger_04_Sorrow.wav",
+            "wem_relative_path": "Pal/Content/WwiseAudio/Media/382320554.wem"
+        },
+        "Anger": {
+            "media_id": 723234321,
+            "wav_name": "VO_WhiteTiger_03_Anger.wav",
+            "wem_relative_path": "Pal/Content/WwiseAudio/Media/723234321.wem"
+        }
+    },
+    "BlueDragon": {
+        "Joy": {
+            "media_id": 219150397,
+            "wav_name": "VO_BlueDragon_02_Joy.wav",
+            "wem_relative_path": "Pal/Content/WwiseAudio/Media/219150397.wem"
+        }
+    },
+    "JellyfishFairy": {
+        "Death": {
+            "media_id": 814214336,
+            "wav_name": "VO_JellyfishFairy_06_Death.wav",
+            "wem_relative_path": "Pal/Content/WwiseAudio/Media/814214336.wem"
+        },
+        "Joy": {
+            "media_id": 828701470,
+            "wav_name": "VO_JellyfishFairy_02_Joy.wav",
+            "wem_relative_path": "Pal/Content/WwiseAudio/Media/828701470.wem"
+        },
+        "Normal": {
+            "media_id": 187155858,
+            "wav_name": "VO_JellyfishFairy_01_Normal.wav",
+            "wem_relative_path": "Pal/Content/WwiseAudio/Media/187155858.wem"
+        },
+        "Pain": {
+            "media_id": 468548686,
+            "wav_name": "VO_JellyfishFairy_05_Pain.wav",
+            "wem_relative_path": "Pal/Content/WwiseAudio/Media/468548686.wem"
+        },
+        "Sorrow": {
+            "media_id": 441886437,
+            "wav_name": "VO_JellyfishFairy_04_Sorrow.wav",
+            "wem_relative_path": "Pal/Content/WwiseAudio/Media/441886437.wem"
+        },
+        "Anger": {
+            "media_id": 96738745,
+            "wav_name": "VO_JellyfishFairy_03_Anger.wav",
+            "wem_relative_path": "Pal/Content/WwiseAudio/Media/96738745.wem"
+        }
+    },
+    "LazyDragon": {
+        "Pain": {
+            "media_id": 162255433,
+            "wav_name": "VO_LazyDragon_05_Pain.wav",
+            "wem_relative_path": "Pal/Content/WwiseAudio/Media/162255433.wem"
+        }
+    },
+    "GrimGirl": {
+        "Death": {
+            "media_id": 691052350,
+            "wav_name": "VO_GrimGirl_06_Death.wav",
+            "wem_relative_path": "Pal/Content/WwiseAudio/Media/691052350.wem"
+        },
+        "Joy": {
+            "media_id": 776810662,
+            "wav_name": "VO_GrimGirl_02_Joy.wav",
+            "wem_relative_path": "Pal/Content/WwiseAudio/Media/776810662.wem"
+        },
+        "Normal": {
+            "media_id": 337849500,
+            "wav_name": "VO_GrimGirl_01_Normal.wav",
+            "wem_relative_path": "Pal/Content/WwiseAudio/Media/337849500.wem"
+        },
+        "Pain": {
+            "media_id": 991727669,
+            "wav_name": "VO_GrimGirl_05_Pain.wav",
+            "wem_relative_path": "Pal/Content/WwiseAudio/Media/991727669.wem"
+        },
+        "Sorrow": {
+            "media_id": 394361864,
+            "wav_name": "VO_GrimGirl_04_Sorrow.wav",
+            "wem_relative_path": "Pal/Content/WwiseAudio/Media/394361864.wem"
+        },
+        "Anger": {
+            "media_id": 57262471,
+            "wav_name": "VO_GrimGirl_03_Anger.wav",
+            "wem_relative_path": "Pal/Content/WwiseAudio/Media/57262471.wem"
+        }
+    },
+    "CatBat": {
+        "Death": {
+            "media_id": 462340382,
+            "wav_name": "VO_CatBat_06_Death.wav",
+            "wem_relative_path": "Pal/Content/WwiseAudio/Media/462340382.wem"
+        },
+        "Joy": {
+            "media_id": 922110436,
+            "wav_name": "VO_CatBat_02_Joy.wav",
+            "wem_relative_path": "Pal/Content/WwiseAudio/Media/922110436.wem"
+        },
+        "Normal": {
+            "media_id": 394190567,
+            "wav_name": "VO_CatBat_01_Normal.wav",
+            "wem_relative_path": "Pal/Content/WwiseAudio/Media/394190567.wem"
+        },
+        "Pain": {
+            "media_id": 1056804771,
+            "wav_name": "VO_CatBat_05_Pain.wav",
+            "wem_relative_path": "Pal/Content/WwiseAudio/Media/1056804771.wem"
+        },
+        "Sorrow": {
+            "media_id": 822305504,
+            "wav_name": "VO_CatBat_04_Sorrow.wav",
+            "wem_relative_path": "Pal/Content/WwiseAudio/Media/822305504.wem"
+        },
+        "Anger": {
+            "media_id": 496183495,
+            "wav_name": "VO_CatBat_03_Anger.wav",
+            "wem_relative_path": "Pal/Content/WwiseAudio/Media/496183495.wem"
+        }
+    },
+    "SmallArmadillo": {
+        "Death": {
+            "media_id": 152820745,
+            "wav_name": "VO_SmallArmadillo_06_Death.wav",
+            "wem_relative_path": "Pal/Content/WwiseAudio/Media/152820745.wem"
+        },
+        "Joy": {
+            "media_id": 171497500,
+            "wav_name": "VO_SmallArmadillo_02_Joy.wav",
+            "wem_relative_path": "Pal/Content/WwiseAudio/Media/171497500.wem"
+        },
+        "Normal": {
+            "media_id": 234338667,
+            "wav_name": "VO_SmallArmadillo_01_Normal.wav",
+            "wem_relative_path": "Pal/Content/WwiseAudio/Media/234338667.wem"
+        },
+        "Pain": {
+            "media_id": 725730584,
+            "wav_name": "VO_SmallArmadillo_05_Pain.wav",
+            "wem_relative_path": "Pal/Content/WwiseAudio/Media/725730584.wem"
+        },
+        "Sorrow": {
+            "media_id": 660895167,
+            "wav_name": "VO_SmallArmadillo_04_Sorrow.wav",
+            "wem_relative_path": "Pal/Content/WwiseAudio/Media/660895167.wem"
+        },
+        "Anger": {
+            "media_id": 306388280,
+            "wav_name": "VO_SmallArmadillo_03_Anger.wav",
+            "wem_relative_path": "Pal/Content/WwiseAudio/Media/306388280.wem"
+        }
+    },
+    "IceCrocodile": {
+        "Death": {
+            "media_id": 1068592350,
+            "wav_name": "VO_IceCrocodile_06_Death.wav",
+            "wem_relative_path": "Pal/Content/WwiseAudio/Media/1068592350.wem"
+        },
+        "Joy": {
+            "media_id": 889300218,
+            "wav_name": "VO_IceCrocodile_02_Joy.wav",
+            "wem_relative_path": "Pal/Content/WwiseAudio/Media/889300218.wem"
+        },
+        "Normal": {
+            "media_id": 889775497,
+            "wav_name": "VO_IceCrocodile_01_Normal.wav",
+            "wem_relative_path": "Pal/Content/WwiseAudio/Media/889775497.wem"
+        },
+        "Pain": {
+            "media_id": 1037648514,
+            "wav_name": "VO_IceCrocodile_05_Pain.wav",
+            "wem_relative_path": "Pal/Content/WwiseAudio/Media/1037648514.wem"
+        },
+        "Sorrow": {
+            "media_id": 345744340,
+            "wav_name": "VO_IceCrocodile_04_Sorrow.wav",
+            "wem_relative_path": "Pal/Content/WwiseAudio/Media/345744340.wem"
+        },
+        "Anger": {
+            "media_id": 448742001,
+            "wav_name": "VO_IceCrocodile_03_Anger.wav",
+            "wem_relative_path": "Pal/Content/WwiseAudio/Media/448742001.wem"
+        }
+    },
+    "IceSeal": {
+        "Death": {
+            "media_id": 495239681,
+            "wav_name": "VO_IceSeal_06_Death.wav",
+            "wem_relative_path": "Pal/Content/WwiseAudio/Media/495239681.wem"
+        },
+        "Joy": {
+            "media_id": 506910700,
+            "wav_name": "VO_IceSeal_02_Joy.wav",
+            "wem_relative_path": "Pal/Content/WwiseAudio/Media/506910700.wem"
+        },
+        "Normal": {
+            "media_id": 194008101,
+            "wav_name": "VO_IceSeal_01_Normal.wav",
+            "wem_relative_path": "Pal/Content/WwiseAudio/Media/194008101.wem"
+        },
+        "Pain": {
+            "media_id": 352199189,
+            "wav_name": "VO_IceSeal_05_Pain.wav",
+            "wem_relative_path": "Pal/Content/WwiseAudio/Media/352199189.wem"
+        },
+        "Sorrow": {
+            "media_id": 190046043,
+            "wav_name": "VO_IceSeal_04_Sorrow.wav",
+            "wem_relative_path": "Pal/Content/WwiseAudio/Media/190046043.wem"
+        },
+        "Anger": {
+            "media_id": 23426778,
+            "wav_name": "VO_IceSeal_03_Anger.wav",
+            "wem_relative_path": "Pal/Content/WwiseAudio/Media/23426778.wem"
+        }
+    },
+    "DarkAlien": {
+        "Death": {
+            "media_id": 730613234,
+            "wav_name": "VO_DarkAlien_06_Death.wav",
+            "wem_relative_path": "Pal/Content/WwiseAudio/Media/730613234.wem"
+        },
+        "Joy": {
+            "media_id": 583046582,
+            "wav_name": "VO_DarkAlien_02_Joy.wav",
+            "wem_relative_path": "Pal/Content/WwiseAudio/Media/583046582.wem"
+        },
+        "Normal": {
+            "media_id": 493532674,
+            "wav_name": "VO_DarkAlien_01_Normal.wav",
+            "wem_relative_path": "Pal/Content/WwiseAudio/Media/493532674.wem"
+        },
+        "Pain": {
+            "media_id": 602592259,
+            "wav_name": "VO_DarkAlien_05_Pain.wav",
+            "wem_relative_path": "Pal/Content/WwiseAudio/Media/602592259.wem"
+        },
+        "Sorrow": {
+            "media_id": 158809929,
+            "wav_name": "VO_DarkAlien_04_Sorrow.wav",
+            "wem_relative_path": "Pal/Content/WwiseAudio/Media/158809929.wem"
+        },
+        "Anger": {
+            "media_id": 820869411,
+            "wav_name": "VO_DarkAlien_03_Anger.wav",
+            "wem_relative_path": "Pal/Content/WwiseAudio/Media/820869411.wem"
+        }
+    },
+    "JellyfishGhost": {
+        "Death": {
+            "media_id": 886240636,
+            "wav_name": "VO_JellyfishGhost_06_Death.wav",
+            "wem_relative_path": "Pal/Content/WwiseAudio/Media/886240636.wem"
+        },
+        "Joy": {
+            "media_id": 1017130698,
+            "wav_name": "VO_JellyfishGhost_02_Joy.wav",
+            "wem_relative_path": "Pal/Content/WwiseAudio/Media/1017130698.wem"
+        },
+        "Normal": {
+            "media_id": 2596313,
+            "wav_name": "VO_JellyfishGhost_01_Normal.wav",
+            "wem_relative_path": "Pal/Content/WwiseAudio/Media/2596313.wem"
+        },
+        "Pain": {
+            "media_id": 78371743,
+            "wav_name": "VO_JellyfishGhost_05_Pain.wav",
+            "wem_relative_path": "Pal/Content/WwiseAudio/Media/78371743.wem"
+        },
+        "Sorrow": {
+            "media_id": 410752516,
+            "wav_name": "VO_JellyfishGhost_04_Sorrow.wav",
+            "wem_relative_path": "Pal/Content/WwiseAudio/Media/410752516.wem"
+        },
+        "Anger": {
+            "media_id": 507775473,
+            "wav_name": "VO_JellyfishGhost_03_Anger.wav",
+            "wem_relative_path": "Pal/Content/WwiseAudio/Media/507775473.wem"
+        }
+    },
+    "LittleBriarRose": {
+        "Death": {
+            "media_id": 1065120879,
+            "wav_name": "VO_LittleBriarRose_06_Death.wav",
+            "wem_relative_path": "Pal/Content/WwiseAudio/Media/1065120879.wem"
+        },
+        "Joy": {
+            "media_id": 788307397,
+            "wav_name": "VO_LittleBriarRose_02_Joy.wav",
+            "wem_relative_path": "Pal/Content/WwiseAudio/Media/788307397.wem"
+        },
+        "Normal": {
+            "media_id": 495574464,
+            "wav_name": "VO_LittleBriarRose_01_Normal.wav",
+            "wem_relative_path": "Pal/Content/WwiseAudio/Media/495574464.wem"
+        },
+        "Pain": {
+            "media_id": 356013607,
+            "wav_name": "VO_LittleBriarRose_05_Pain.wav",
+            "wem_relative_path": "Pal/Content/WwiseAudio/Media/356013607.wem"
+        },
+        "Sorrow": {
+            "media_id": 459066693,
+            "wav_name": "VO_LittleBriarRose_04_Sorrow.wav",
+            "wem_relative_path": "Pal/Content/WwiseAudio/Media/459066693.wem"
+        },
+        "Anger": {
+            "media_id": 679217512,
+            "wav_name": "VO_LittleBriarRose_03_Anger.wav",
+            "wem_relative_path": "Pal/Content/WwiseAudio/Media/679217512.wem"
+        }
+    },
+    "BlackCentaur": {
+        "Death": {
+            "media_id": 484015351,
+            "wav_name": "VO_BlackCentaur_06_Death.wav",
+            "wem_relative_path": "Pal/Content/WwiseAudio/Media/484015351.wem"
+        },
+        "Joy": {
+            "media_id": 475175489,
+            "wav_name": "VO_BlackCentaur_02_Joy.wav",
+            "wem_relative_path": "Pal/Content/WwiseAudio/Media/475175489.wem"
+        },
+        "Normal": {
+            "media_id": 481160809,
+            "wav_name": "VO_BlackCentaur_01_Normal.wav",
+            "wem_relative_path": "Pal/Content/WwiseAudio/Media/481160809.wem"
+        },
+        "Pain": {
+            "media_id": 663355305,
+            "wav_name": "VO_BlackCentaur_05_Pain.wav",
+            "wem_relative_path": "Pal/Content/WwiseAudio/Media/663355305.wem"
+        },
+        "Sorrow": {
+            "media_id": 591526666,
+            "wav_name": "VO_BlackCentaur_04_Sorrow.wav",
+            "wem_relative_path": "Pal/Content/WwiseAudio/Media/591526666.wem"
+        },
+        "Anger": {
+            "media_id": 868879012,
+            "wav_name": "VO_BlackCentaur_03_Anger.wav",
+            "wem_relative_path": "Pal/Content/WwiseAudio/Media/868879012.wem"
+        }
+    },
+    "SoldierBee": {
+        "Death": {
+            "media_id": 466399753,
+            "wav_name": "VO_SoldierBee_06_Death.wav",
+            "wem_relative_path": "Pal/Content/WwiseAudio/Media/466399753.wem"
+        },
+        "Joy": {
+            "media_id": 699462721,
+            "wav_name": "VO_SoldierBee_02_Joy.wav",
+            "wem_relative_path": "Pal/Content/WwiseAudio/Media/699462721.wem"
+        },
+        "Normal": {
+            "media_id": 1021954683,
+            "wav_name": "VO_SoldierBee_01_Normal.wav",
+            "wem_relative_path": "Pal/Content/WwiseAudio/Media/1021954683.wem"
+        },
+        "Pain": {
+            "media_id": 546259016,
+            "wav_name": "VO_SoldierBee_05_Pain.wav",
+            "wem_relative_path": "Pal/Content/WwiseAudio/Media/546259016.wem"
+        },
+        "Sorrow": {
+            "media_id": 661422615,
+            "wav_name": "VO_SoldierBee_04_Sorrow.wav",
+            "wem_relative_path": "Pal/Content/WwiseAudio/Media/661422615.wem"
+        },
+        "Anger": {
+            "media_id": 894711095,
+            "wav_name": "VO_SoldierBee_03_Anger.wav",
+            "wem_relative_path": "Pal/Content/WwiseAudio/Media/894711095.wem"
+        }
+    },
+    "Gorilla": {
+        "Death": {
+            "media_id": 71955969,
+            "wav_name": "VO_Gorilla_06_Death.wav",
+            "wem_relative_path": "Pal/Content/WwiseAudio/Media/71955969.wem"
+        },
+        "Anger": {
+            "media_id": 427784789,
+            "wav_name": "VO_Gorilla_03_Anger.wav",
+            "wem_relative_path": "Pal/Content/WwiseAudio/Media/427784789.wem"
+        }
+    },
+    "Kitsunebi": {
+        "Joy": {
+            "media_id": 502685741,
+            "wav_name": "VO_Kitsunebi_02_Joy.wav",
+            "wem_relative_path": "Pal/Content/WwiseAudio/Media/502685741.wem"
+        },
+        "Normal": {
+            "media_id": 541210977,
+            "wav_name": "VO_Kitsunebi_01_Normal.wav",
+            "wem_relative_path": "Pal/Content/WwiseAudio/Media/541210977.wem"
+        },
+        "Pain": {
+            "media_id": 530295793,
+            "wav_name": "VO_Kitsunebi_05_Pain.wav",
+            "wem_relative_path": "Pal/Content/WwiseAudio/Media/530295793.wem"
+        },
+        "Sorrow": {
+            "media_id": 148518620,
+            "wav_name": "VO_Kitsunebi_04_Sorrow.wav",
+            "wem_relative_path": "Pal/Content/WwiseAudio/Media/148518620.wem"
+        },
+        "Anger": {
+            "media_id": 515178631,
+            "wav_name": "VO_Kitsunebi_03_Anger.wav",
+            "wem_relative_path": "Pal/Content/WwiseAudio/Media/515178631.wem"
+        }
+    },
+    "KingBahamut": {
+        "Death": {
+            "media_id": 777910599,
+            "wav_name": "VO_KingBahamut_06_Death.wav",
+            "wem_relative_path": "Pal/Content/WwiseAudio/Media/777910599.wem"
+        },
+        "Joy": {
+            "media_id": 880195200,
+            "wav_name": "VO_KingBahamut_02_Joy.wav",
+            "wem_relative_path": "Pal/Content/WwiseAudio/Media/880195200.wem"
+        },
+        "Normal": {
+            "media_id": 400621824,
+            "wav_name": "VO_KingBahamut_01_Normal.wav",
+            "wem_relative_path": "Pal/Content/WwiseAudio/Media/400621824.wem"
+        },
+        "Pain": {
+            "media_id": 256677969,
+            "wav_name": "VO_KingBahamut_05_Pain.wav",
+            "wem_relative_path": "Pal/Content/WwiseAudio/Media/256677969.wem"
+        },
+        "Sorrow": {
+            "media_id": 668526248,
+            "wav_name": "VO_KingBahamut_04_Sorrow.wav",
+            "wem_relative_path": "Pal/Content/WwiseAudio/Media/668526248.wem"
+        },
+        "Anger": {
+            "media_id": 554781981,
+            "wav_name": "VO_KingBahamut_03_Anger.wav",
+            "wem_relative_path": "Pal/Content/WwiseAudio/Media/554781981.wem"
+        }
+    },
+    "BrackMetalDragon": {
+        "Death": {
+            "media_id": 359402851,
+            "wav_name": "VO_BrackMetalDragon_06_Death.wav",
+            "wem_relative_path": "Pal/Content/WwiseAudio/Media/359402851.wem"
+        },
+        "Joy": {
+            "media_id": 229312342,
+            "wav_name": "VO_BrackMetalDragon_02_Joy.wav",
+            "wem_relative_path": "Pal/Content/WwiseAudio/Media/229312342.wem"
+        },
+        "Normal": {
+            "media_id": 762076369,
+            "wav_name": "VO_BrackMetalDragon_01_Normal.wav",
+            "wem_relative_path": "Pal/Content/WwiseAudio/Media/762076369.wem"
+        },
+        "Pain": {
+            "media_id": 812468926,
+            "wav_name": "VO_BrackMetalDragon_05_Pain.wav",
+            "wem_relative_path": "Pal/Content/WwiseAudio/Media/812468926.wem"
+        },
+        "Sorrow": {
+            "media_id": 767174184,
+            "wav_name": "VO_BrackMetalDragon_04_Sorrow.wav",
+            "wem_relative_path": "Pal/Content/WwiseAudio/Media/767174184.wem"
+        },
+        "Anger": {
+            "media_id": 357070755,
+            "wav_name": "VO_BrackMetalDragon_03_Anger.wav",
+            "wem_relative_path": "Pal/Content/WwiseAudio/Media/357070755.wem"
+        }
+    },
+    "Bastet": {
+        "Death": {
+            "media_id": 957231228,
+            "wav_name": "VO_Bastet_06_Death.wav",
+            "wem_relative_path": "Pal/Content/WwiseAudio/Media/957231228.wem"
+        },
+        "Joy": {
+            "media_id": 366611486,
+            "wav_name": "VO_Bastet_02_Joy.wav",
+            "wem_relative_path": "Pal/Content/WwiseAudio/Media/366611486.wem"
+        },
+        "Normal": {
+            "media_id": 635860737,
+            "wav_name": "VO_Bastet_01_Normal.wav",
+            "wem_relative_path": "Pal/Content/WwiseAudio/Media/635860737.wem"
+        },
+        "Pain": {
+            "media_id": 261797381,
+            "wav_name": "VO_Bastet_05_Pain.wav",
+            "wem_relative_path": "Pal/Content/WwiseAudio/Media/261797381.wem"
+        },
+        "Sorrow": {
+            "media_id": 52225897,
+            "wav_name": "VO_Bastet_04_Sorrow.wav",
+            "wem_relative_path": "Pal/Content/WwiseAudio/Media/52225897.wem"
+        },
+        "Anger": {
+            "media_id": 311958427,
+            "wav_name": "VO_Bastet_03_Anger.wav",
+            "wem_relative_path": "Pal/Content/WwiseAudio/Media/311958427.wem"
+        }
+    },
+    "StuffedShark": {
+        "Death": {
+            "media_id": 107866956,
+            "wav_name": "VO_StuffedShark_06_Death.wav",
+            "wem_relative_path": "Pal/Content/WwiseAudio/Media/107866956.wem"
+        },
+        "Joy": {
+            "media_id": 213902851,
+            "wav_name": "VO_StuffedShark_02_Joy.wav",
+            "wem_relative_path": "Pal/Content/WwiseAudio/Media/213902851.wem"
+        },
+        "Normal": {
+            "media_id": 296569210,
+            "wav_name": "VO_StuffedShark_01_Normal.wav",
+            "wem_relative_path": "Pal/Content/WwiseAudio/Media/296569210.wem"
+        },
+        "Pain": {
+            "media_id": 454022843,
+            "wav_name": "VO_StuffedShark_05_Pain.wav",
+            "wem_relative_path": "Pal/Content/WwiseAudio/Media/454022843.wem"
+        },
+        "Sorrow": {
+            "media_id": 335823376,
+            "wav_name": "VO_StuffedShark_04_Sorrow.wav",
+            "wem_relative_path": "Pal/Content/WwiseAudio/Media/335823376.wem"
+        },
+        "Anger": {
+            "media_id": 480815207,
+            "wav_name": "VO_StuffedShark_03_Anger.wav",
+            "wem_relative_path": "Pal/Content/WwiseAudio/Media/480815207.wem"
+        }
+    },
+    "CuteButterfly": {
+        "Death": {
+            "media_id": 748654428,
+            "wav_name": "VO_CuteButterfly_06_Death.wav",
+            "wem_relative_path": "Pal/Content/WwiseAudio/Media/748654428.wem"
+        },
+        "Joy": {
+            "media_id": 490839684,
+            "wav_name": "VO_CuteButterfly_02_Joy.wav",
+            "wem_relative_path": "Pal/Content/WwiseAudio/Media/490839684.wem"
+        },
+        "Normal": {
+            "media_id": 423738164,
+            "wav_name": "VO_CuteButterfly_01_Normal.wav",
+            "wem_relative_path": "Pal/Content/WwiseAudio/Media/423738164.wem"
+        },
+        "Pain": {
+            "media_id": 111783898,
+            "wav_name": "VO_CuteButterfly_05_Pain.wav",
+            "wem_relative_path": "Pal/Content/WwiseAudio/Media/111783898.wem"
+        },
+        "Sorrow": {
+            "media_id": 499615538,
+            "wav_name": "VO_CuteButterfly_04_Sorrow.wav",
+            "wem_relative_path": "Pal/Content/WwiseAudio/Media/499615538.wem"
+        },
+        "Anger": {
+            "media_id": 62096032,
+            "wav_name": "VO_CuteButterfly_03_Anger.wav",
+            "wem_relative_path": "Pal/Content/WwiseAudio/Media/62096032.wem"
+        }
+    },
+    "GuardianDog": {
+        "Death": {
+            "media_id": 627938078,
+            "wav_name": "VO_GuardianDog_06_Death.wav",
+            "wem_relative_path": "Pal/Content/WwiseAudio/Media/627938078.wem"
+        },
+        "Joy": {
+            "media_id": 126451261,
+            "wav_name": "VO_GuardianDog_02_Joy.wav",
+            "wem_relative_path": "Pal/Content/WwiseAudio/Media/126451261.wem"
+        },
+        "Normal": {
+            "media_id": 704211799,
+            "wav_name": "VO_GuardianDog_01_Normal.wav",
+            "wem_relative_path": "Pal/Content/WwiseAudio/Media/704211799.wem"
+        },
+        "Pain": {
+            "media_id": 545521404,
+            "wav_name": "VO_GuardianDog_05_Pain.wav",
+            "wem_relative_path": "Pal/Content/WwiseAudio/Media/545521404.wem"
+        },
+        "Sorrow": {
+            "media_id": 8222555,
+            "wav_name": "VO_GuardianDog_04_Sorrow.wav",
+            "wem_relative_path": "Pal/Content/WwiseAudio/Media/8222555.wem"
+        },
+        "Anger": {
+            "media_id": 609235542,
+            "wav_name": "VO_GuardianDog_03_Anger.wav",
+            "wem_relative_path": "Pal/Content/WwiseAudio/Media/609235542.wem"
+        }
+    },
+    "VolcanicMonster": {
+        "Death": {
+            "media_id": 915674379,
+            "wav_name": "VO_VolcanicMonster_06_Death.wav",
+            "wem_relative_path": "Pal/Content/WwiseAudio/Media/915674379.wem"
+        },
+        "Joy": {
+            "media_id": 271244746,
+            "wav_name": "VO_VolcanicMonster_02_Joy.wav",
+            "wem_relative_path": "Pal/Content/WwiseAudio/Media/271244746.wem"
+        },
+        "Normal": {
+            "media_id": 77288293,
+            "wav_name": "VO_VolcanicMonster_01_Normal.wav",
+            "wem_relative_path": "Pal/Content/WwiseAudio/Media/77288293.wem"
+        },
+        "Pain": {
+            "media_id": 987762441,
+            "wav_name": "VO_VolcanicMonster_05_Pain.wav",
+            "wem_relative_path": "Pal/Content/WwiseAudio/Media/987762441.wem"
+        },
+        "Sorrow": {
+            "media_id": 1040346771,
+            "wav_name": "VO_VolcanicMonster_04_Sorrow.wav",
+            "wem_relative_path": "Pal/Content/WwiseAudio/Media/1040346771.wem"
+        },
+        "Anger": {
+            "media_id": 27160496,
+            "wav_name": "VO_VolcanicMonster_03_Anger.wav",
+            "wem_relative_path": "Pal/Content/WwiseAudio/Media/27160496.wem"
+        }
+    },
+    "DrillGame": {
+        "Death": {
+            "media_id": 332371360,
+            "wav_name": "VO_DrillGame_06_Death.wav",
+            "wem_relative_path": "Pal/Content/WwiseAudio/Media/332371360.wem"
+        },
+        "Joy": {
+            "media_id": 105185835,
+            "wav_name": "VO_DrillGame_02_Joy.wav",
+            "wem_relative_path": "Pal/Content/WwiseAudio/Media/105185835.wem"
+        },
+        "Normal": {
+            "media_id": 616843536,
+            "wav_name": "VO_DrillGame_01_Normal.wav",
+            "wem_relative_path": "Pal/Content/WwiseAudio/Media/616843536.wem"
+        },
+        "Pain": {
+            "media_id": 273957874,
+            "wav_name": "VO_DrillGame_05_Pain.wav",
+            "wem_relative_path": "Pal/Content/WwiseAudio/Media/273957874.wem"
+        },
+        "Sorrow": {
+            "media_id": 153540763,
+            "wav_name": "VO_DrillGame_04_Sorrow.wav",
+            "wem_relative_path": "Pal/Content/WwiseAudio/Media/153540763.wem"
+        },
+        "Anger": {
+            "media_id": 563125974,
+            "wav_name": "VO_DrillGame_03_Anger.wav",
+            "wem_relative_path": "Pal/Content/WwiseAudio/Media/563125974.wem"
+        }
+    },
+    "SaintCentaur": {
+        "Death": {
+            "media_id": 463704265,
+            "wav_name": "VO_SaintCentaur_06_Death.wav",
+            "wem_relative_path": "Pal/Content/WwiseAudio/Media/463704265.wem"
+        },
+        "Joy": {
+            "media_id": 252137501,
+            "wav_name": "VO_SaintCentaur_02_Joy.wav",
+            "wem_relative_path": "Pal/Content/WwiseAudio/Media/252137501.wem"
+        },
+        "Normal": {
+            "media_id": 594079830,
+            "wav_name": "VO_SaintCentaur_01_Normal.wav",
+            "wem_relative_path": "Pal/Content/WwiseAudio/Media/594079830.wem"
+        },
+        "Pain": {
+            "media_id": 215429281,
+            "wav_name": "VO_SaintCentaur_05_Pain.wav",
+            "wem_relative_path": "Pal/Content/WwiseAudio/Media/215429281.wem"
+        },
+        "Sorrow": {
+            "media_id": 466296111,
+            "wav_name": "VO_SaintCentaur_04_Sorrow.wav",
+            "wem_relative_path": "Pal/Content/WwiseAudio/Media/466296111.wem"
+        },
+        "Anger": {
+            "media_id": 1008916294,
+            "wav_name": "VO_SaintCentaur_03_Anger.wav",
+            "wem_relative_path": "Pal/Content/WwiseAudio/Media/1008916294.wem"
+        }
+    },
+    "GhostAnglerfish": {
+        "Death": {
+            "media_id": 198050623,
+            "wav_name": "VO_GhostAnglerfish_06_Death.wav",
+            "wem_relative_path": "Pal/Content/WwiseAudio/Media/198050623.wem"
+        },
+        "Joy": {
+            "media_id": 520032816,
+            "wav_name": "VO_GhostAnglerfish_02_Joy.wav",
+            "wem_relative_path": "Pal/Content/WwiseAudio/Media/520032816.wem"
+        },
+        "Normal": {
+            "media_id": 33614861,
+            "wav_name": "VO_GhostAnglerfish_01_Normal.wav",
+            "wem_relative_path": "Pal/Content/WwiseAudio/Media/33614861.wem"
+        },
+        "Pain": {
+            "media_id": 698167305,
+            "wav_name": "VO_GhostAnglerfish_05_Pain.wav",
+            "wem_relative_path": "Pal/Content/WwiseAudio/Media/698167305.wem"
+        },
+        "Sorrow": {
+            "media_id": 493694863,
+            "wav_name": "VO_GhostAnglerfish_04_Sorrow.wav",
+            "wem_relative_path": "Pal/Content/WwiseAudio/Media/493694863.wem"
+        },
+        "Anger": {
+            "media_id": 616502460,
+            "wav_name": "VO_GhostAnglerfish_03_Anger.wav",
+            "wem_relative_path": "Pal/Content/WwiseAudio/Media/616502460.wem"
+        }
+    },
+    "BrackFurDragon": {
+        "Death": {
+            "media_id": 829821109,
+            "wav_name": "VO_BrackFurDragon_06_Death.wav",
+            "wem_relative_path": "Pal/Content/WwiseAudio/Media/829821109.wem"
+        },
+        "Joy": {
+            "media_id": 908447151,
+            "wav_name": "VO_BrackFurDragon_02_Joy.wav",
+            "wem_relative_path": "Pal/Content/WwiseAudio/Media/908447151.wem"
+        },
+        "Normal": {
+            "media_id": 957355164,
+            "wav_name": "VO_BrackFurDragon_01_Normal.wav",
+            "wem_relative_path": "Pal/Content/WwiseAudio/Media/957355164.wem"
+        },
+        "Pain": {
+            "media_id": 678373538,
+            "wav_name": "VO_BrackFurDragon_05_Pain.wav",
+            "wem_relative_path": "Pal/Content/WwiseAudio/Media/678373538.wem"
+        },
+        "Sorrow": {
+            "media_id": 307413444,
+            "wav_name": "VO_BrackFurDragon_04_Sorrow.wav",
+            "wem_relative_path": "Pal/Content/WwiseAudio/Media/307413444.wem"
+        },
+        "Anger": {
+            "media_id": 172851433,
+            "wav_name": "VO_BrackFurDragon_03_Anger.wav",
+            "wem_relative_path": "Pal/Content/WwiseAudio/Media/172851433.wem"
+        }
+    },
+    "ThunderDog": {
+        "Death": {
+            "media_id": 537941472,
+            "wav_name": "VO_ThunderDog_06_Death.wav",
+            "wem_relative_path": "Pal/Content/WwiseAudio/Media/537941472.wem"
+        },
+        "Joy": {
+            "media_id": 791977109,
+            "wav_name": "VO_ThunderDog_02_Joy.wav",
+            "wem_relative_path": "Pal/Content/WwiseAudio/Media/791977109.wem"
+        },
+        "Normal": {
+            "media_id": 1039482410,
+            "wav_name": "VO_ThunderDog_01_Normal.wav",
+            "wem_relative_path": "Pal/Content/WwiseAudio/Media/1039482410.wem"
+        },
+        "Pain": {
+            "media_id": 1031126299,
+            "wav_name": "VO_ThunderDog_05_Pain.wav",
+            "wem_relative_path": "Pal/Content/WwiseAudio/Media/1031126299.wem"
+        },
+        "Sorrow": {
+            "media_id": 676180802,
+            "wav_name": "VO_ThunderDog_04_Sorrow.wav",
+            "wem_relative_path": "Pal/Content/WwiseAudio/Media/676180802.wem"
+        },
+        "Anger": {
+            "media_id": 234546790,
+            "wav_name": "VO_ThunderDog_03_Anger.wav",
+            "wem_relative_path": "Pal/Content/WwiseAudio/Media/234546790.wem"
+        }
+    },
+    "PurpleSpider": {
+        "Death": {
+            "media_id": 597725546,
+            "wav_name": "VO_PurpleSpider_06_Death.wav",
+            "wem_relative_path": "Pal/Content/WwiseAudio/Media/597725546.wem"
+        },
+        "Joy": {
+            "media_id": 507375481,
+            "wav_name": "VO_PurpleSpider_02_Joy.wav",
+            "wem_relative_path": "Pal/Content/WwiseAudio/Media/507375481.wem"
+        },
+        "Normal": {
+            "media_id": 402286918,
+            "wav_name": "VO_PurpleSpider_01_Normal.wav",
+            "wem_relative_path": "Pal/Content/WwiseAudio/Media/402286918.wem"
+        },
+        "Pain": {
+            "media_id": 589507753,
+            "wav_name": "VO_PurpleSpider_05_Pain.wav",
+            "wem_relative_path": "Pal/Content/WwiseAudio/Media/589507753.wem"
+        },
+        "Sorrow": {
+            "media_id": 96681575,
+            "wav_name": "VO_PurpleSpider_04_Sorrow.wav",
+            "wem_relative_path": "Pal/Content/WwiseAudio/Media/96681575.wem"
+        },
+        "Anger": {
+            "media_id": 538679765,
+            "wav_name": "VO_PurpleSpider_03_Anger.wav",
+            "wem_relative_path": "Pal/Content/WwiseAudio/Media/538679765.wem"
+        }
+    },
+    "FlowerDinosaur": {
+        "Death": {
+            "media_id": 1068287416,
+            "wav_name": "VO_FlowerDinosaur_06_Death.wav",
+            "wem_relative_path": "Pal/Content/WwiseAudio/Media/1068287416.wem"
+        },
+        "Pain": {
+            "media_id": 419541924,
+            "wav_name": "VO_FlowerDinosaur_05_Pain.wav",
+            "wem_relative_path": "Pal/Content/WwiseAudio/Media/419541924.wem"
+        },
+        "Anger": {
+            "media_id": 516068,
+            "wav_name": "VO_FlowerDinosaur_03_Anger.wav",
+            "wem_relative_path": "Pal/Content/WwiseAudio/Media/516068.wem"
+        }
+    },
+    "WeaselDragon": {
+        "Death": {
+            "media_id": 62448242,
+            "wav_name": "VO_WeaselDragon_06_Death.wav",
+            "wem_relative_path": "Pal/Content/WwiseAudio/Media/62448242.wem"
+        },
+        "Joy": {
+            "media_id": 246649218,
+            "wav_name": "VO_WeaselDragon_02_Joy.wav",
+            "wem_relative_path": "Pal/Content/WwiseAudio/Media/246649218.wem"
+        },
+        "Normal": {
+            "media_id": 827415211,
+            "wav_name": "VO_WeaselDragon_01_Normal.wav",
+            "wem_relative_path": "Pal/Content/WwiseAudio/Media/827415211.wem"
+        },
+        "Pain": {
+            "media_id": 585991260,
+            "wav_name": "VO_WeaselDragon_05_Pain.wav",
+            "wem_relative_path": "Pal/Content/WwiseAudio/Media/585991260.wem"
+        },
+        "Sorrow": {
+            "media_id": 216635785,
+            "wav_name": "VO_WeaselDragon_04_Sorrow.wav",
+            "wem_relative_path": "Pal/Content/WwiseAudio/Media/216635785.wem"
+        },
+        "Anger": {
+            "media_id": 417761968,
+            "wav_name": "VO_WeaselDragon_03_Anger.wav",
+            "wem_relative_path": "Pal/Content/WwiseAudio/Media/417761968.wem"
+        }
+    },
+    "Garm": {
+        "Death": {
+            "media_id": 285611676,
+            "wav_name": "VO_Garm_06_Death.wav",
+            "wem_relative_path": "Pal/Content/WwiseAudio/Media/285611676.wem"
+        },
+        "Joy": {
+            "media_id": 533404137,
+            "wav_name": "VO_Garm_02_Joy.wav",
+            "wem_relative_path": "Pal/Content/WwiseAudio/Media/533404137.wem"
+        },
+        "Pain": {
+            "media_id": 628980918,
+            "wav_name": "VO_Garm_05_Pain.wav",
+            "wem_relative_path": "Pal/Content/WwiseAudio/Media/628980918.wem"
+        },
+        "Sorrow": {
+            "media_id": 1028683168,
+            "wav_name": "VO_Garm_04_Sorrow.wav",
+            "wem_relative_path": "Pal/Content/WwiseAudio/Media/1028683168.wem"
+        },
+        "Anger": {
+            "media_id": 221542456,
+            "wav_name": "VO_Garm_03_Anger.wav",
+            "wem_relative_path": "Pal/Content/WwiseAudio/Media/221542456.wem"
+        }
+    },
+    "WizardOwl": {
+        "Death": {
+            "media_id": 551412139,
+            "wav_name": "VO_WizardOwl_06_Death.wav",
+            "wem_relative_path": "Pal/Content/WwiseAudio/Media/551412139.wem"
+        },
+        "Joy": {
+            "media_id": 280781034,
+            "wav_name": "VO_WizardOwl_02_Joy.wav",
+            "wem_relative_path": "Pal/Content/WwiseAudio/Media/280781034.wem"
+        },
+        "Normal": {
+            "media_id": 179679198,
+            "wav_name": "VO_WizardOwl_01_Normal.wav",
+            "wem_relative_path": "Pal/Content/WwiseAudio/Media/179679198.wem"
+        },
+        "Pain": {
+            "media_id": 1020331244,
+            "wav_name": "VO_WizardOwl_05_Pain.wav",
+            "wem_relative_path": "Pal/Content/WwiseAudio/Media/1020331244.wem"
+        },
+        "Sorrow": {
+            "media_id": 1067648625,
+            "wav_name": "VO_WizardOwl_04_Sorrow.wav",
+            "wem_relative_path": "Pal/Content/WwiseAudio/Media/1067648625.wem"
+        },
+        "Anger": {
+            "media_id": 802812774,
+            "wav_name": "VO_WizardOwl_03_Anger.wav",
+            "wem_relative_path": "Pal/Content/WwiseAudio/Media/802812774.wem"
+        }
+    },
+    "KendoFrog": {
+        "Death": {
+            "media_id": 73297567,
+            "wav_name": "VO_KendoFrog_06_Death.wav",
+            "wem_relative_path": "Pal/Content/WwiseAudio/Media/73297567.wem"
+        },
+        "Joy": {
+            "media_id": 562341351,
+            "wav_name": "VO_KendoFrog_02_Joy.wav",
+            "wem_relative_path": "Pal/Content/WwiseAudio/Media/562341351.wem"
+        },
+        "Normal": {
+            "media_id": 463857614,
+            "wav_name": "VO_KendoFrog_01_Normal.wav",
+            "wem_relative_path": "Pal/Content/WwiseAudio/Media/463857614.wem"
+        },
+        "Pain": {
+            "media_id": 1070086294,
+            "wav_name": "VO_KendoFrog_05_Pain.wav",
+            "wem_relative_path": "Pal/Content/WwiseAudio/Media/1070086294.wem"
+        },
+        "Sorrow": {
+            "media_id": 634610430,
+            "wav_name": "VO_KendoFrog_04_Sorrow.wav",
+            "wem_relative_path": "Pal/Content/WwiseAudio/Media/634610430.wem"
+        },
+        "Anger": {
+            "media_id": 1022286218,
+            "wav_name": "VO_KendoFrog_03_Anger.wav",
+            "wem_relative_path": "Pal/Content/WwiseAudio/Media/1022286218.wem"
+        }
+    },
+    "ThunderDragonMan": {
+        "Death": {
+            "media_id": 835906660,
+            "wav_name": "VO_ThunderDragonMan_06_Death.wav",
+            "wem_relative_path": "Pal/Content/WwiseAudio/Media/835906660.wem"
+        },
+        "Joy": {
+            "media_id": 543516378,
+            "wav_name": "VO_ThunderDragonMan_02_Joy.wav",
+            "wem_relative_path": "Pal/Content/WwiseAudio/Media/543516378.wem"
+        },
+        "Normal": {
+            "media_id": 343571225,
+            "wav_name": "VO_ThunderDragonMan_01_Normal.wav",
+            "wem_relative_path": "Pal/Content/WwiseAudio/Media/343571225.wem"
+        },
+        "Pain": {
+            "media_id": 493734844,
+            "wav_name": "VO_ThunderDragonMan_05_Pain.wav",
+            "wem_relative_path": "Pal/Content/WwiseAudio/Media/493734844.wem"
+        },
+        "Sorrow": {
+            "media_id": 667923328,
+            "wav_name": "VO_ThunderDragonMan_04_Sorrow.wav",
+            "wem_relative_path": "Pal/Content/WwiseAudio/Media/667923328.wem"
+        },
+        "Anger": {
+            "media_id": 88767445,
+            "wav_name": "VO_ThunderDragonMan_03_Anger.wav",
+            "wem_relative_path": "Pal/Content/WwiseAudio/Media/88767445.wem"
+        }
+    },
+    "IceNarwhal": {
+        "Death": {
+            "media_id": 341396648,
+            "wav_name": "VO_IceNarwhal_06_Death.wav",
+            "wem_relative_path": "Pal/Content/WwiseAudio/Media/341396648.wem"
+        },
+        "Joy": {
+            "media_id": 860696516,
+            "wav_name": "VO_IceNarwhal_02_Joy.wav",
+            "wem_relative_path": "Pal/Content/WwiseAudio/Media/860696516.wem"
+        },
+        "Normal": {
+            "media_id": 563297917,
+            "wav_name": "VO_IceNarwhal_01_Normal.wav",
+            "wem_relative_path": "Pal/Content/WwiseAudio/Media/563297917.wem"
+        },
+        "Pain": {
+            "media_id": 859322623,
+            "wav_name": "VO_IceNarwhal_05_Pain.wav",
+            "wem_relative_path": "Pal/Content/WwiseAudio/Media/859322623.wem"
+        },
+        "Sorrow": {
+            "media_id": 578371696,
+            "wav_name": "VO_IceNarwhal_04_Sorrow.wav",
+            "wem_relative_path": "Pal/Content/WwiseAudio/Media/578371696.wem"
+        },
+        "Anger": {
+            "media_id": 561153129,
+            "wav_name": "VO_IceNarwhal_03_Anger.wav",
+            "wem_relative_path": "Pal/Content/WwiseAudio/Media/561153129.wem"
+        }
+    },
+    "VioletFairy": {
+        "Death": {
+            "media_id": 1061544411,
+            "wav_name": "VO_VioletFairy_06_Death.wav",
+            "wem_relative_path": "Pal/Content/WwiseAudio/Media/1061544411.wem"
+        },
+        "Joy": {
+            "media_id": 541613377,
+            "wav_name": "VO_VioletFairy_02_Joy.wav",
+            "wem_relative_path": "Pal/Content/WwiseAudio/Media/541613377.wem"
+        },
+        "Normal": {
+            "media_id": 945715253,
+            "wav_name": "VO_VioletFairy_01_Normal.wav",
+            "wem_relative_path": "Pal/Content/WwiseAudio/Media/945715253.wem"
+        },
+        "Pain": {
+            "media_id": 755324569,
+            "wav_name": "VO_VioletFairy_05_Pain.wav",
+            "wem_relative_path": "Pal/Content/WwiseAudio/Media/755324569.wem"
+        },
+        "Sorrow": {
+            "media_id": 644553751,
+            "wav_name": "VO_VioletFairy_04_Sorrow.wav",
+            "wem_relative_path": "Pal/Content/WwiseAudio/Media/644553751.wem"
+        },
+        "Anger": {
+            "media_id": 374544622,
+            "wav_name": "VO_VioletFairy_03_Anger.wav",
+            "wem_relative_path": "Pal/Content/WwiseAudio/Media/374544622.wem"
+        }
+    },
+    "BluePlatypus": {
+        "Death": {
+            "media_id": 1009896960,
+            "wav_name": "VO_BluePlatypus_06_Death.wav",
+            "wem_relative_path": "Pal/Content/WwiseAudio/Media/1009896960.wem"
+        },
+        "Joy": {
+            "media_id": 388694875,
+            "wav_name": "VO_BluePlatypus_02_Joy.wav",
+            "wem_relative_path": "Pal/Content/WwiseAudio/Media/388694875.wem"
+        },
+        "Normal": {
+            "media_id": 131280224,
+            "wav_name": "VO_BluePlatypus_01_Normal.wav",
+            "wem_relative_path": "Pal/Content/WwiseAudio/Media/131280224.wem"
+        },
+        "Pain": {
+            "media_id": 250094389,
+            "wav_name": "VO_BluePlatypus_05_Pain.wav",
+            "wem_relative_path": "Pal/Content/WwiseAudio/Media/250094389.wem"
+        },
+        "Sorrow": {
+            "media_id": 22533248,
+            "wav_name": "VO_BluePlatypus_04_Sorrow.wav",
+            "wem_relative_path": "Pal/Content/WwiseAudio/Media/22533248.wem"
+        },
+        "Anger": {
+            "media_id": 338250314,
+            "wav_name": "VO_BluePlatypus_03_Anger.wav",
+            "wem_relative_path": "Pal/Content/WwiseAudio/Media/338250314.wem"
+        }
+    },
+    "RaijinDaughter": {
+        "Death": {
+            "media_id": 112824947,
+            "wav_name": "VO_RaijinDaughter_06_Death.wav",
+            "wem_relative_path": "Pal/Content/WwiseAudio/Media/112824947.wem"
+        },
+        "Joy": {
+            "media_id": 993332844,
+            "wav_name": "VO_RaijinDaughter_02_Joy.wav",
+            "wem_relative_path": "Pal/Content/WwiseAudio/Media/993332844.wem"
+        },
+        "Normal": {
+            "media_id": 25359226,
+            "wav_name": "VO_RaijinDaughter_01_Normal.wav",
+            "wem_relative_path": "Pal/Content/WwiseAudio/Media/25359226.wem"
+        },
+        "Pain": {
+            "media_id": 169444005,
+            "wav_name": "VO_RaijinDaughter_05_Pain.wav",
+            "wem_relative_path": "Pal/Content/WwiseAudio/Media/169444005.wem"
+        },
+        "Sorrow": {
+            "media_id": 11149724,
+            "wav_name": "VO_RaijinDaughter_04_Sorrow.wav",
+            "wem_relative_path": "Pal/Content/WwiseAudio/Media/11149724.wem"
+        },
+        "Anger": {
+            "media_id": 480911864,
+            "wav_name": "VO_RaijinDaughter_03_Anger.wav",
+            "wem_relative_path": "Pal/Content/WwiseAudio/Media/480911864.wem"
+        }
+    },
+    "Ganesha": {
+        "Death": {
+            "media_id": 596008859,
+            "wav_name": "VO_Ganesha_06_Death.wav",
+            "wem_relative_path": "Pal/Content/WwiseAudio/Media/596008859.wem"
+        },
+        "Joy": {
+            "media_id": 855965938,
+            "wav_name": "VO_Ganesha_02_Joy.wav",
+            "wem_relative_path": "Pal/Content/WwiseAudio/Media/855965938.wem"
+        },
+        "Normal": {
+            "media_id": 133571005,
+            "wav_name": "VO_Ganesha_01_Normal.wav",
+            "wem_relative_path": "Pal/Content/WwiseAudio/Media/133571005.wem"
+        },
+        "Pain": {
+            "media_id": 484513280,
+            "wav_name": "VO_Ganesha_05_Pain.wav",
+            "wem_relative_path": "Pal/Content/WwiseAudio/Media/484513280.wem"
+        },
+        "Sorrow": {
+            "media_id": 712007687,
+            "wav_name": "VO_Ganesha_04_Sorrow.wav",
+            "wem_relative_path": "Pal/Content/WwiseAudio/Media/712007687.wem"
+        },
+        "Anger": {
+            "media_id": 174749064,
+            "wav_name": "VO_Ganesha_03_Anger.wav",
+            "wem_relative_path": "Pal/Content/WwiseAudio/Media/174749064.wem"
+        }
+    },
+    "Alpaca": {
+        "Death": {
+            "media_id": 445338391,
+            "wav_name": "VO_Alpaca_06_Death.wav",
+            "wem_relative_path": "Pal/Content/WwiseAudio/Media/445338391.wem"
+        },
+        "Joy": {
+            "media_id": 1036475745,
+            "wav_name": "VO_Alpaca_02_Joy.wav",
+            "wem_relative_path": "Pal/Content/WwiseAudio/Media/1036475745.wem"
+        },
+        "Normal": {
+            "media_id": 77842448,
+            "wav_name": "VO_Alpaca_01_Normal.wav",
+            "wem_relative_path": "Pal/Content/WwiseAudio/Media/77842448.wem"
+        },
+        "Pain": {
+            "media_id": 9450513,
+            "wav_name": "VO_Alpaca_05_Pain.wav",
+            "wem_relative_path": "Pal/Content/WwiseAudio/Media/9450513.wem"
+        },
+        "Sorrow": {
+            "media_id": 1029420640,
+            "wav_name": "VO_Alpaca_04_Sorrow.wav",
+            "wem_relative_path": "Pal/Content/WwiseAudio/Media/1029420640.wem"
+        },
+        "Anger": {
+            "media_id": 953150704,
+            "wav_name": "VO_Alpaca_03_Anger.wav",
+            "wem_relative_path": "Pal/Content/WwiseAudio/Media/953150704.wem"
+        }
+    },
+    "Monkey": {
+        "Joy": {
+            "media_id": 459420278,
+            "wav_name": "VO_Monkey_02_Joy.wav",
+            "wem_relative_path": "Pal/Content/WwiseAudio/Media/459420278.wem"
+        },
+        "Normal": {
+            "media_id": 463585782,
+            "wav_name": "VO_Monkey_01_Normal.wav",
+            "wem_relative_path": "Pal/Content/WwiseAudio/Media/463585782.wem"
+        },
+        "Pain": {
+            "media_id": 1035735101,
+            "wav_name": "VO_Monkey_05_Pain.wav",
+            "wem_relative_path": "Pal/Content/WwiseAudio/Media/1035735101.wem"
+        },
+        "Anger": {
+            "media_id": 174744452,
+            "wav_name": "VO_Monkey_03_Anger.wav",
+            "wem_relative_path": "Pal/Content/WwiseAudio/Media/174744452.wem"
+        }
+    },
+    "IceWitch": {
+        "Death": {
+            "media_id": 668771747,
+            "wav_name": "VO_IceWitch_06_Death.wav",
+            "wem_relative_path": "Pal/Content/WwiseAudio/Media/668771747.wem"
+        },
+        "Joy": {
+            "media_id": 892116347,
+            "wav_name": "VO_IceWitch_02_Joy.wav",
+            "wem_relative_path": "Pal/Content/WwiseAudio/Media/892116347.wem"
+        },
+        "Normal": {
+            "media_id": 311816057,
+            "wav_name": "VO_IceWitch_01_Normal.wav",
+            "wem_relative_path": "Pal/Content/WwiseAudio/Media/311816057.wem"
+        },
+        "Pain": {
+            "media_id": 750760224,
+            "wav_name": "VO_IceWitch_05_Pain.wav",
+            "wem_relative_path": "Pal/Content/WwiseAudio/Media/750760224.wem"
+        },
+        "Sorrow": {
+            "media_id": 725193407,
+            "wav_name": "VO_IceWitch_04_Sorrow.wav",
+            "wem_relative_path": "Pal/Content/WwiseAudio/Media/725193407.wem"
+        },
+        "Anger": {
+            "media_id": 857178729,
+            "wav_name": "VO_IceWitch_03_Anger.wav",
+            "wem_relative_path": "Pal/Content/WwiseAudio/Media/857178729.wem"
+        }
+    },
+    "Deer": {
+        "Death": {
+            "media_id": 835440233,
+            "wav_name": "VO_Deer_06_Death.wav",
+            "wem_relative_path": "Pal/Content/WwiseAudio/Media/835440233.wem"
+        },
+        "Joy": {
+            "media_id": 278369279,
+            "wav_name": "VO_Deer_02_Joy.wav",
+            "wem_relative_path": "Pal/Content/WwiseAudio/Media/278369279.wem"
+        },
+        "Pain": {
+            "media_id": 897840059,
+            "wav_name": "VO_Deer_05_Pain.wav",
+            "wem_relative_path": "Pal/Content/WwiseAudio/Media/897840059.wem"
+        },
+        "Sorrow": {
+            "media_id": 623986500,
+            "wav_name": "VO_Deer_04_Sorrow.wav",
+            "wem_relative_path": "Pal/Content/WwiseAudio/Media/623986500.wem"
+        }
+    },
+    "Manticore": {
+        "Death": {
+            "media_id": 1055163740,
+            "wav_name": "VO_Manticore_06_Death.wav",
+            "wem_relative_path": "Pal/Content/WwiseAudio/Media/1055163740.wem"
+        },
+        "Joy": {
+            "media_id": 157686913,
+            "wav_name": "VO_Manticore_02_Joy.wav",
+            "wem_relative_path": "Pal/Content/WwiseAudio/Media/157686913.wem"
+        },
+        "Normal": {
+            "media_id": 268350706,
+            "wav_name": "VO_Manticore_01_Normal.wav",
+            "wem_relative_path": "Pal/Content/WwiseAudio/Media/268350706.wem"
+        },
+        "Pain": {
+            "media_id": 1063540204,
+            "wav_name": "VO_Manticore_05_Pain.wav",
+            "wem_relative_path": "Pal/Content/WwiseAudio/Media/1063540204.wem"
+        },
+        "Sorrow": {
+            "media_id": 237966448,
+            "wav_name": "VO_Manticore_04_Sorrow.wav",
+            "wem_relative_path": "Pal/Content/WwiseAudio/Media/237966448.wem"
+        },
+        "Anger": {
+            "media_id": 274933052,
+            "wav_name": "VO_Manticore_03_Anger.wav",
+            "wem_relative_path": "Pal/Content/WwiseAudio/Media/274933052.wem"
+        }
+    },
+    "FlameBuffalo": {
+        "Death": {
+            "media_id": 96468582,
+            "wav_name": "VO_FlameBuffalo_06_Death.wav",
+            "wem_relative_path": "Pal/Content/WwiseAudio/Media/96468582.wem"
+        },
+        "Joy": {
+            "media_id": 1035952704,
+            "wav_name": "VO_FlameBuffalo_02_Joy.wav",
+            "wem_relative_path": "Pal/Content/WwiseAudio/Media/1035952704.wem"
+        },
+        "Normal": {
+            "media_id": 791350584,
+            "wav_name": "VO_FlameBuffalo_01_Normal.wav",
+            "wem_relative_path": "Pal/Content/WwiseAudio/Media/791350584.wem"
+        },
+        "Pain": {
+            "media_id": 104019640,
+            "wav_name": "VO_FlameBuffalo_05_Pain.wav",
+            "wem_relative_path": "Pal/Content/WwiseAudio/Media/104019640.wem"
+        },
+        "Sorrow": {
+            "media_id": 1052949129,
+            "wav_name": "VO_FlameBuffalo_04_Sorrow.wav",
+            "wem_relative_path": "Pal/Content/WwiseAudio/Media/1052949129.wem"
+        },
+        "Anger": {
+            "media_id": 209642912,
+            "wav_name": "VO_FlameBuffalo_03_Anger.wav",
+            "wem_relative_path": "Pal/Content/WwiseAudio/Media/209642912.wem"
+        }
+    },
+    "Suzaku": {
+        "Death": {
+            "media_id": 476972321,
+            "wav_name": "VO_Suzaku_06_Death.wav",
+            "wem_relative_path": "Pal/Content/WwiseAudio/Media/476972321.wem"
+        },
+        "Joy": {
+            "media_id": 1015641106,
+            "wav_name": "VO_Suzaku_02_Joy.wav",
+            "wem_relative_path": "Pal/Content/WwiseAudio/Media/1015641106.wem"
+        },
+        "Normal": {
+            "media_id": 261921877,
+            "wav_name": "VO_Suzaku_01_Normal.wav",
+            "wem_relative_path": "Pal/Content/WwiseAudio/Media/261921877.wem"
+        },
+        "Pain": {
+            "media_id": 548635720,
+            "wav_name": "VO_Suzaku_05_Pain.wav",
+            "wem_relative_path": "Pal/Content/WwiseAudio/Media/548635720.wem"
+        },
+        "Sorrow": {
+            "media_id": 869887227,
+            "wav_name": "VO_Suzaku_04_Sorrow.wav",
+            "wem_relative_path": "Pal/Content/WwiseAudio/Media/869887227.wem"
+        },
+        "Anger": {
+            "media_id": 312883315,
+            "wav_name": "VO_Suzaku_03_Anger.wav",
+            "wem_relative_path": "Pal/Content/WwiseAudio/Media/312883315.wem"
+        }
+    },
+    "PinkRabbit": {
+        "Death": {
+            "media_id": 367054480,
+            "wav_name": "VO_PinkRabbit_06_Death.wav",
+            "wem_relative_path": "Pal/Content/WwiseAudio/Media/367054480.wem"
+        },
+        "Joy": {
+            "media_id": 680707497,
+            "wav_name": "VO_PinkRabbit_02_Joy.wav",
+            "wem_relative_path": "Pal/Content/WwiseAudio/Media/680707497.wem"
+        },
+        "Normal": {
+            "media_id": 112401813,
+            "wav_name": "VO_PinkRabbit_01_Normal.wav",
+            "wem_relative_path": "Pal/Content/WwiseAudio/Media/112401813.wem"
+        },
+        "Pain": {
+            "media_id": 935457811,
+            "wav_name": "VO_PinkRabbit_05_Pain.wav",
+            "wem_relative_path": "Pal/Content/WwiseAudio/Media/935457811.wem"
+        },
+        "Sorrow": {
+            "media_id": 611350662,
+            "wav_name": "VO_PinkRabbit_04_Sorrow.wav",
+            "wem_relative_path": "Pal/Content/WwiseAudio/Media/611350662.wem"
+        },
+        "Anger": {
+            "media_id": 304557906,
+            "wav_name": "VO_PinkRabbit_03_Anger.wav",
+            "wem_relative_path": "Pal/Content/WwiseAudio/Media/304557906.wem"
+        }
+    },
+    "LavaGirl": {
+        "Death": {
+            "media_id": 482055892,
+            "wav_name": "VO_LavaGirl_06_Death.wav",
+            "wem_relative_path": "Pal/Content/WwiseAudio/Media/482055892.wem"
+        },
+        "Joy": {
+            "media_id": 319819107,
+            "wav_name": "VO_LavaGirl_02_Joy.wav",
+            "wem_relative_path": "Pal/Content/WwiseAudio/Media/319819107.wem"
+        },
+        "Normal": {
+            "media_id": 874065315,
+            "wav_name": "VO_LavaGirl_01_Normal.wav",
+            "wem_relative_path": "Pal/Content/WwiseAudio/Media/874065315.wem"
+        },
+        "Pain": {
+            "media_id": 38783349,
+            "wav_name": "VO_LavaGirl_05_Pain.wav",
+            "wem_relative_path": "Pal/Content/WwiseAudio/Media/38783349.wem"
+        },
+        "Sorrow": {
+            "media_id": 103127321,
+            "wav_name": "VO_LavaGirl_04_Sorrow.wav",
+            "wem_relative_path": "Pal/Content/WwiseAudio/Media/103127321.wem"
+        },
+        "Anger": {
+            "media_id": 449609754,
+            "wav_name": "VO_LavaGirl_03_Anger.wav",
+            "wem_relative_path": "Pal/Content/WwiseAudio/Media/449609754.wem"
+        }
+    },
+    "TropicalOstrich": {
+        "Death": {
+            "media_id": 130495891,
+            "wav_name": "VO_TropicalOstrich_06_Death.wav",
+            "wem_relative_path": "Pal/Content/WwiseAudio/Media/130495891.wem"
+        },
+        "Joy": {
+            "media_id": 1023985272,
+            "wav_name": "VO_TropicalOstrich_02_Joy.wav",
+            "wem_relative_path": "Pal/Content/WwiseAudio/Media/1023985272.wem"
+        },
+        "Normal": {
+            "media_id": 191361407,
+            "wav_name": "VO_TropicalOstrich_01_Normal.wav",
+            "wem_relative_path": "Pal/Content/WwiseAudio/Media/191361407.wem"
+        },
+        "Pain": {
+            "media_id": 474379038,
+            "wav_name": "VO_TropicalOstrich_05_Pain.wav",
+            "wem_relative_path": "Pal/Content/WwiseAudio/Media/474379038.wem"
+        },
+        "Sorrow": {
+            "media_id": 408401744,
+            "wav_name": "VO_TropicalOstrich_04_Sorrow.wav",
+            "wem_relative_path": "Pal/Content/WwiseAudio/Media/408401744.wem"
+        },
+        "Anger": {
+            "media_id": 478239511,
+            "wav_name": "VO_TropicalOstrich_03_Anger.wav",
+            "wem_relative_path": "Pal/Content/WwiseAudio/Media/478239511.wem"
+        }
+    },
+    "ElecLion": {
+        "Death": {
+            "media_id": 1048742471,
+            "wav_name": "VO_ElecLion_06_Death.wav",
+            "wem_relative_path": "Pal/Content/WwiseAudio/Media/1048742471.wem"
+        },
+        "Joy": {
+            "media_id": 414126267,
+            "wav_name": "VO_ElecLion_02_Joy.wav",
+            "wem_relative_path": "Pal/Content/WwiseAudio/Media/414126267.wem"
+        },
+        "Normal": {
+            "media_id": 141511710,
+            "wav_name": "VO_ElecLion_01_Normal.wav",
+            "wem_relative_path": "Pal/Content/WwiseAudio/Media/141511710.wem"
+        },
+        "Pain": {
+            "media_id": 560241182,
+            "wav_name": "VO_ElecLion_05_Pain.wav",
+            "wem_relative_path": "Pal/Content/WwiseAudio/Media/560241182.wem"
+        },
+        "Sorrow": {
+            "media_id": 39211344,
+            "wav_name": "VO_ElecLion_04_Sorrow.wav",
+            "wem_relative_path": "Pal/Content/WwiseAudio/Media/39211344.wem"
+        },
+        "Anger": {
+            "media_id": 1040415710,
+            "wav_name": "VO_ElecLion_03_Anger.wav",
+            "wem_relative_path": "Pal/Content/WwiseAudio/Media/1040415710.wem"
+        }
+    },
+    "Boar": {
+        "Death": {
+            "media_id": 827553277,
+            "wav_name": "VO_Boar_06_Death.wav",
+            "wem_relative_path": "Pal/Content/WwiseAudio/Media/827553277.wem"
+        },
+        "Joy": {
+            "media_id": 1030166245,
+            "wav_name": "VO_Boar_02_Joy.wav",
+            "wem_relative_path": "Pal/Content/WwiseAudio/Media/1030166245.wem"
+        },
+        "Normal": {
+            "media_id": 164867547,
+            "wav_name": "VO_Boar_01_Normal.wav",
+            "wem_relative_path": "Pal/Content/WwiseAudio/Media/164867547.wem"
+        },
+        "Pain": {
+            "media_id": 180827055,
+            "wav_name": "VO_Boar_05_Pain.wav",
+            "wem_relative_path": "Pal/Content/WwiseAudio/Media/180827055.wem"
+        },
+        "Sorrow": {
+            "media_id": 1019956726,
+            "wav_name": "VO_Boar_04_Sorrow.wav",
+            "wem_relative_path": "Pal/Content/WwiseAudio/Media/1019956726.wem"
+        },
+        "Anger": {
+            "media_id": 46323768,
+            "wav_name": "VO_Boar_03_Anger.wav",
+            "wem_relative_path": "Pal/Content/WwiseAudio/Media/46323768.wem"
+        }
+    },
+    "Plesiosaur": {
+        "Death": {
+            "media_id": 221657277,
+            "wav_name": "VO_Plesiosaur_06_Death.wav",
+            "wem_relative_path": "Pal/Content/WwiseAudio/Media/221657277.wem"
+        },
+        "Joy": {
+            "media_id": 116504869,
+            "wav_name": "VO_Plesiosaur_02_Joy.wav",
+            "wem_relative_path": "Pal/Content/WwiseAudio/Media/116504869.wem"
+        },
+        "Normal": {
+            "media_id": 648028881,
+            "wav_name": "VO_Plesiosaur_01_Normal.wav",
+            "wem_relative_path": "Pal/Content/WwiseAudio/Media/648028881.wem"
+        },
+        "Pain": {
+            "media_id": 615549716,
+            "wav_name": "VO_Plesiosaur_05_Pain.wav",
+            "wem_relative_path": "Pal/Content/WwiseAudio/Media/615549716.wem"
+        },
+        "Sorrow": {
+            "media_id": 453034268,
+            "wav_name": "VO_Plesiosaur_04_Sorrow.wav",
+            "wem_relative_path": "Pal/Content/WwiseAudio/Media/453034268.wem"
+        },
+        "Anger": {
+            "media_id": 708624441,
+            "wav_name": "VO_Plesiosaur_03_Anger.wav",
+            "wem_relative_path": "Pal/Content/WwiseAudio/Media/708624441.wem"
+        }
+    },
+    "MushroomDragon": {
+        "Death": {
+            "media_id": 397626324,
+            "wav_name": "VO_MushroomDragon_06_Death.wav",
+            "wem_relative_path": "Pal/Content/WwiseAudio/Media/397626324.wem"
+        },
+        "Joy": {
+            "media_id": 385398466,
+            "wav_name": "VO_MushroomDragon_02_Joy.wav",
+            "wem_relative_path": "Pal/Content/WwiseAudio/Media/385398466.wem"
+        },
+        "Normal": {
+            "media_id": 264258933,
+            "wav_name": "VO_MushroomDragon_01_Normal.wav",
+            "wem_relative_path": "Pal/Content/WwiseAudio/Media/264258933.wem"
+        },
+        "Pain": {
+            "media_id": 10751200,
+            "wav_name": "VO_MushroomDragon_05_Pain.wav",
+            "wem_relative_path": "Pal/Content/WwiseAudio/Media/10751200.wem"
+        },
+        "Sorrow": {
+            "media_id": 107012543,
+            "wav_name": "VO_MushroomDragon_04_Sorrow.wav",
+            "wem_relative_path": "Pal/Content/WwiseAudio/Media/107012543.wem"
+        },
+        "Anger": {
+            "media_id": 401437709,
+            "wav_name": "VO_MushroomDragon_03_Anger.wav",
+            "wem_relative_path": "Pal/Content/WwiseAudio/Media/401437709.wem"
+        }
+    },
+    "Ronin": {
+        "Death": {
+            "media_id": 458182201,
+            "wav_name": "VO_Ronin_06_Death.wav",
+            "wem_relative_path": "Pal/Content/WwiseAudio/Media/458182201.wem"
+        },
+        "Normal": {
+            "media_id": 32301546,
+            "wav_name": "VO_Ronin_01_Normal.wav",
+            "wem_relative_path": "Pal/Content/WwiseAudio/Media/32301546.wem"
+        },
+        "Pain": {
+            "media_id": 99087661,
+            "wav_name": "VO_Ronin_05_Pain.wav",
+            "wem_relative_path": "Pal/Content/WwiseAudio/Media/99087661.wem"
+        },
+        "Sorrow": {
+            "media_id": 886229689,
+            "wav_name": "VO_Ronin_04_Sorrow.wav",
+            "wem_relative_path": "Pal/Content/WwiseAudio/Media/886229689.wem"
+        },
+        "Anger": {
+            "media_id": 105544838,
+            "wav_name": "VO_Ronin_03_Anger.wav",
+            "wem_relative_path": "Pal/Content/WwiseAudio/Media/105544838.wem"
+        }
+    },
+    "OctopusGirl": {
+        "Death": {
+            "media_id": 666925017,
+            "wav_name": "VO_OctopusGirl_06_Death.wav",
+            "wem_relative_path": "Pal/Content/WwiseAudio/Media/666925017.wem"
+        },
+        "Joy": {
+            "media_id": 585645318,
+            "wav_name": "VO_OctopusGirl_02_Joy.wav",
+            "wem_relative_path": "Pal/Content/WwiseAudio/Media/585645318.wem"
+        },
+        "Normal": {
+            "media_id": 110339615,
+            "wav_name": "VO_OctopusGirl_01_Normal.wav",
+            "wem_relative_path": "Pal/Content/WwiseAudio/Media/110339615.wem"
+        },
+        "Pain": {
+            "media_id": 186721409,
+            "wav_name": "VO_OctopusGirl_05_Pain.wav",
+            "wem_relative_path": "Pal/Content/WwiseAudio/Media/186721409.wem"
+        },
+        "Sorrow": {
+            "media_id": 993730966,
+            "wav_name": "VO_OctopusGirl_04_Sorrow.wav",
+            "wem_relative_path": "Pal/Content/WwiseAudio/Media/993730966.wem"
+        },
+        "Anger": {
+            "media_id": 401235315,
+            "wav_name": "VO_OctopusGirl_03_Anger.wav",
+            "wem_relative_path": "Pal/Content/WwiseAudio/Media/401235315.wem"
+        }
+    },
+    "QueenBee": {
+        "Death": {
+            "media_id": 570876526,
+            "wav_name": "VO_QueenBee_06_Death.wav",
+            "wem_relative_path": "Pal/Content/WwiseAudio/Media/570876526.wem"
+        },
+        "Joy": {
+            "media_id": 229281341,
+            "wav_name": "VO_QueenBee_02_Joy.wav",
+            "wem_relative_path": "Pal/Content/WwiseAudio/Media/229281341.wem"
+        },
+        "Normal": {
+            "media_id": 535686469,
+            "wav_name": "VO_QueenBee_01_Normal.wav",
+            "wem_relative_path": "Pal/Content/WwiseAudio/Media/535686469.wem"
+        },
+        "Pain": {
+            "media_id": 260941545,
+            "wav_name": "VO_QueenBee_05_Pain.wav",
+            "wem_relative_path": "Pal/Content/WwiseAudio/Media/260941545.wem"
+        },
+        "Sorrow": {
+            "media_id": 232854124,
+            "wav_name": "VO_QueenBee_04_Sorrow.wav",
+            "wem_relative_path": "Pal/Content/WwiseAudio/Media/232854124.wem"
+        },
+        "Anger": {
+            "media_id": 1053894982,
+            "wav_name": "VO_QueenBee_03_Anger.wav",
+            "wem_relative_path": "Pal/Content/WwiseAudio/Media/1053894982.wem"
+        }
+    },
+    "PlantSlime": {
+        "Death": {
+            "media_id": 940743016,
+            "wav_name": "VO_PlantSlime_06_Death.wav",
+            "wem_relative_path": "Pal/Content/WwiseAudio/Media/940743016.wem"
+        },
+        "Joy": {
+            "media_id": 57066485,
+            "wav_name": "VO_PlantSlime_02_Joy.wav",
+            "wem_relative_path": "Pal/Content/WwiseAudio/Media/57066485.wem"
+        },
+        "Normal": {
+            "media_id": 909755293,
+            "wav_name": "VO_PlantSlime_01_Normal.wav",
+            "wem_relative_path": "Pal/Content/WwiseAudio/Media/909755293.wem"
+        },
+        "Pain": {
+            "media_id": 754715860,
+            "wav_name": "VO_PlantSlime_05_Pain.wav",
+            "wem_relative_path": "Pal/Content/WwiseAudio/Media/754715860.wem"
+        },
+        "Sorrow": {
+            "media_id": 282340199,
+            "wav_name": "VO_PlantSlime_04_Sorrow.wav",
+            "wem_relative_path": "Pal/Content/WwiseAudio/Media/282340199.wem"
+        },
+        "Anger": {
+            "media_id": 36347699,
+            "wav_name": "VO_PlantSlime_03_Anger.wav",
+            "wem_relative_path": "Pal/Content/WwiseAudio/Media/36347699.wem"
+        }
+    },
+    "NegativeKoala": {
+        "Death": {
+            "media_id": 166229832,
+            "wav_name": "VO_NegativeKoala_06_Death.wav",
+            "wem_relative_path": "Pal/Content/WwiseAudio/Media/166229832.wem"
+        },
+        "Joy": {
+            "media_id": 708615892,
+            "wav_name": "VO_NegativeKoala_02_Joy.wav",
+            "wem_relative_path": "Pal/Content/WwiseAudio/Media/708615892.wem"
+        },
+        "Normal": {
+            "media_id": 167646101,
+            "wav_name": "VO_NegativeKoala_01_Normal.wav",
+            "wem_relative_path": "Pal/Content/WwiseAudio/Media/167646101.wem"
+        },
+        "Pain": {
+            "media_id": 148148725,
+            "wav_name": "VO_NegativeKoala_05_Pain.wav",
+            "wem_relative_path": "Pal/Content/WwiseAudio/Media/148148725.wem"
+        },
+        "Sorrow": {
+            "media_id": 390061268,
+            "wav_name": "VO_NegativeKoala_04_Sorrow.wav",
+            "wem_relative_path": "Pal/Content/WwiseAudio/Media/390061268.wem"
+        },
+        "Anger": {
+            "media_id": 258336169,
+            "wav_name": "VO_NegativeKoala_03_Anger.wav",
+            "wem_relative_path": "Pal/Content/WwiseAudio/Media/258336169.wem"
+        }
+    },
+    "MysteryMask": {
+        "Death": {
+            "media_id": 1052984833,
+            "wav_name": "VO_MysteryMask_06_Death.wav",
+            "wem_relative_path": "Pal/Content/WwiseAudio/Media/1052984833.wem"
+        },
+        "Joy": {
+            "media_id": 1015708857,
+            "wav_name": "VO_MysteryMask_02_Joy.wav",
+            "wem_relative_path": "Pal/Content/WwiseAudio/Media/1015708857.wem"
+        },
+        "Normal": {
+            "media_id": 767522018,
+            "wav_name": "VO_MysteryMask_01_Normal.wav",
+            "wem_relative_path": "Pal/Content/WwiseAudio/Media/767522018.wem"
+        },
+        "Pain": {
+            "media_id": 742124132,
+            "wav_name": "VO_MysteryMask_05_Pain.wav",
+            "wem_relative_path": "Pal/Content/WwiseAudio/Media/742124132.wem"
+        },
+        "Sorrow": {
+            "media_id": 571441716,
+            "wav_name": "VO_MysteryMask_04_Sorrow.wav",
+            "wem_relative_path": "Pal/Content/WwiseAudio/Media/571441716.wem"
+        },
+        "Anger": {
+            "media_id": 874761051,
+            "wav_name": "VO_MysteryMask_03_Anger.wav",
+            "wem_relative_path": "Pal/Content/WwiseAudio/Media/874761051.wem"
+        }
+    },
+    "IceFox": {
+        "Death": {
+            "media_id": 616009260,
+            "wav_name": "VO_IceFox_06_Death.wav",
+            "wem_relative_path": "Pal/Content/WwiseAudio/Media/616009260.wem"
+        },
+        "Joy": {
+            "media_id": 234759026,
+            "wav_name": "VO_IceFox_02_Joy.wav",
+            "wem_relative_path": "Pal/Content/WwiseAudio/Media/234759026.wem"
+        },
+        "Normal": {
+            "media_id": 634837547,
+            "wav_name": "VO_IceFox_01_Normal.wav",
+            "wem_relative_path": "Pal/Content/WwiseAudio/Media/634837547.wem"
+        },
+        "Pain": {
+            "media_id": 581365443,
+            "wav_name": "VO_IceFox_05_Pain.wav",
+            "wem_relative_path": "Pal/Content/WwiseAudio/Media/581365443.wem"
+        },
+        "Sorrow": {
+            "media_id": 262411839,
+            "wav_name": "VO_IceFox_04_Sorrow.wav",
+            "wem_relative_path": "Pal/Content/WwiseAudio/Media/262411839.wem"
+        },
+        "Anger": {
+            "media_id": 753568100,
+            "wav_name": "VO_IceFox_03_Anger.wav",
+            "wem_relative_path": "Pal/Content/WwiseAudio/Media/753568100.wem"
+        }
+    },
+    "WhiteDeer": {
+        "Death": {
+            "media_id": 694363030,
+            "wav_name": "VO_WhiteDeer_06_Death.wav",
+            "wem_relative_path": "Pal/Content/WwiseAudio/Media/694363030.wem"
+        },
+        "Joy": {
+            "media_id": 993605694,
+            "wav_name": "VO_WhiteDeer_02_Joy.wav",
+            "wem_relative_path": "Pal/Content/WwiseAudio/Media/993605694.wem"
+        },
+        "Normal": {
+            "media_id": 907775124,
+            "wav_name": "VO_WhiteDeer_01_Normal.wav",
+            "wem_relative_path": "Pal/Content/WwiseAudio/Media/907775124.wem"
+        },
+        "Pain": {
+            "media_id": 736130455,
+            "wav_name": "VO_WhiteDeer_05_Pain.wav",
+            "wem_relative_path": "Pal/Content/WwiseAudio/Media/736130455.wem"
+        },
+        "Sorrow": {
+            "media_id": 204284604,
+            "wav_name": "VO_WhiteDeer_04_Sorrow.wav",
+            "wem_relative_path": "Pal/Content/WwiseAudio/Media/204284604.wem"
+        },
+        "Anger": {
+            "media_id": 576134741,
+            "wav_name": "VO_WhiteDeer_03_Anger.wav",
+            "wem_relative_path": "Pal/Content/WwiseAudio/Media/576134741.wem"
+        }
+    }
+}

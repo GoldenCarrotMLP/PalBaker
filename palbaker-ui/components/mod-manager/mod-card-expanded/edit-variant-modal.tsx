@@ -103,7 +103,7 @@ export function EditVariantModal({
 
   const handleDelete = async () => {
     if (variant.is_base) return
-    if (!confirm(`Delete variant: ${variant.label}?`)) return
+    if (!window.confirm(`Delete variant: ${variant.label}?`)) return
     try {
       await ModManagerAPI.altermaticDelete(modName, variantIndex)
       onNotify(`Deleted variant: ${variant.label}`, "success")
@@ -253,7 +253,7 @@ export function EditVariantModal({
                   <span className="text-sm font-semibold text-foreground">Is Lucky Pal? (IsRarePal)</span>
                   <span className="text-xs text-muted-foreground">Only spawn on lucky/giant Pal instances.</span>
                 </div>
-                <label className="relative inline-flex items-center cursor-pointer">
+                <label className="relative inline-flex inline-flex items-center cursor-pointer">
                   <input type="checkbox" checked={isRarePal} onChange={(e) => setIsRarePal(e.target.checked)} className="sr-only peer" />
                   <div className="w-9 h-5 bg-muted border border-border peer-checked:bg-primary rounded-full transition-colors" />
                   <div className="absolute top-0.5 left-0.5 size-4 bg-white rounded-full shadow transition-transform peer-checked:translate-x-4" />

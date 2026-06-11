@@ -130,6 +130,6 @@ def create_cli_parser() -> argparse.ArgumentParser:
     env_subparsers.add_parser("restart-unreal", help="Restart the configured Unreal Editor for the project")
     env_subparsers.add_parser("enable-remote-exec", help="Configure DefaultEngine.ini to enable remote Python execution")
     env_subparsers.add_parser("autodetect", help="Autodetect Unreal Engine, Palworld, and Blender paths")
-
+    env_subparsers.add_parser("extract-icons", help="Extract all vanilla Pal icon textures from game archives")
 
     return parser

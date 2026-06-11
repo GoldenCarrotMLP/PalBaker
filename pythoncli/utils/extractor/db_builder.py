@@ -2,12 +2,13 @@
 import os
 import json
 import shutil
+import glob
 from .core import extract_game_files
 
 def build_pal_names_map(settings: dict) -> tuple[bool, str]:
-    """Extracts, parses, and compiles all dynamic database caches and wild overworld spawner directories."""
+    """Extracts, parses, and compiles all dynamic database caches, voice maps, and wild overworld spawner directories."""
     repo_root = os.path.dirname(os.path.dirname(os.path.dirname(os.path.abspath(__file__))))
-    target_map_path = os.path.join(repo_root, "pal_names_map.json")
+    target_map_path = os.path.join(repo_root, "deps", "pal_names_map.json")
     os.makedirs(os.path.join(repo_root, "deps"), exist_ok=True)
     
     # 1. Text Localization Table
@@ -82,16 +83,16 @@ def build_pal_names_map(settings: dict) -> tuple[bool, str]:
         
     shutil.rmtree(temp_out, ignore_errors=True)
 
-    # Dispatch modular sub-task compilers
+    # Dispatch modular sub-task compilers (Skipping slow icon extraction here)
     skill_names_lookup = _build_skills_lookup(settings, repo_root)
     partner_skill_to_pal_map = _build_monster_parameters(settings, repo_root)
-    _build_vanilla_icons(settings)
     _build_active_skills_cache(settings, repo_root, skill_names_lookup)
     _build_passive_skills_cache(settings, repo_root, skill_names_lookup)
     _build_partner_skills_cache(settings, repo_root, skill_names_lookup, partner_skill_to_pal_map)
     _build_waza_learnsets_cache(settings, repo_root)
     _build_wild_spawners_cache(settings, repo_root)
     _build_camera_offsets_cache(settings, repo_root)
+    _build_resolved_sound_map(settings, repo_root)
 
     return True, "Pal database metrics built and pre-cached successfully."
 
@@ -172,29 +173,46 @@ def _build_monster_parameters(settings: dict, repo_root: str) -> dict:
         pass
     return partner_skill_to_pal_map
 
-def _build_vanilla_icons(settings: dict):
+def extract_vanilla_icons(settings: dict, log_callback=None) -> tuple[bool, str]:
+    """Extracts all vanilla Pal icons from the game archives to enable frontend image previews."""
     fmodel_base = settings.get("fmodel_output", "")
-    if fmodel_base:
-        try:
-            icon_relative_dir = "Pal/Content/Pal/Texture/PalIcon/Normal"
-            icon_export_root = os.path.join(fmodel_base, "Exports")
-            success, _ = extract_game_files(
-                settings,
-                [f"{icon_relative_dir}/*"],
-                icon_export_root,
-                format_type="auto"
-            )
-            if success:
-                extracted_icon_dir = os.path.normpath(os.path.join(icon_export_root, icon_relative_dir))
-                if os.path.exists(extracted_icon_dir):
-                    redundant_extensions = (".uasset", ".uexp", ".ubulk")
-                    for root, _, files in os.walk(extracted_icon_dir):
-                        for file in files:
-                            if file.lower().endswith(redundant_extensions):
-                                try: os.remove(os.path.join(root, file))
-                                except OSError: pass
-        except Exception:
-            pass
+    if not fmodel_base:
+        return False, "FModel output folder is not configured."
+        
+    def log(msg, is_error=False):
+        if log_callback:
+            log_callback(msg, is_error)
+        else:
+            print(f"[Icon Extractor] {msg}", flush=True)
+
+    try:
+        icon_relative_dir = "Pal/Content/Pal/Texture/PalIcon/Normal"
+        icon_export_root = os.path.join(fmodel_base, "Exports")
+        
+        log("Opening game paks to extract PalIcon textures... (This may take a moment)", False)
+        success, msg = extract_game_files(
+            settings,
+            [f"{icon_relative_dir}/*"],
+            icon_export_root,
+            format_type="auto"
+        )
+        
+        if success:
+            extracted_icon_dir = os.path.normpath(os.path.join(icon_export_root, icon_relative_dir))
+            if os.path.exists(extracted_icon_dir):
+                log("Cleaning up redundant asset files and normalizing textures...", False)
+                redundant_extensions = (".uasset", ".uexp", ".ubulk")
+                for root, _, files in os.walk(extracted_icon_dir):
+                    for file in files:
+                        if file.lower().endswith(redundant_extensions):
+                            try: os.remove(os.path.join(root, file))
+                            except OSError: pass
+                
+                png_count = len(glob.glob(os.path.join(extracted_icon_dir, "*.png")))
+                return True, f"Successfully extracted {png_count} vanilla Pal icons."
+        return False, f"Extraction failed: {msg}"
+    except Exception as e:
+        return False, f"Exception during icon extraction: {e}"
 
 def _build_active_skills_cache(settings: dict, repo_root: str, skill_names_lookup: dict):
     try:
@@ -242,7 +260,7 @@ def _build_active_skills_cache(settings: dict, repo_root: str, skill_names_looku
                             "id": internal_id,
                             "element": element,
                             "category": category,
-                            "power": int(r_v.get("Power", 0)) # <-- EXTRACT THE NATIVE POWER VALUE!
+                            "power": int(r_v.get("Power", 0))
                         }
                         
                     with open(os.path.join(repo_root, "deps", "active_skills_cache.json"), "w", encoding="utf-8") as f_out:
@@ -510,3 +528,66 @@ def _build_camera_offsets_cache(settings: dict, repo_root: str):
         shutil.rmtree(temp_camera, ignore_errors=True)
     except Exception as e:
         print(f"Warning: Failed to compile UICaptureCameraOffsetData cache: {e}", flush=True)
+
+def _build_resolved_sound_map(settings: dict, repo_root: str):
+    """Extracts and compiles AKE_Pal_Cry_Test.json to generate the resolved sound maps."""
+    try:
+        temp_sound = os.path.join(repo_root, "temp_sound_extract")
+        success, _ = extract_game_files(
+            settings,
+            ["Pal/Content/Pal/Sound/Events/Voice/PalCry/AKE_Pal_Cry_Test.uasset"],
+            temp_sound,
+            format_type="json"
+        )
+        if success:
+            raw_sound_path = None
+            for root, _, files in os.walk(temp_sound):
+                for file in files:
+                    if file.lower() == "ake_pal_cry_test.json":
+                        raw_sound_path = os.path.join(root, file)
+                        break
+                if raw_sound_path: break
+                
+            if raw_sound_path and os.path.exists(raw_sound_path):
+                with open(raw_sound_path, "r", encoding="utf-8-sig") as f:
+                    sound_data = json.load(f)
+                
+                data_array = sound_data if isinstance(sound_data, list) else [sound_data]
+                sound_map = {}
+                valid_cries = {"Normal", "Joy", "Anger", "Sorrow", "Pain", "Death"}
+                
+                for entry in data_array:
+                    if entry.get("Type") == "AkAudioEvent":
+                        event_cooked_data = entry.get("EventCookedData", {})
+                        event_language_map = event_cooked_data.get("EventLanguageMap", [])
+                        for lang_entry in event_language_map:
+                            val = lang_entry.get("Value", {})
+                            media_list = val.get("Media", [])
+                            for media in media_list:
+                                media_id = media.get("MediaId")
+                                debug_name = media.get("DebugName", "")
+                                if debug_name.startswith("VO_") and media_id:
+                                    name_without_ext = os.path.splitext(debug_name)[0]
+                                    segments = name_without_ext.split("_")
+                                    if len(segments) >= 4:
+                                        pal_name = segments[1]
+                                        cry_name = segments[-1]
+                                        
+                                        if cry_name in valid_cries:
+                                            if pal_name not in sound_map:
+                                                sound_map[pal_name] = {}
+                                            sound_map[pal_name][cry_name] = {
+                                                "media_id": media_id,
+                                                "wav_name": debug_name,
+                                                "wem_relative_path": f"Pal/Content/WwiseAudio/Media/{media_id}.wem"
+                                            }
+                
+                if sound_map:
+                    dest_path = os.path.join(repo_root, "deps", "resolved_sound_map.json")
+                    with open(dest_path, "w", encoding="utf-8") as f_out:
+                        json.dump(sound_map, f_out, indent=4)
+                    print(f"[Database Builder] Successfully compiled {len(sound_map)} Pal voice entries to {dest_path}", flush=True)
+                    
+        shutil.rmtree(temp_sound, ignore_errors=True)
+    except Exception as e:
+        print(f"Warning: Failed to compile resolved_sound_map.json: {e}", flush=True)

@@ -132,7 +132,7 @@ function applyFilters(mods: ModItem[], preset: Preset, customTags: Tag[] | null,
 
 // ── Component ──────────────────────────────────────────────────────────────────
 export function ModManagerPage() {
-  const { search: searchQuery } = useNav()
+  const { search: searchQuery, setPage, refreshTrigger } = useNav() as any
   const { notifications, showNotification, dismissNotification } = useNotifications()
   const [mods, setMods]               = useState<ModItem[]>([])
   const [expandedId, setExpandedId]   = useState<string | null>(null)
@@ -143,6 +143,7 @@ export function ModManagerPage() {
   const [advancedOpen, setAdvancedOpen] = useState(false)
   const [diagnosticError, setDiagnosticError] = useState<string | null>(null)
   const [activeUnrealWizard, setActiveUnrealWizard] = useState<"unreal_closed" | "remote_exec_disabled" | null>(null)
+  const [isConfigured, setIsConfigured] = useState<boolean>(true)
   const advancedRef = useRef<HTMLDivElement>(null)
 
   const effectiveTags = resolveActiveTags(activePreset, customTags)
@@ -151,12 +152,29 @@ export function ModManagerPage() {
   async function loadMods() {
     try {
       setLoading(true)
-      const [data, config] = await Promise.all([
-        ModManagerAPI.list(),
-        SystemSettingsAPI.getConfig(),
-      ])
-      setMods(data)
+
+      // 1. Retrieve configurations first (guaranteed to succeed without path validation)
+      const config = await SystemSettingsAPI.getConfig()
       setShowMapped(config.show_mapped !== false)
+
+      const configured = Boolean(
+        config.fmodel_output &&
+        config.ue_root &&
+        config.uproject &&
+        config.blender &&
+        config.palworld_exe
+      )
+      setIsConfigured(configured)
+
+      if (!configured) {
+        // Aggressively alert on startup if paths are unconfigured
+        setDiagnosticError("You need to configure your environment paths in Settings before PalBaker can run any mod bakes, extractions, or cooks! ;3")
+        return // Short-circuit: skip fetching mods since we know the backend will reject it
+      }
+
+      // 2. Safely query the active list only if the requirements are satisfied
+      const data = await ModManagerAPI.list()
+      setMods(data)
     } catch (err) {
       console.error("Failed to load mods:", err)
     } finally {
@@ -164,11 +182,12 @@ export function ModManagerPage() {
     }
   }
 
-  useEffect(() => { loadMods() }, [])
+  useEffect(() => { loadMods() }, [refreshTrigger])
 
   useEffect(() => {
     function onClickOutside(e: MouseEvent) {
       if (advancedRef.current && !advancedRef.current.contains(e.target as Node)) {
+        setExpandedId(null)
         setAdvancedOpen(false)
       }
     }
@@ -379,6 +398,20 @@ export function ModManagerPage() {
       {/* ── Mod list ── */}
       {loading ? (
         <div className="text-muted-foreground text-sm text-center py-12">Loading...</div>
+      ) : !isConfigured ? (
+        <div className="flex flex-col items-center justify-center border border-dashed border-border rounded-xl p-12 text-center bg-muted/10 gap-4 animate-fade-in">
+          <span className="text-3xl animate-pulse">🦊⚙️</span>
+          <h3 className="text-foreground font-extrabold text-lg uppercase tracking-wider">Paths Not Configured</h3>
+          <p className="text-muted-foreground text-sm max-w-sm leading-relaxed">
+            Please configure your environment paths in Settings before PalBaker can run mod bakes, extractions, or cooks! ;3
+          </p>
+          <button
+            onClick={() => { setPage("system-settings") }}
+            className="flex items-center gap-1.5 px-4 py-2.5 rounded-lg bg-primary text-primary-foreground text-xs font-bold uppercase tracking-wider hover:bg-primary/90 shadow transition-colors cursor-pointer"
+          >
+            Go to Settings
+          </button>
+        </div>
       ) : filtered.length === 0 ? (
         <div className="flex flex-col items-center justify-center border border-dashed border-border rounded-xl p-12 text-center bg-muted/10 gap-4">
           <p className="text-muted-foreground text-sm max-w-sm leading-relaxed">
@@ -405,7 +438,7 @@ export function ModManagerPage() {
                 key={itemKey}
                 mod={mod}
                 expanded={expandedId === itemKey}
-                onToggle={() => setExpandedId((p) => (p === itemKey ? null : itemKey))}
+                onToggle={() => { setExpandedId((p) => (p === itemKey ? null : itemKey)) }}
                 onAction={handleAction}
                 onRefresh={loadMods}
                 showMapped={showMapped}
@@ -420,20 +453,20 @@ export function ModManagerPage() {
       {diagnosticError && (
         <DiagnosticsModal
           errorText={diagnosticError}
-          onClose={() => setDiagnosticError(null)}
+          onClose={() => { setDiagnosticError(null) }}
         />
       )}
 
       {/* Sequential Unreal Wizards */}
       <UnrealClosedModal
         isOpen={activeUnrealWizard === "unreal_closed"}
-        onClose={() => setActiveUnrealWizard(null)}
+        onClose={() => { setActiveUnrealWizard(null) }}
         onConfirm={handleLaunchUnreal}
       />
 
       <RemoteExecDisabledModal
         isOpen={activeUnrealWizard === "remote_exec_disabled"}
-        onClose={() => setActiveUnrealWizard(null)}
+        onClose={() => { setActiveUnrealWizard(null) }}
         onConfirm={handleEnableRemoteExecAndLaunch}
       />
     </div>

@@ -1,12 +1,12 @@
 // Mock data derived from pythoncli/cli_queries_dump.json and pythoncli/components/mods/mod_card.py
 
 export const mockConfig = {
-  workspace:      "H:\\SteamLibrary\\steamapps\\common\\Palworld\\Output\\Exports\\Pal\\Content\\Pal\\Model\\Character\\Pending Monster\\BlueberryFairy",
-  ue_root:        "C:\\Program Files\\Epic Games\\UE_5.1",
-  uproject_path:  "C:\\GameDev\\PalProject\\PalWorld.uproject",
-  blender_exe:    "C:\\Program Files\\Blender Foundation\\Blender 3.6\\blender.exe",
-  palworld_exe:   "H:\\SteamLibrary\\steamapps\\common\\Palworld\\Palworld.exe",
-  fmodel_output:  "H:\\SteamLibrary\\steamapps\\common\\Palworld\\Output",
+  workspace:      "",
+  ue_root:        "",
+  uproject_path:  "",
+  blender_exe:    "",
+  palworld_exe:   "",
+  fmodel_output:  "",
 }
 
 export const mockSpawnerCache: Record<string, string> = {
