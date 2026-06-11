@@ -1,4 +1,3 @@
-# controllers/creator/palschema_exporter.py
 import os
 import json
 import shutil
@@ -51,16 +50,27 @@ class PalSchemaExporter:
 
     def delete_palschema_export(self, pal_id: str):
         """Permanently deletes the exported PalSchema mod folder to prevent orphan directory clutter."""
+        mod_name = f"PalBaker_Custom_{pal_id}"
+        
+        creator_dir = self.c.get_creator_dir()
+        if creator_dir:
+            local_mod_root = os.path.join(creator_dir, "PalSchema", mod_name)
+            if os.path.exists(local_mod_root):
+                try:
+                    shutil.rmtree(local_mod_root)
+                    self.c.view.write_log(f"Successfully deleted local PalSchema export directory: {mod_name}", "warning")
+                except Exception as e:
+                    self.c.view.write_log(f"Failed to delete local PalSchema export: {e}", "error")
+
         mods_dir = self.get_palschema_mods_dir()
         if mods_dir:
-            mod_name = f"PalBaker_Custom_{pal_id}"
             mod_root = os.path.join(mods_dir, mod_name)
             if os.path.exists(mod_root):
                 try:
                     shutil.rmtree(mod_root)
-                    self.c.view.write_log(f"Successfully deleted PalSchema export directory: {mod_name}", "warning")
+                    self.c.view.write_log(f"Successfully deleted deployed PalSchema export directory: {mod_name}", "warning")
                 except Exception as e:
-                    self.c.view.write_log(f"Failed to delete PalSchema export: {e}", "error")
+                    self.c.view.write_log(f"Failed to delete deployed PalSchema export: {e}", "error")
 
     def generate_custom_actor_blueprint(self, p: dict) -> bool:
         """
@@ -76,16 +86,19 @@ class PalSchemaExporter:
         return patch_actor_blueprint(self.c.settings, pal_id, template_id, log_callback=log_bridge)
 
     def export_to_palschema(self, p: dict):
-        mods_dir = self.get_palschema_mods_dir()
-        if not mods_dir:
-            self.c.view.write_log("PalSchema directory not found. Skipping auto-export. Install PalSchema first.", "warning")
+        creator_dir = self.c.get_creator_dir()
+        if not creator_dir:
+            self.c.view.write_log("Creator directory not found. Cannot export PalSchema data.", "error")
             return
 
         pal_id = p["CharacterID"]
         template_id = p["TemplateID"]
         paldex_type = p.get("PaldexType", "Species")
         mod_name = f"PalBaker_Custom_{pal_id}"
-        mod_root = os.path.join(mods_dir, mod_name)
+        
+        # Build the files in the local workspace directory as the single source of truth
+        mod_root = os.path.join(creator_dir, "PalSchema", mod_name)
+        os.makedirs(mod_root, exist_ok=True)
         
         base_properties = self.c.templates_cache.get(template_id, {})
         
@@ -98,10 +111,7 @@ class PalSchemaExporter:
         
         new_monster_props = dict(base_properties)
         
-        # RESTORED: This links the parameter row to the actual standalone Blueprint table row
         new_monster_props["BPClass"] = f"MOD_{pal_id}"
-        
-        # Enforce "IsPal" to true so custom species show in the Paldeck
         new_monster_props["IsPal"] = True
         
         if paldex_type == "Species":
@@ -123,22 +133,53 @@ class PalSchemaExporter:
                 try: os.remove(enums_file)
                 except OSError: pass
 
-        new_monster_props["ElementType1"] = p["ElementType1"]
-        new_monster_props["ElementType2"] = p["ElementType2"]
-        new_monster_props["Hp"] = p["BaseHP"]
-        new_monster_props["MeleeAttack"] = p["BaseAtk"]
-        new_monster_props["Defense"] = p["BaseDef"]
-        new_monster_props["WorkSpeed"] = p["BaseWorkSpeed"]
-        new_monster_props["BaseSkills"] = p["BaseSkills"]
-        new_monster_props["PassiveSkills"] = p["PassiveSkills"]
-        new_monster_props["PartnerSkill"] = p["PartnerSkill"]
+        # Serialize exact original game parameters mapped from the frontend state
+        new_monster_props["ElementType1"] = p.get("ElementType1", "EPalElementType::Normal")
+        new_monster_props["ElementType2"] = p.get("ElementType2", "EPalElementType::None")
+        new_monster_props["Hp"] = int(p.get("Hp", p.get("BaseHP", 100)))
+        new_monster_props["MeleeAttack"] = int(p.get("MeleeAttack", p.get("BaseAtk", 100)))
+        new_monster_props["ShotAttack"] = int(p.get("ShotAttack", p.get("BaseShot", 100)))
+        new_monster_props["Defense"] = int(p.get("Defense", p.get("BaseDef", 100)))
+        new_monster_props["Support"] = int(p.get("Support", 100))
+        new_monster_props["CraftSpeed"] = int(p.get("CraftSpeed", p.get("BaseWorkSpeed", 100)))
+        new_monster_props["Size"] = p.get("Size", "EPalSizeType::M")
+        new_monster_props["Rarity"] = int(p.get("Rarity", 1))
+        new_monster_props["Price"] = float(p.get("Price", 1000.0))
+        new_monster_props["WalkSpeed"] = int(p.get("WalkSpeed", 100))
+        new_monster_props["RunSpeed"] = int(p.get("RunSpeed", 500))
+        new_monster_props["RideSprintSpeed"] = int(p.get("RideSprintSpeed", 700))
+        new_monster_props["TransportSpeed"] = int(p.get("TransportSpeed", 200))
+        new_monster_props["FoodAmount"] = int(p.get("FoodAmount", 1))
+        new_monster_props["Stamina"] = int(p.get("Stamina", 100))
+        new_monster_props["MaleProbability"] = int(p.get("MaleProbability", 50))
+        new_monster_props["CombiRank"] = int(p.get("CombiRank", 100))
+        new_monster_props["CaptureRateCorrect"] = float(p.get("CaptureRateCorrect", 1.0))
+
+        # Collision Capsule Heights & Relative Mesh Translation Slices
+        new_monster_props["MeshCapsuleHalfHeight"] = float(p.get("MeshCapsuleHalfHeight", 110.0))
+        new_monster_props["MeshCapsuleRadius"] = float(p.get("MeshCapsuleRadius", 50.0))
         
-        new_monster_props["ZukanIndex"] = int(p.get("ZukanIndex", -1))
-        new_monster_props["ZukanIndexSuffix"] = str(p.get("ZukanIndexSuffix", ""))
+        mesh_loc = p.get("MeshRelativeLocation", {"X": 0.0, "Y": 0.0, "Z": -110.0})
+        new_monster_props["MeshRelativeLocation"] = {
+            "X": float(mesh_loc.get("X", 0.0)),
+            "Y": float(mesh_loc.get("Y", 0.0)),
+            "Z": float(mesh_loc.get("Z", -110.0))
+        }
+
+        new_monster_props["BaseSkills"] = p.get("BaseSkills", [])
+        new_monster_props["PassiveSkills"] = p.get("PassiveSkills", [])
+        new_monster_props["PartnerSkill"] = p.get("PartnerSkill", "None")
         
-        suitabilities = p.get("WorkSuitabilities", {})
-        for k, v in suitabilities.items():
-            new_monster_props[k] = v
+        # Flattened Work Suitabilities directly into the object
+        for k in p.keys():
+            if k.startswith("WorkSuitability_"):
+                new_monster_props[k] = int(p[k])
+                
+        # Self-healing legacy fallback for any old creator JSONs
+        if "WorkSuitabilities" in p:
+            for k, v in p["WorkSuitabilities"].items():
+                if k not in new_monster_props:
+                    new_monster_props[k] = int(v)
             
         pals_payload = {
             f"MOD_{pal_id}": new_monster_props
@@ -255,7 +296,7 @@ class PalSchemaExporter:
                 with open(os.path.join(raw_dir, "DT_PalCharacterIconDataTable.json"), "w", encoding="utf-8") as f_ic:
                     json.dump(icon_payload, f_ic, indent=4)
 
-        # 7. UICaptureCameraOffsetData Row (DYNAMIC OFFSET EXPORT)
+        # 7. UICaptureCameraOffsetData Row
         raw_dir = os.path.join(mod_root, "raw")
         os.makedirs(raw_dir, exist_ok=True)
         
@@ -268,11 +309,7 @@ class PalSchemaExporter:
                 "LocationOffset": { "X": 358.74005, "Y": 938.1497, "Z": 139.86491 },
                 "Rotator": { "Pitch": -0.51355, "Yaw": -110.36157, "Roll": 0.0 },
                 "PointLightOffset_1": { "X": -200.0, "Y": 100.0, "Z": 200.0 },
-                "PointLightIntensity_1": 10.0,
-                "PointLightSize_1": 1000.0,
                 "PointLightOffset_2": { "X": 200.0, "Y": 0.0, "Z": 100.0 },
-                "PointLightIntensity_2": 10.0,
-                "PointLightSize_2": 1000.0,
                 "RectLightOffset": { "X": 0.0, "Y": 300.0, "Z": 100.0 },
                 "RectLightRotator": { "Pitch": 0.0, "Yaw": -90.0, "Roll": 0.0 },
                 "RectLightIntensity": 450.0,
@@ -288,18 +325,14 @@ class PalSchemaExporter:
         
         with open(os.path.join(raw_dir, "DT_PalUICaptureCameraOffsetData.json"), "w", encoding="utf-8") as f_cam:
             json.dump(camera_payload, f_cam, indent=4)
-            
-        self.c.view.write_log(f"Generated Paldeck UI Camera offsets for MOD_{pal_id}.", "success")
 
-        # 8. Overworld Spawning Export (HABITAT HEATMAP COMPILATION)
+        # 8. Overworld Spawning Export
         if p.get("EnableSpawns", True):
             spawns_dir = os.path.join(mod_root, "spawns")
             os.makedirs(spawns_dir, exist_ok=True)
             
             spawn_location = p.get("SpawnLocationID", "1_1_plain_begginer")
             
-            # The presence of this file natively triggers PalSchema's logic 
-            # and activates the Paldeck habitat heatmap correctly with SpawnerType="Common"
             spawns_payload = [
                 {
                     "Type": "Sheet",
@@ -326,9 +359,24 @@ class PalSchemaExporter:
             
             with open(os.path.join(spawns_dir, f"{pal_id}_spawns.json"), "w", encoding="utf-8") as f_spawn:
                 json.dump(spawns_payload, f_spawn, indent=4)
-            self.c.view.write_log(f"Generated overworld spawns for MOD_{pal_id} at spawner {spawn_location}.", "success")
         else:
             spawns_file = os.path.join(mod_root, "spawns", f"{pal_id}_spawns.json")
             if os.path.exists(spawns_file):
                 try: os.remove(spawns_file)
                 except OSError: pass
+
+        # Deploy local workspace configuration natively to the Palworld game directory
+        game_mods_dir = self.get_palschema_mods_dir()
+        if game_mods_dir:
+            game_mod_root = os.path.join(game_mods_dir, mod_name)
+            if os.path.exists(game_mod_root):
+                try:
+                    shutil.rmtree(game_mod_root)
+                except OSError: pass
+            try:
+                shutil.copytree(mod_root, game_mod_root)
+                self.c.view.write_log(f"Deployed PalSchema config to game directory: {mod_name}", "success")
+            except Exception as e:
+                self.c.view.write_log(f"Failed to deploy PalSchema config to game: {e}", "error")
+        else:
+            self.c.view.write_log("Game PalSchema directory not found. Saved locally but did not deploy to game.", "warning")

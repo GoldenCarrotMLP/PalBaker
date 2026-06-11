@@ -11,10 +11,14 @@ async def run_pipeline_async(script_args: list, log_callback, progress_callback,
     Spawns build_mod.py as an unbuffered async subprocess, streams the output,
     runs the log analyzer on every line, and triggers callbacks.
     """
-    script_path = os.path.abspath(os.path.join(os.path.dirname(os.path.dirname(os.path.dirname(__file__))), "build_mod.py"))
+    is_frozen = getattr(sys, 'frozen', False)
+    if is_frozen:
+        cmd = [sys.executable, "internal-build-mod"] + script_args
+    else:
+        script_path = os.path.abspath(os.path.join(os.path.dirname(os.path.dirname(os.path.dirname(__file__))), "build_mod.py"))
+        cmd = [sys.executable, "-u", script_path] + script_args
     
     analyzer = LogAnalyzer()
-    cmd = [sys.executable, "-u", script_path] + script_args
     
     try:
         # Cross-platform arguments to ensure the process group can be cleanly killed

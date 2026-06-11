@@ -3,11 +3,11 @@
 import { Plus, Trash2 } from "lucide-react"
 import { Badge } from "@/components/ui/badge"
 import { type CreatorPal, type ActiveSkill, type LearnsetEntry, ELEMENT_COLORS } from "@/lib/mock-data"
-import { mockActiveSkills } from "@/lib/mock-data"
 import { cn } from "@/lib/utils"
 
 interface Props {
   pal: CreatorPal
+  activeSkills: Record<string, ActiveSkill>
   onUpdate: (patch: Partial<CreatorPal>) => void
   onOpenDialog: (
     title: string,
@@ -17,17 +17,17 @@ interface Props {
   ) => void
 }
 
-export function PalLearnset({ pal, onUpdate, onOpenDialog }: Props) {
+export function PalLearnset({ pal, activeSkills, onUpdate, onOpenDialog }: Props) {
   const learnset: LearnsetEntry[] = pal.Learnset || []
 
   const handleAddMove = () => {
-    onOpenDialog("Add Move", mockActiveSkills, (id) => {
+    onOpenDialog("Add Move", activeSkills, (id) => {
       onUpdate({ Learnset: [...learnset, { Level: 1, WazaID: id }] })
     })
   }
 
   const handleChangeMove = (index: number) => {
-    onOpenDialog("Select Move", mockActiveSkills, (id) => {
+    onOpenDialog("Select Move", activeSkills, (id) => {
       const next = [...learnset]
       next[index] = { ...next[index], WazaID: id }
       onUpdate({ Learnset: next })
@@ -59,7 +59,6 @@ export function PalLearnset({ pal, onUpdate, onOpenDialog }: Props) {
         </button>
       </div>
 
-      {/* Header row */}
       <div className="grid grid-cols-[56px_1fr_100px_64px_32px] gap-2 px-1 mb-2">
         {["LEVEL", "MOVE", "ELEMENT", "POWER", ""].map((h) => (
           <span key={h} className="text-muted-foreground text-xs font-semibold uppercase">{h}</span>
@@ -71,10 +70,13 @@ export function PalLearnset({ pal, onUpdate, onOpenDialog }: Props) {
           <p className="text-muted-foreground text-xs italic p-3">No moves. Add one above.</p>
         ) : (
           sorted.map((row, i) => {
-            const skill   = mockActiveSkills[row.WazaID]
-            const el      = skill?.element ?? "?"
+            // Find the skill object safely even if the object's keys are localized friendly names
+            const skillValues = Object.values(activeSkills)
+            const skillObj = skillValues.find(s => s.id === row.WazaID) || activeSkills[row.WazaID]
+            
+            const el      = skillObj?.element ?? "?"
             const elColor = ELEMENT_COLORS[el] ?? ELEMENT_COLORS["Normal"]
-            const power   = skill?.power ?? "—"
+            const power   = skillObj?.power !== undefined && skillObj?.power !== 0 ? skillObj.power : "—"
 
             return (
               <div key={i} className="grid grid-cols-[56px_1fr_100px_64px_32px] gap-2 items-center p-2 border-b border-border/40 last:border-0 hover:bg-accent/20">
@@ -96,7 +98,7 @@ export function PalLearnset({ pal, onUpdate, onOpenDialog }: Props) {
                 <span className="text-foreground text-xs font-mono">{power}</span>
                 <button
                   onClick={() => handleRemove(i)}
-                  className="text-muted-foreground hover:text-status-error transition-colors cursor-pointer"
+                  className="text-muted-foreground hover:text-status-error transition-colors cursor-pointer justify-self-end"
                 >
                   <Trash2 className="size-3.5" />
                 </button>

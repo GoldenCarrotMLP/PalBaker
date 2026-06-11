@@ -16,7 +16,6 @@ dist/
 *.egg
 
 # PyInstaller
-*.spec
 
 # Unit test / coverage
 htmlcov/

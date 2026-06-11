@@ -13,10 +13,11 @@ const LEVEL_COLORS = {
   ERROR: "text-status-error",
   WARNING: "text-status-warning",
 }
+let logIdCounter = 0;
 
 export function BuildConsole() {
   const [expanded, setExpanded] = useState(false)
-  const [logs, setLogs] = useState<LogEntry[]>([])
+  const [logs, setLogs] = useState<(LogEntry & { id: number })[]>([])
   const [ctxMenu, setCtxMenu] = useState<{ x: number; y: number } | null>(null)
   
   const [unrealStatus, setUnrealStatus] = useState<string>("READY")
@@ -66,22 +67,28 @@ export function BuildConsole() {
     if (isLive) {
       setLogs([
         {
+          id: ++logIdCounter,
           time: new Date().toLocaleTimeString("en-US", { hour12: false }),
           level: "INFO",
           msg: "Terminal connected to Tauri backend. Listening for subprocess logs...",
         },
       ])
     } else {
-      setLogs(CONSOLE_LOGS)
+      setLogs(CONSOLE_LOGS.map(l => ({ ...l, id: ++logIdCounter })))
     }
   }, [])
 
   useEffect(() => {
     const unsubscribe = BuildConsoleAPI.subscribe((newLog) => {
-      setLogs((prev) => [newLog, ...prev])
+      setLogs((prev) => {
+        const nextLogs = [{ ...newLog, id: ++logIdCounter }, ...prev]
+        // Cap the console history to prevent massive memory leaks during UE cooking
+        return nextLogs.length > 500 ? nextLogs.slice(0, 500) : nextLogs
+      })
     })
     return () => unsubscribe()
   }, [])
+
 
   const copyAll = () => {
     const text = logs
@@ -139,9 +146,9 @@ export function BuildConsole() {
               setCtxMenu({ x: e.clientX, y: e.clientY })
             }}
           >
-            <div className="flex flex-col gap-1">
-              {logs.map((log, i) => (
-                <div key={i} className="flex items-start gap-3 text-xs font-mono">
+           <div className="flex flex-col gap-1">
+              {logs.map((log) => (
+                <div key={log.id} className="flex items-start gap-3 text-xs font-mono">
                   <span className="text-muted-foreground shrink-0">[{log.time}]</span>
                   <span className={cn("shrink-0 font-semibold w-[52px]", LEVEL_COLORS[log.level] ?? "text-foreground")}>
                     {log.level}

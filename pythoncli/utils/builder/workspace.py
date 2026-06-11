@@ -118,12 +118,12 @@ class ModWorkspace:
 
         self.template_id = template_id  # <-- Expose the parent template ID here
 
-        # Determine the exact padded folder name based on parent template ID length
-        parent_len = len(template_id)
-        custom_folder_name = monster_name[:parent_len].ljust(parent_len, "_")
+        # No padding needed; UAssetGUI dynamically handles NameMap serialization
+        custom_folder_name = monster_name
         
         # Verify if this standalone blueprint was pre-cooked and injected into the Saved/Cooked directory
         cooked_bp_path = os.path.join(self.project_dir, "Saved", "Cooked", "Windows", self.target_project_name, "Content", "Pal", "Blueprint", "Character", "Monster", "PalActorBP", custom_folder_name)
+
         
         if os.path.exists(cooked_bp_path):
             self.blueprint_virtual_path = f"/Game/Pal/Blueprint/Character/Monster/PalActorBP/{custom_folder_name}"

@@ -95,7 +95,7 @@ def build_pal_names_map(settings: dict) -> tuple[bool, str]:
 
     return True, "Pal database metrics built and pre-cached successfully."
 
-# --- MODULAR SUB-TASK INTERNALS (SELF-HEALING ARCHITECTURE) ---
+# --- MODULAR SUB-TASK INTERNALS ---
 
 def _build_skills_lookup(settings: dict, repo_root: str) -> dict:
     skill_names_lookup = {}
@@ -232,7 +232,6 @@ def _build_active_skills_cache(settings: dict, repo_root: str, skill_names_looku
                         lookup_key = f"WAZA_{internal_id}"
                         friendly_name = skill_names_lookup.get(lookup_key, internal_id)
                         
-                        # Extract Element and Type metadata [7]
                         raw_element = r_v.get("Element", "EPalElementType::None")
                         element = raw_element.split("::")[1] if "::" in raw_element else raw_element
                         
@@ -242,7 +241,8 @@ def _build_active_skills_cache(settings: dict, repo_root: str, skill_names_looku
                         skills_cache[friendly_name] = {
                             "id": internal_id,
                             "element": element,
-                            "category": category
+                            "category": category,
+                            "power": int(r_v.get("Power", 0)) # <-- EXTRACT THE NATIVE POWER VALUE!
                         }
                         
                     with open(os.path.join(repo_root, "deps", "active_skills_cache.json"), "w", encoding="utf-8") as f_out:
