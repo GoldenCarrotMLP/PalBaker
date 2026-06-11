@@ -12,14 +12,26 @@ function cleanPyCache(dir) {
   if (!fs.existsSync(dir)) return;
   const files = fs.readdirSync(dir);
   for (const file of files) {
+    // Skip virtual environments, node_modules, and git directories entirely
+    // This avoids Windows symlink locks/permissions and makes the scan extremely fast!
+    if (['venv', '.venv', 'env', '.env', 'build', 'dist', '.git', 'node_modules'].includes(file)) {
+      continue;
+    }
+
     const fullPath = path.join(dir, file);
-    if (fs.statSync(fullPath).isDirectory()) {
-      if (file === '__pycache__') {
-        fs.rmSync(fullPath, { recursive: true, force: true });
-        console.log(`🧹 Cleaned bytecode cache: ${path.relative(__dirname, fullPath)}`);
-      } else {
-        cleanPyCache(fullPath);
+    try {
+      const stat = fs.statSync(fullPath);
+      if (stat.isDirectory()) {
+        if (file === '__pycache__') {
+          fs.rmSync(fullPath, { recursive: true, force: true });
+          console.log(`🧹 Cleaned bytecode cache: ${path.relative(__dirname, fullPath)}`);
+        } else {
+          cleanPyCache(fullPath);
+        }
       }
+    } catch (err) {
+      // Gracefully catch and log any Windows permission locks without crashing the build
+      console.warn(`⚠️ Warning: Skipping stat check for ${file} due to lock: ${err.message}`);
     }
   }
 }

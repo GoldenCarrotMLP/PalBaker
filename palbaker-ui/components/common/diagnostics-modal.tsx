@@ -75,6 +75,32 @@ export function DiagnosticsModal({ errorText, onClose }: Props) {
     }
   }
 
+  // --- NEW INTEGRITY SELF-HEALING ACTIONS ---
+  const handleInstallPlugin = async () => {
+    setActionLoading(true)
+    try {
+      // The backend 'install' action safely handles both copying binaries and injecting master assets
+      await SystemSettingsAPI.managePalSchema("install")
+      onClose()
+    } catch (e) {
+      console.error(e)
+    } finally {
+      setActionLoading(false)
+    }
+  }
+
+  const handleInjectAssets = async () => {
+    setActionLoading(true)
+    try {
+      await SystemSettingsAPI.injectAssets()
+      onClose()
+    } catch (e) {
+      console.error(e)
+    } finally {
+      setActionLoading(false)
+    }
+  }
+
   const isUnrealRunning = health?.unreal_running === true
   const isIniEnabled = health?.ini_enabled === true
 
@@ -85,6 +111,11 @@ export function DiagnosticsModal({ errorText, onClose }: Props) {
     config?.blender &&
     config?.palworld_exe
   )
+
+  // Context-Aware Error Detection
+  const isMissingPlugin = errorText.includes("missing or outdated in your Unreal project") || errorText.includes("PalBaker C++ Editor Helper Plugin")
+  const isMissingAssets = errorText.includes("missing crucial master materials")
+  const isConnectionError = !isMissingPlugin && !isMissingAssets
 
   return (
     <div className="fixed inset-0 z-[100] flex items-center justify-center bg-black/60 backdrop-blur-sm p-4">
@@ -138,40 +169,66 @@ export function DiagnosticsModal({ errorText, onClose }: Props) {
                 {/* 1. Only show system-level fixes if paths are fully set up */}
                 {isConfigured && (
                   <>
-                    {/* If INI is disabled, show enable remote exec */}
-                    {!isIniEnabled && (
+                    {/* Plugin Installation Fallback */}
+                    {isMissingPlugin && (
                       <button 
-                        onClick={handleEnableRemote}
+                        onClick={handleInstallPlugin}
                         disabled={actionLoading}
                         className="flex items-center gap-3 px-4 py-2.5 bg-primary/10 hover:bg-primary/20 border border-primary/30 rounded-md text-primary text-sm font-medium transition-colors cursor-pointer disabled:opacity-50"
                       >
-                        <span className="text-lg">🔌</span>
-                        Enable Remote Execution
+                        {actionLoading ? <Loader2 className="size-4 animate-spin" /> : <span className="text-lg">🔌</span>}
+                        {actionLoading ? "Installing... (This may take a minute)" : "Install Helper Plugin & Assets"}
                       </button>
                     )}
 
-                    {/* If Unreal is closed, show launch */}
-                    {!isUnrealRunning && (
+                    {/* Master Assets Injection Fallback */}
+                    {isMissingAssets && (
                       <button 
-                        onClick={handleLaunch}
+                        onClick={handleInjectAssets}
                         disabled={actionLoading}
                         className="flex items-center gap-3 px-4 py-2.5 bg-status-success/10 hover:bg-status-success/20 border border-status-success/30 rounded-md text-status-success text-sm font-medium transition-colors cursor-pointer disabled:opacity-50"
                       >
-                        <span className="text-lg">🚀</span>
-                        Launch Unreal Editor
+                        {actionLoading ? <Loader2 className="size-4 animate-spin" /> : <span className="text-lg">📦</span>}
+                        {actionLoading ? "Injecting..." : "Inject Master Assets"}
                       </button>
                     )}
 
-                    {/* If Unreal is open and remote exec is enabled, it requires a restart */}
-                    {isUnrealRunning && isIniEnabled && (
-                      <button 
-                        onClick={handleRestart}
-                        disabled={actionLoading}
-                        className="flex items-center gap-3 px-4 py-2.5 bg-status-warning/10 hover:bg-status-warning/20 border border-status-warning/30 rounded-md text-status-warning text-sm font-medium transition-colors cursor-pointer disabled:opacity-50"
-                      >
-                        <RefreshCw className="size-4" />
-                        Restart Unreal Editor
-                      </button>
+                    {/* Unreal Editor Connection Fallbacks */}
+                    {isConnectionError && (
+                      <>
+                        {!isIniEnabled && (
+                          <button 
+                            onClick={handleEnableRemote}
+                            disabled={actionLoading}
+                            className="flex items-center gap-3 px-4 py-2.5 bg-primary/10 hover:bg-primary/20 border border-primary/30 rounded-md text-primary text-sm font-medium transition-colors cursor-pointer disabled:opacity-50"
+                          >
+                            {actionLoading ? <Loader2 className="size-4 animate-spin" /> : <span className="text-lg">🔌</span>}
+                            {actionLoading ? "Configuring..." : "Enable Remote Execution"}
+                          </button>
+                        )}
+
+                        {!isUnrealRunning && (
+                          <button 
+                            onClick={handleLaunch}
+                            disabled={actionLoading}
+                            className="flex items-center gap-3 px-4 py-2.5 bg-status-success/10 hover:bg-status-success/20 border border-status-success/30 rounded-md text-status-success text-sm font-medium transition-colors cursor-pointer disabled:opacity-50"
+                          >
+                            {actionLoading ? <Loader2 className="size-4 animate-spin" /> : <span className="text-lg">🚀</span>}
+                            {actionLoading ? "Launching..." : "Launch Unreal Editor"}
+                          </button>
+                        )}
+
+                        {isUnrealRunning && isIniEnabled && (
+                          <button 
+                            onClick={handleRestart}
+                            disabled={actionLoading}
+                            className="flex items-center gap-3 px-4 py-2.5 bg-status-warning/10 hover:bg-status-warning/20 border border-status-warning/30 rounded-md text-status-warning text-sm font-medium transition-colors cursor-pointer disabled:opacity-50"
+                          >
+                            {actionLoading ? <Loader2 className="size-4 animate-spin" /> : <RefreshCw className="size-4" />}
+                            {actionLoading ? "Restarting..." : "Restart Unreal Editor"}
+                          </button>
+                        )}
+                      </>
                     )}
                   </>
                 )}
