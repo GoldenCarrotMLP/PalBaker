@@ -10,6 +10,8 @@ import { cleanElement } from "./pal-helpers"
 interface Props {
   pal: CreatorPal
   expanded: boolean
+  spawners: Record<string, string>
+  activeSkills: Record<string, ActiveSkill>
   onToggle: () => void
   onUpdate: (patch: Partial<CreatorPal>) => void
   onOpenDialog: (
@@ -22,12 +24,12 @@ interface Props {
   onDelete: (id: string) => void
 }
 
-export function PalListRow({ pal, expanded, onToggle, onUpdate, onOpenDialog, onSave, onDelete }: Props) {
+export function PalListRow({ pal, expanded, spawners, activeSkills, onToggle, onUpdate, onOpenDialog, onSave, onDelete }: Props) {
   const el1       = cleanElement(pal.ElementType1) || "Normal"
   const el2       = cleanElement(pal.ElementType2)
   const el1Color  = ELEMENT_COLORS[el1]  ?? ELEMENT_COLORS["Normal"]
   const el2Color  = el2 ? (ELEMENT_COLORS[el2] ?? ELEMENT_COLORS["Normal"]) : "bg-muted text-muted-foreground"
-  const zukanStr  = pal.ZukanIndex !== undefined
+  const zukanStr  = pal.ZukanIndex !== undefined && pal.ZukanIndex !== -1
     ? `${String(pal.ZukanIndex).padStart(3, "0")}${pal.ZukanIndexSuffix ? `-${pal.ZukanIndexSuffix}` : ""}`
     : "—"
 
@@ -61,6 +63,8 @@ export function PalListRow({ pal, expanded, onToggle, onUpdate, onOpenDialog, on
       {expanded && (
         <PalDetails
           pal={pal}
+          spawners={spawners}
+          activeSkills={activeSkills}
           onUpdate={onUpdate}
           onOpenDialog={onOpenDialog}
           onSave={onSave}

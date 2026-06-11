@@ -3,6 +3,7 @@ mod commands;
 
 use std::path::PathBuf;
 use std::env;
+use tauri::Manager;
 use commands::AppState;
 
 /// Dynamically find the path of the `pythoncli/palbaker_cli.py` script.
@@ -43,23 +44,45 @@ fn find_python_cli_path() -> PathBuf {
 
 #[cfg_attr(mobile, tauri::mobile_entry_point)]
 pub fn run() {
-    // Resolve absolute path or standard installation path for Windows python execution
-    let python_exe = PathBuf::from("C:\\Python312\\python.exe");
-    let cli_path = find_python_cli_path();
-
-    let app_state = AppState {
-        python_exe,
-        cli_path,
-    };
-
     tauri::Builder::default()
         .plugin(tauri_plugin_opener::init())
-        .manage(app_state)
+        .plugin(tauri_plugin_dialog::init())
+        .setup(|app| {
+            #[allow(unused_mut)]
+            let mut is_frozen = false;
+            #[allow(unused_mut)]
+            let mut exe_path = PathBuf::from("python");
+            #[allow(unused_mut)]
+            let mut cli_path = find_python_cli_path();
+
+            // When compiled in release, target the embedded PyInstaller executable
+            #[cfg(not(debug_assertions))]
+            {
+                if let Ok(res_dir) = app.path().resource_dir() {
+                    let frozen_exe = res_dir.join("resources").join("backend").join("palbaker_cli.exe");
+                    if frozen_exe.exists() {
+                        is_frozen = true;
+                        exe_path = frozen_exe.clone();
+                        cli_path = frozen_exe; 
+                    }
+                }
+            }
+
+            let app_state = AppState {
+                python_exe: exe_path,
+                cli_path,
+                is_frozen,
+            };
+            app.manage(app_state);
+            Ok(())
+        })
         .invoke_handler(tauri::generate_handler![
             commands::manager_list,
             commands::creator_list,
+            commands::creator_add,          // <-- ADDED: The missing command router!
             commands::env_status,
             commands::env_launch_unreal,
+            commands::env_restart_unreal,
             commands::get_spawners,
             commands::creator_save,
             commands::creator_delete,
@@ -83,6 +106,12 @@ pub fn run() {
             commands::set_config,
             commands::ue4ss_manage,
             commands::palschema_manage,
+            commands::creator_refresh_bp,
+            commands::manager_build_db,
+            commands::env_verify,
+            commands::env_enable_remote_exec,
+            commands::env_autodetect,
+            commands::env_inject_assets,
         ])
         .run(tauri::generate_context!())
         .expect("error while running tauri application");
