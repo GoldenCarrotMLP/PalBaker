@@ -119,7 +119,7 @@ def main(page: ft.Page):
                 settings_view.update_settings(settings)
                 
             status = await mods_view.cli.env_verify()
-            map_path = os.path.join(os.path.dirname(__file__), "pal_names_map.json")
+            map_path = os.path.join(os.path.dirname(__file__), "deps", "pal_names_map.json")
             skills_cache = os.path.join(os.path.dirname(__file__), "deps", "active_skills_cache.json")
             if not os.path.exists(map_path) or not os.path.exists(skills_cache) or status.get("needs_db_build"):
                 mods_view.prompt_build_database()

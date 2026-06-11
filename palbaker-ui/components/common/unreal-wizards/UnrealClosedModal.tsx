@@ -38,7 +38,7 @@ export function UnrealClosedModal({ isOpen, onClose, onConfirm }: Props) {
         </h3>
         
         <p className="text-muted-foreground text-sm leading-relaxed">
-          Oh noes, Poki! Unreal Editor needs to be running so I can communicate with it to cook or decompile assets! Let me launch it for you! ;3
+          Unreal Editor needs to be running so I can communicate with it to cook or decompile assets! Let me launch it for you! ;3
         </p>
 
         <div className="flex flex-col gap-2.5 w-full mt-2">

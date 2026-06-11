@@ -234,9 +234,11 @@ pub async fn get_spawners(app: AppHandle, state: State<'_, AppState>) -> Result<
 #[tauri::command]
 pub async fn get_app_version() -> Result<String, String> {
     let count_str = env!("PALBAKER_COMMIT_COUNT");
-    let count = count_str.parse::<f64>().unwrap_or(2400.0);
-    let version = count / 1000.0;
-    Ok(format!("v{}-experimental", version))
+    let count = count_str.parse::<u32>().unwrap_or(2400);
+    let major = count / 1000;
+    let minor = (count % 1000) / 100;
+    let patch = count % 100;
+    Ok(format!("v{}.{}.{}-experimental", major, minor, patch))
 }
 
 #[tauri::command]
@@ -442,6 +444,13 @@ pub async fn env_autodetect(app: AppHandle, state: State<'_, AppState>) -> Resul
 #[tauri::command]
 pub async fn env_inject_assets(app: AppHandle, state: State<'_, AppState>) -> Result<Value, String> {
     let raw = run_cli(&app, &state, &["env", "inject-assets"])?;
+    let parsed: Value = parse_last_json_line(&raw).unwrap_or(serde_json::json!({ "status": "success", "message": raw }));
+    Ok(parsed)
+}
+
+#[tauri::command]
+pub async fn env_extract_icons(app: AppHandle, state: State<'_, AppState>) -> Result<Value, String> {
+    let raw = run_cli(&app, &state, &["env", "extract-icons"])?;
     let parsed: Value = parse_last_json_line(&raw).unwrap_or(serde_json::json!({ "status": "success", "message": raw }));
     Ok(parsed)
 }

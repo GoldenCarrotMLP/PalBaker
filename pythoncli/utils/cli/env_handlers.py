@@ -13,12 +13,12 @@ def handle_env_command(args, settings):
     # 1. Route validation based on targeted operations
     if subcommand in ["verify", "install-plugin", "launch-unreal", "restart-unreal"]:
         is_valid, err_msg = validate_settings(settings, ["ue_root", "uproject"])
-    elif subcommand in ["ue4ss-install", "status"]:
-        is_valid, err_msg = validate_settings(settings, ["palworld_exe"])
+    elif subcommand in ["ue4ss-install", "extract-icons"]:
+        is_valid, err_msg = validate_settings(settings, ["palworld_exe", "fmodel_output"])
     elif subcommand == "enable-remote-exec":
         is_valid, err_msg = validate_settings(settings, ["uproject"])
     else:
-        # autodetect has no prerequisites
+        # autodetect and status have no hard prerequisites
         is_valid = True
         err_msg = ""
 
@@ -34,9 +34,10 @@ def handle_env_command(args, settings):
         try:
             # Check if database caches are missing or incomplete
             repo_root = os.path.dirname(os.path.dirname(os.path.dirname(os.path.abspath(__file__))))
-            map_path = os.path.join(repo_root, "pal_names_map.json")
+            map_path = os.path.join(repo_root, "deps", "pal_names_map.json")
+            sound_map_path = os.path.join(repo_root, "deps", "resolved_sound_map.json")
             skills_cache = os.path.join(repo_root, "deps", "active_skills_cache.json")
-            needs_db_build = not os.path.exists(map_path) or not os.path.exists(skills_cache)
+            needs_db_build = not os.path.exists(map_path) or not os.path.exists(sound_map_path) or not os.path.exists(skills_cache)
 
             # First verify physical compiler toolsets
             success, msg = verify_compiler_requirements(all_yes=True, print_output=False)
@@ -92,7 +93,7 @@ def handle_env_command(args, settings):
                     settings["ue_root"], 
                     settings["uproject"], 
                     verbose=False, 
-                    force_recompile=True
+                    force_recompile=False
                 )
                 if success:
                     # Ingest required material assets
@@ -152,8 +153,9 @@ def handle_env_command(args, settings):
             pal_exe = settings.get("palworld_exe", "")
             uproject = settings.get("uproject", "")
 
-            ue4ss_status = get_ue4ss_status(pal_exe)
-            palschema_status = get_palschema_status(pal_exe)
+            # If unconfigured, gracefully return default offline statuses to prevent startup UI crashes!
+            ue4ss_status = get_ue4ss_status(pal_exe) if pal_exe else {"status": "Not Installed", "branch": "None", "corrupted": False}
+            palschema_status = get_palschema_status(pal_exe) if pal_exe else {"status": "Not Installed"}
             remote_exec_enabled = check_remote_execution_settings(uproject) if uproject else False
             unreal_running = is_unreal_running()
 
@@ -182,7 +184,7 @@ def handle_env_command(args, settings):
             error_print(f"Failed to launch Unreal: {str(e)}")
             sys.exit(1)
 
-    # 6b. Handle 'env restart-unreal'
+    # 7. Handle 'env restart-unreal'
     elif subcommand == "restart-unreal":
         from utils.plugins.installer import restart_unreal_editor
         try:
@@ -196,14 +198,15 @@ def handle_env_command(args, settings):
             error_print(f"Failed to restart Unreal: {str(e)}")
             sys.exit(1)
 
-
-    # 7. Handle 'env enable-remote-exec'
+    # 7b. Handle 'env enable-remote-exec'
     elif subcommand == "enable-remote-exec":
-        from utils.plugins.installer import enable_remote_execution_settings
+        from utils.plugins.installer import enable_remote_execution_settings, enable_cooking_settings
         try:
+            # 1. Run both configurations to ensure the environment is fully compliant in a single operation
             success, msg = enable_remote_execution_settings(settings["uproject"])
             if success:
-                json_print({"status": "success", "message": msg})
+                enable_cooking_settings(settings["uproject"])
+                json_print({"status": "success", "message": "Project environment and cooking configurations successfully enabled!"})
             else:
                 json_print({"status": "error", "message": msg})
                 sys.exit(1)
@@ -211,7 +214,7 @@ def handle_env_command(args, settings):
             error_print(f"Failed to enable Remote Execution: {str(e)}")
             sys.exit(1)
 
-    # 7b. Handle 'env inject-assets'
+    # 7c. Handle 'env inject-assets'
     elif subcommand == "inject-assets":
         from utils.plugin_manager import inject_missing_assets
         try:
@@ -219,6 +222,22 @@ def handle_env_command(args, settings):
             json_print({"status": "success", "message": "Successfully injected ModKit materials and template assets."})
         except Exception as e:
             error_print(f"Failed to inject assets: {str(e)}")
+            sys.exit(1)
+
+    # 7d. Handle 'env extract-icons'
+    elif subcommand == "extract-icons":
+        from utils.extractor.db_builder import extract_vanilla_icons
+        def log_callback(msg, is_error=False):
+            json_print({"type": "log", "level": "error" if is_error else "standard", "message": msg})
+        try:
+            success, msg = extract_vanilla_icons(settings, log_callback)
+            if success:
+                json_print({"status": "success", "message": msg})
+            else:
+                json_print({"status": "error", "message": msg})
+                sys.exit(1)
+        except Exception as e:
+            error_print(f"Icon extraction crashed: {str(e)}")
             sys.exit(1)
 
     # 8. Handle 'env autodetect'
