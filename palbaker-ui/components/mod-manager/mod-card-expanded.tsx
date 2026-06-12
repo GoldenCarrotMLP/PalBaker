@@ -22,12 +22,18 @@ export function ModCardExpanded({ mod, onRefresh }: Props) {
   const { notifications, showNotification, dismissNotification } = useNotifications()
   const iconInputRef = useRef<HTMLInputElement>(null)
 
+  const [preserveMaterials, setPreserveMaterials] = useState(mod.preserve_materials !== false)
   const [altermaticEnabled, setAltermaticEnabled] = useState(mod.is_altermatic_active)
   const [isAddModalOpen,    setIsAddModalOpen]     = useState(false)
   const [editingVariant,    setEditingVariant]     = useState<AltermaticVariant | null>(null)
   const [editingIndex,      setEditingIndex]       = useState(-1)
   const [altermaticMetadata, setAltermaticMetadata] = useState<any>(null)
   const [traitsDb,          setTraitsDb]           = useState<Record<string, string>>({})
+
+  // Keep state synced if mod properties update externally
+  useEffect(() => {
+    setPreserveMaterials(mod.preserve_materials !== false)
+  }, [mod.preserve_materials])
 
   useEffect(() => {
     if (!altermaticEnabled) return
@@ -61,6 +67,22 @@ export function ModCardExpanded({ mod, onRefresh }: Props) {
     }
   }
 
+  const handlePreserveToggle = async (val: boolean) => {
+    try {
+      setPreserveMaterials(val)
+      await ModManagerAPI.setModPreserveMaterials(mod.name, val)
+      showNotification(
+        val 
+          ? "Material preservation enabled! Custom Unreal shaders won't be overwritten. ;3"
+          : "Material overwriting enabled. Baseline templates will be re-applied.",
+        "success"
+      )
+      onRefresh()
+    } catch (err) {
+      showNotification(`Failed to toggle material preservation: ${err}`, "error", "Operation Failed")
+    }
+  }
+
   const handleOpenEdit = (variant: AltermaticVariant, index: number) => {
     setEditingVariant(variant)
     setEditingIndex(index)
@@ -70,44 +92,70 @@ export function ModCardExpanded({ mod, onRefresh }: Props) {
     <div className="border-t border-border px-5 py-5">
       <div className="flex gap-6 items-start">
 
-        {/* Col 1: Custom Pal Icon */}
-        <div className="flex flex-col gap-2 shrink-0">
-          <span className="text-muted-foreground text-xs font-semibold uppercase tracking-wider">
-            Custom Pal Icon
-          </span>
-          <input
-            type="file"
-            ref={iconInputRef}
-            onChange={handleIconChange}
-            accept="image/png, image/dds"
-            className="hidden"
-          />
-          <button
-            onClick={() => iconInputRef.current?.click()}
-            className="size-20 rounded border border-border bg-muted/50 flex flex-col items-center justify-center gap-1 hover:border-primary/50 transition-colors group cursor-pointer"
-            title="Click to set custom Pal Icon"
-          >
-            {mod.has_icon ? (
-              <div className="size-full rounded flex items-center justify-center bg-muted relative">
-                {mod.icon_path && (
-                  <img
-                    src={
-                      typeof window !== "undefined" && (window as any).__TAURI_INTERNALS__ !== undefined
-                        ? convertFileSrc(mod.icon_path)
-                        : mod.icon_path.startsWith("http") ? mod.icon_path : `https://asset.localhost/${mod.icon_path}`
-                    }
-                    alt="Custom Pal Icon"
-                    className="size-full object-cover rounded"
-                    onError={(e) => { e.currentTarget.style.display = "none" }}
-                  />
-                )}
-                <span className="text-muted-foreground text-xs font-mono absolute">icon</span>
-              </div>
-            ) : (
-              <ImagePlus className="size-6 text-muted-foreground group-hover:text-primary transition-colors" />
-            )}
-          </button>
-          <span className="text-muted-foreground text-xs font-mono">64x64 PNG/DDS</span>
+        {/* Col 1: Custom Pal Icon & General Mod Preferences */}
+        <div className="flex flex-col gap-4 shrink-0 w-[160px]">
+          <div className="flex flex-col gap-2">
+            <span className="text-muted-foreground text-xs font-semibold uppercase tracking-wider">
+              Custom Pal Icon
+            </span>
+            <input
+              type="file"
+              ref={iconInputRef}
+              onChange={handleIconChange}
+              accept="image/png, image/dds"
+              className="hidden"
+            />
+            <button
+              onClick={() => iconInputRef.current?.click()}
+              className="size-20 rounded border border-border bg-muted/50 flex flex-col items-center justify-center gap-1 hover:border-primary/50 transition-colors group cursor-pointer"
+              title="Click to set custom Pal Icon"
+            >
+              {mod.has_icon ? (
+                <div className="size-full rounded flex items-center justify-center bg-muted relative">
+                  {mod.icon_path && (
+                    <img
+                      src={
+                        typeof window !== "undefined" && (window as any).__TAURI_INTERNALS__ !== undefined
+                          ? convertFileSrc(mod.icon_path)
+                          : mod.icon_path.startsWith("http") ? mod.icon_path : `https://asset.localhost/${mod.icon_path}`
+                      }
+                      alt="Custom Pal Icon"
+                      className="size-full object-cover rounded"
+                      onError={(e) => { e.currentTarget.style.display = "none" }}
+                    />
+                  )}
+                  <span className="text-muted-foreground text-xs font-mono absolute">icon</span>
+                </div>
+              ) : (
+                <ImagePlus className="size-6 text-muted-foreground group-hover:text-primary transition-colors" />
+              )}
+            </button>
+            <span className="text-muted-foreground text-[10px] font-mono leading-none">64x64 PNG/DDS</span>
+          </div>
+
+          <Separator className="opacity-30" />
+
+          {/* Individual Pal Materials Preservation Toggle */}
+          <div className="flex flex-col gap-1.5">
+            <div className="flex items-center justify-between gap-1">
+              <span className="text-muted-foreground text-[10px] font-bold uppercase tracking-wider">
+                Preserve Shaders
+              </span>
+              <label className="relative inline-flex items-center cursor-pointer shrink-0">
+                <input
+                  type="checkbox"
+                  checked={preserveMaterials}
+                  onChange={(e) => handlePreserveToggle(e.target.checked)}
+                  className="sr-only peer"
+                />
+                <div className="w-8 h-4.5 bg-muted border border-border peer-checked:bg-primary rounded-full transition-colors" />
+                <div className="absolute top-0.5 left-0.5 size-3.5 bg-white rounded-full shadow transition-transform peer-checked:translate-x-3.5" />
+              </label>
+            </div>
+            <p className="text-[9px] text-muted-foreground leading-tight">
+              Protects custom Unreal material graphs from being reset on push.
+            </p>
+          </div>
         </div>
 
         <Separator orientation="vertical" className="self-stretch opacity-50" />

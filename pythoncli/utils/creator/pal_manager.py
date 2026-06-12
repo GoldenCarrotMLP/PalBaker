@@ -1,4 +1,4 @@
-# controllers/creator/pal_manager.py
+# pythoncli/utils/creator/pal_manager.py
 import os
 import json
 import re
@@ -137,9 +137,10 @@ class PalManager:
                 "PaldexType": "Species"
             }
             
-            for k in p.keys():
+            # FIXED: Safely loop over base_properties keys instead of undefined 'p'
+            for k in base_properties.keys():
                 if k.startswith("WorkSuitability_"):
-                    new_pal_data[k] = p[k]
+                    new_pal_data[k] = base_properties[k]
 
             target_file = os.path.join(creator_dir, f"{clean_id}_creator.json")
             try:

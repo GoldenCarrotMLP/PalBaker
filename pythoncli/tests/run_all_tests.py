@@ -17,6 +17,7 @@ SEQUENTIAL PIPELINE TARGETS:
 8.  test_07_unreal_decompile.py       - Unreal Decompilation & Reverse Ingestion
 9.  test_08_altermatic.py             - Altermatic Workspace & Sidecar Lifecycle
 10. test_10_altermatic_compile.py     - Full Altermatic Ingestion, Cooking, & Stripping
+11. test_11_material_preservation.py  - Material Preservation State Machine
 ================================================================================
 """
 
@@ -38,7 +39,8 @@ TEST_PIPELINE_FILES = [
     "test_06_unreal_import.py",
     "test_07_unreal_decompile.py",
     "test_08_altermatic.py",
-    "test_10_altermatic_compile.py"
+    "test_10_altermatic_compile.py",
+    "test_11_material_preservation.py" # <-- ADDED!
 ]
 
 def log(message: str, category: str = "INFO"):

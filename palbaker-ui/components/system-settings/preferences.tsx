@@ -1,6 +1,6 @@
 "use client"
 
-export function Preferences({ showMappedNames, onToggle }: { showMappedNames: boolean, onToggle: (v: boolean) => void }) {
+export function Preferences({ showMappedNames, onToggleMapped }: { showMappedNames: boolean, onToggleMapped: (v: boolean) => void }) {
   return (
     <section className="bg-card rounded-md border border-border p-5 flex flex-col gap-4">
       <div className="flex items-center gap-2 mb-1">
@@ -20,7 +20,7 @@ export function Preferences({ showMappedNames, onToggle }: { showMappedNames: bo
             <input
               type="checkbox"
               checked={showMappedNames}
-              onChange={(e) => onToggle(e.target.checked)}
+              onChange={(e) => onToggleMapped(e.target.checked)}
               className="sr-only peer"
             />
             <div className="w-11 h-6 bg-muted border border-border peer-checked:bg-status-success rounded-full transition-colors" />

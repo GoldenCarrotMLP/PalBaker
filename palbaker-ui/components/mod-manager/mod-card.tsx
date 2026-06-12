@@ -222,12 +222,18 @@ export function ModCard({ mod, expanded, onToggle, onAction, onRefresh, showMapp
             {menuOpen && (
               <>
                 <div className="fixed inset-0 z-10" onClick={() => setMenuOpen(false)} />
-                <div className="absolute right-0 top-full mt-1 z-20 w-56 bg-popover border border-border rounded-md shadow-xl py-1 text-sm">
+                <div className="absolute right-0 top-full mt-1 z-20 w-64 bg-popover border border-border rounded-md shadow-xl py-1 text-sm">
                   <div className="px-3 py-1.5 text-[10px] font-semibold text-muted-foreground uppercase tracking-widest">
                     Pipeline Actions
                   </div>
                   {[
-                    { label: "Push to Unreal",           action: "push",       disabled: !mod.has_fmodel || !mod.has_blend },
+                    { 
+                      label: mod.preserve_materials === false 
+                        ? "Push to Unreal (Overwrite)" 
+                        : "Push to Unreal (Preserve)", 
+                      action: "push",       
+                      disabled: !mod.has_fmodel || !mod.has_blend 
+                    },
                     { label: "Cook (Compile only)",       action: "cook_only",  disabled: !mod.has_ue },
                     { label: "Pack (Package only)",       action: "pack_only",  disabled: !mod.has_ue },
                     { label: "Cook & Pack (Skip Import)", action: "cook",       disabled: !mod.has_ue },

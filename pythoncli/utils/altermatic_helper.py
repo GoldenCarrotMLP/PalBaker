@@ -3,7 +3,7 @@ import os
 import json
 import re
 import subprocess
-
+from .sidecar_helper import load_sidecar, update_sidecar_fields, save_sidecar
 # Optimized Python command injected into headless Blender to extract material slots and shape keys
 BLENDER_EXTRACTOR_SCRIPT = (
     "import bpy, json; "
@@ -107,55 +107,49 @@ def extract_blend_metadata(blender_path: str, blend_file_path: str) -> dict:
     return {"slots": [], "morphs": []}
 
 def delta_merge_sidecar(existing_data: dict, fresh_slots: list[str], fresh_morphs: list[str]) -> dict:
-    synced = {
-        "Gender": existing_data.get("Gender", "None"),
-        "IsRarePal": bool(existing_data.get("IsRarePal", False)),
-        "SkinName": existing_data.get("SkinName", ""),
-        "ReqTrait": list(existing_data.get("ReqTrait", [])),
-        "PrefTrait": list(existing_data.get("PrefTrait", [])),
-        "MaterialOverrides": {}, 
-        "MorphTarget": []
-    }
-
-    if "jiggle_bones" in existing_data:
-        synced["jiggle_bones"] = existing_data["jiggle_bones"]
-    if "offset_bones" in existing_data:
-        synced["offset_bones"] = existing_data["offset_bones"]
-    if "materials" in existing_data:
-        synced["materials"] = existing_data["materials"]
-
+    """Non-destructively merges freshly extracted Blender layouts with existing sidecar properties."""
+    # We load the existing dictionary as our base, so we preserve every unknown custom key automatically!
+    synced = dict(existing_data)
+    
+    # Update only the specific Altermatic layout keys
+    synced.setdefault("Gender", "None")
+    synced.setdefault("IsRarePal", False)
+    synced.setdefault("SkinName", "")
+    synced.setdefault("ReqTrait", [])
+    synced.setdefault("PrefTrait", [])
+    
+    # Re-evaluate Material Overrides slot by slot
     old_overrides = existing_data.get("MaterialOverrides", {})
+    new_overrides = {}
     for slot_name in fresh_slots:
         if slot_name in old_overrides:
-            synced["MaterialOverrides"][slot_name] = old_overrides[slot_name]
+            new_overrides[slot_name] = old_overrides[slot_name]
+    synced["MaterialOverrides"] = new_overrides
 
+    # Re-evaluate Morph Targets parameters
     old_morphs = {m["Target"]: m for m in existing_data.get("MorphTarget", []) if "Target" in m}
+    new_morphs = []
     for morph_name in fresh_morphs:
         if morph_name in old_morphs:
-            synced["MorphTarget"].append(old_morphs[morph_name])
+            new_morphs.append(old_morphs[morph_name])
         else:
-            synced["MorphTarget"].append({
+            new_morphs.append({
                 "Target": morph_name,
                 "Type": "None"
             })
+    synced["MorphTarget"] = new_morphs
 
     return synced
+
+
+
 
 def sync_sidecar_metadata(blender_path: str, blend_file_path: str) -> dict:
     root_dir = os.path.dirname(blend_file_path)
     base_name = os.path.splitext(os.path.basename(blend_file_path))[0]
     sidecar_path = os.path.join(root_dir, f"{base_name}_blend.json")
 
-    existing_data = {}
-    if os.path.exists(sidecar_path):
-        try:
-            with open(sidecar_path, "r", encoding="utf-8") as f:
-                existing_data = json.load(f)
-        except json.JSONDecodeError as e:
-            print(f"ERROR: Sidecar JSON corrupted at {sidecar_path}: {e}")
-        except Exception as e:
-            print(f"Warning: Could not read {sidecar_path}: {e}")
-
+    existing_data = load_sidecar(sidecar_path)
     fresh_metadata = extract_blend_metadata(blender_path, blend_file_path)
     synced_data = delta_merge_sidecar(
         existing_data, 
@@ -163,15 +157,10 @@ def sync_sidecar_metadata(blender_path: str, blend_file_path: str) -> dict:
         fresh_metadata.get("morphs", [])
     )
 
-    try:
-        with open(sidecar_path, "w", encoding="utf-8") as f:
-            json.dump(synced_data, f, indent=4)
-    except PermissionError as e:
-        print(f"ERROR: Permission denied writing sidecar. {e}")
-    except Exception as e:
-        print(f"ERROR: Failed to save sidecar {sidecar_path}: {e}")
-
+    save_sidecar(sidecar_path, synced_data)
     return synced_data
+
+
 
 def compile_unified_altermatic_json(monster_name: str, altermatic_staging_dir: str, swap_json_dir: str) -> tuple[bool, str]:
     manifest_name = f"{monster_name}_altermatic.json"
