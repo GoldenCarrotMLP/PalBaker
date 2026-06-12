@@ -22,9 +22,11 @@ interface Props {
   ) => void
   onSave: (oldId: string, saved: CreatorPal) => void
   onDelete: (id: string) => void
+  templates: string[]
+  palNames: Record<string, string>
 }
 
-export function PalListRow({ pal, expanded, spawners, activeSkills, onToggle, onUpdate, onOpenDialog, onSave, onDelete }: Props) {
+export function PalListRow({ pal, expanded, spawners, activeSkills, onToggle, onUpdate, onOpenDialog, onSave, onDelete, templates, palNames }: Props) {
   const el1       = cleanElement(pal.ElementType1) || "Normal"
   const el2       = cleanElement(pal.ElementType2)
   const el1Color  = ELEMENT_COLORS[el1]  ?? ELEMENT_COLORS["Normal"]
@@ -69,6 +71,8 @@ export function PalListRow({ pal, expanded, spawners, activeSkills, onToggle, on
           onOpenDialog={onOpenDialog}
           onSave={onSave}
           onDelete={onDelete}
+          templates={templates}
+          palNames={palNames}
         />
       )}
     </div>

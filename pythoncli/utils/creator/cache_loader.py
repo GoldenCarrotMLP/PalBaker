@@ -13,6 +13,7 @@ class CacheLoader:
         self.templates_cache = {}
         self.learnsets_cache = {}
         self.camera_offsets_cache = {}
+        self.pal_drop_item_cache = {} # Added
 
     def load_index_caches(self):
         """Loads static caches from the local deps directory."""
@@ -88,4 +89,12 @@ class CacheLoader:
             try:
                 with open(camera_offsets_path, "r", encoding="utf-8") as f:
                     self.camera_offsets_cache = json.load(f)
+            except Exception: pass
+
+         # Load Pal Drop Item Cache
+        drop_path = os.path.join(repo_root, "deps", "pal_drop_item_cache.json")
+        if os.path.exists(drop_path):
+            try:
+                with open(drop_path, "r", encoding="utf-8") as f:
+                    self.pal_drop_item_cache = json.load(f)
             except Exception: pass

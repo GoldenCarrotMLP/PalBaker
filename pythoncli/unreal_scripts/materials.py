@@ -144,8 +144,15 @@ def build_materials(ue_path, json_path, textures, target_asset_path):
     if target_asset_path:
         mesh = unreal.EditorAssetLibrary.load_asset(target_asset_path)
         if mesh:
-            for mat in mesh.materials:
-                material_slots.append(str(mat.material_slot_name))
+            asset_class = mesh.get_class().get_name()
+            if asset_class == "SkeletalMesh":
+                for mat in mesh.materials:
+                    material_slots.append(str(mat.material_slot_name))
+            elif asset_class == "StaticMesh":
+                # Guard against broken static mesh imports
+                for mat in getattr(mesh, "static_materials", []):
+                    material_slots.append(str(mat.material_slot_name))
+
 
     materials_metadata = {}
     if os.path.exists(json_path):
@@ -251,7 +258,13 @@ def bind_materials_to_mesh(target_asset_path, target_phys_path, mi_assets):
     if not mesh:
         return
 
+    asset_class = mesh.get_class().get_name()
+    if asset_class != "SkeletalMesh":
+        print(f"[!] Warning: Target is a {asset_class}, not a SkeletalMesh. Skipping PhysicsAsset and material assignments.")
+        return
+
     print("Linking Materials and Physics Asset...")
+
     saved_phys = unreal.EditorAssetLibrary.load_asset(target_phys_path)
     if saved_phys:
         try:

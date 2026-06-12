@@ -93,11 +93,45 @@ def build_pal_names_map(settings: dict) -> tuple[bool, str]:
     _build_wild_spawners_cache(settings, repo_root)
     _build_camera_offsets_cache(settings, repo_root)
     _build_resolved_sound_map(settings, repo_root)
+    _build_drop_item_cache(settings, repo_root) # Added
 
     return True, "Pal database metrics built and pre-cached successfully."
 
 # --- MODULAR SUB-TASK INTERNALS ---
-
+def _build_drop_item_cache(settings: dict, repo_root: str):
+    """Extracts and compiles DT_PalDropItem from game paks into pal_drop_item_cache.json."""
+    try:
+        temp_drop = os.path.join(repo_root, "temp_drop_extract")
+        success, _ = extract_game_files(
+            settings,
+            ["Pal/Content/Pal/DataTable/Character/DT_PalDropItem.uasset"],
+            temp_drop,
+            format_type="json"
+        )
+        if success:
+            raw_drop_path = None
+            for root, _, files in os.walk(temp_drop):
+                for file in files:
+                    if file.lower() == "dt_paldropitem.json":
+                        raw_drop_path = os.path.join(root, file)
+                        break
+                if raw_drop_path: break
+                
+            if raw_drop_path and os.path.exists(raw_drop_path):
+                with open(raw_drop_path, "r", encoding="utf-8-sig") as f:
+                    drop_raw_data = json.load(f)
+                rows_obj = None
+                for obj in (drop_raw_data if isinstance(drop_raw_data, list) else [drop_raw_data]):
+                    if obj.get("Type") == "DataTable" and "Rows" in obj:
+                        rows_obj = obj["Rows"]
+                        break
+                if rows_obj:
+                    with open(os.path.join(repo_root, "deps", "pal_drop_item_cache.json"), "w", encoding="utf-8") as f_out:
+                        json.dump(rows_obj, f_out, indent=4)
+        shutil.rmtree(temp_drop, ignore_errors=True)
+    except Exception as e:
+        print(f"Warning: Failed to compile Pal Drop Item cache: {e}", flush=True)
+        
 def _build_skills_lookup(settings: dict, repo_root: str) -> dict:
     skill_names_lookup = {}
     try:
