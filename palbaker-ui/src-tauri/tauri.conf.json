@@ -1,12 +1,20 @@
 {
   "productName": "PalBaker",
-  "version": "0.1.27",
+  "version": "0.1.29",
   "identifier": "com.palbaker.app",
   "build": {
     "beforeDevCommand": "pnpm dlx cross-env TAURI_ENV_DEBUG=true TAURI_MODE=true pnpm dev",
     "beforeBuildCommand": "pnpm build",
     "devUrl": "http://localhost:3000",
     "frontendDist": "../out"
+  },
+  "plugins": {
+    "updater": {
+      "endpoints": [
+        "https://raw.githubusercontent.com/GoldenCarrotMLP/PalBaker/refs/heads/main/palbaker-ui/src-tauri/update.json"
+      ],
+      "pubkey": "dW50cnVzdGVkIGNvbW1lbnQ6IG1pbmlzaWduIHB1YmxpYyBrZXk6IDMxMzQwNzJGNERFNUUyNzMKUldSejR1Vk5Md2MwTWRXQm54TmYzcUQyTC9DRlJsbGRONU5mY2FnRWhVT0o0dGpxeXBkQ3B0KzAK"
+    }
   },
   "app": {
     "windows": [
@@ -35,6 +43,7 @@
   },
   "bundle": {
     "active": true,
+    "createUpdaterArtifacts": true,
     "targets": "all",
     "resources": [
       "resources/backend/**/*"
