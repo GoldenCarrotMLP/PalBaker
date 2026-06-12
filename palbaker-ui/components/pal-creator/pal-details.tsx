@@ -1,7 +1,7 @@
 "use client"
 
-import { useState } from "react"
-import { type CreatorPal, type ActiveSkill, mockPalTemplates } from "@/lib/mock-data"
+import { useState, useMemo } from "react"
+import { type CreatorPal, type ActiveSkill } from "@/lib/mock-data"
 import { PalCreatorAPI } from "@/lib/data-service"
 import { Checkbox } from "@/components/ui/checkbox"
 import { Trash2, RefreshCw, ChevronDown, ChevronUp } from "lucide-react"
@@ -10,6 +10,7 @@ import { FieldGroup, StatSlider, SectionLabel, WORK_SUITS, WORK_SUITABILITY_MAP,
 import { DiagnosticsModal } from "@/components/common/diagnostics-modal"
 import { useNotifications } from "../mod-manager/mod-card-expanded/use-notifications"
 import { NotificationToast } from "../mod-manager/mod-card-expanded/notification-toast"
+import { SearchableSelect } from "@/components/ui/searchable-select"
 
 interface Props {
   pal: CreatorPal
@@ -24,9 +25,11 @@ interface Props {
   ) => void
   onSave: (oldId: string, saved: CreatorPal) => void
   onDelete: (id: string) => void
+  templates: string[]
+  palNames: Record<string, string>
 }
 
-export function PalDetails({ pal, spawners, activeSkills, onUpdate, onOpenDialog, onSave, onDelete }: Props) {
+export function PalDetails({ pal, spawners, activeSkills, onUpdate, onOpenDialog, onSave, onDelete, templates, palNames }: Props) {
   const [diagnosticError, setDiagnosticError] = useState<string | null>(null)
   const [isAdvancedOpen, setIsAdvancedOpen] = useState(false)
   const { notifications, showNotification, dismissNotification } = useNotifications()
@@ -52,6 +55,29 @@ export function PalDetails({ pal, spawners, activeSkills, onUpdate, onOpenDialog
     }
   }
 
+  // Safe option builder: Ensure that whatever the TemplateID is, it is included in the dropdown options
+  const options = useMemo(() => {
+    const opts = [...templates]
+    if (pal.TemplateID && !opts.includes(pal.TemplateID)) {
+      opts.unshift(pal.TemplateID)
+    }
+    return opts
+  }, [templates, pal.TemplateID])
+
+  const parentTemplateOptions = useMemo(() => {
+    return options.map((t) => ({
+      value: t,
+      label: `${palNames[t] || t} (${t})`
+    }))
+  }, [options, palNames])
+
+  const spawnerOptions = useMemo(() => {
+    return Object.entries(spawners).map(([display, actual]) => ({
+      value: actual,
+      label: display
+    }))
+  }, [spawners])
+
   return (
     <div className="border-t border-border bg-muted/30 p-5 flex flex-col gap-5">
 
@@ -73,13 +99,13 @@ export function PalDetails({ pal, spawners, activeSkills, onUpdate, onOpenDialog
           />
         </FieldGroup>
         <FieldGroup label="PARENT TEMPLATE">
-          <select
+          <SearchableSelect
             value={pal.TemplateID}
-            onChange={(e) => onUpdate({ TemplateID: e.target.value })}
-            className="input-field"
-          >
-            {mockPalTemplates.map((t) => <option key={t} value={t}>{t}</option>)}
-          </select>
+            onChange={(val) => onUpdate({ TemplateID: val })}
+            options={parentTemplateOptions}
+            placeholder="Select parent template..."
+            emptyText="No templates found."
+          />
         </FieldGroup>
         <FieldGroup label="PALDECK INDEX">
           <div className="flex gap-1.5">
@@ -112,7 +138,7 @@ export function PalDetails({ pal, spawners, activeSkills, onUpdate, onOpenDialog
 
       <div className="grid grid-cols-2 gap-3">
         <FieldGroup label="PRIMARY ELEMENT (Required)">
-          <select value={pal.ElementType1 || "EPalElementType::Normal"} onChange={(e) => onUpdate({ ElementType1: e.target.value })} className="input-field">
+          <select value={pal.ElementType1 || "EPalElementType::None"} onChange={(e) => onUpdate({ ElementType1: e.target.value })} className="input-field">
             {ELEMENT_OPTIONS.map(([val, label]) => <option key={val} value={val}>{label}</option>)}
           </select>
         </FieldGroup>
@@ -156,10 +182,13 @@ export function PalDetails({ pal, spawners, activeSkills, onUpdate, onOpenDialog
 
       <div className="grid grid-cols-2 gap-4">
         <FieldGroup label="Spawner Location ID">
-          <select value={pal.SpawnLocationID || ""} onChange={(e) => onUpdate({ SpawnLocationID: e.target.value })} className="input-field">
-            <option value="">Select spawner...</option>
-            {Object.entries(spawners).map(([display, actual]) => <option key={actual} value={actual}>{display}</option>)}
-          </select>
+          <SearchableSelect
+            value={pal.SpawnLocationID || ""}
+            onChange={(val) => onUpdate({ SpawnLocationID: val })}
+            options={spawnerOptions}
+            placeholder="Select spawner pool..."
+            emptyText="No spawners found."
+          />
         </FieldGroup>
         <FieldGroup label="Level Range">
           <div className="flex gap-2">

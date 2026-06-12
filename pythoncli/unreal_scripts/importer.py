@@ -2,17 +2,20 @@
 import unreal  # type: ignore
 import os
 
-def clear_cache(ue_path, fbx_file, folder_name, is_custom_pal=False):
+def clear_cache(ue_path, fbx_file, import_name, folder_name, is_custom_pal=False):
     """
     Cleans up old mesh assets from memory/disk before re-importing.
     If this is a Custom Pal, we ensure any rogue generated skeletons matching its name are wiped out.
     """
     if fbx_file and os.path.exists(fbx_file):
-        fbx_base_name = os.path.splitext(os.path.basename(fbx_file))[0]
         paths_to_delete = [
-            f"{ue_path}/SK_{fbx_base_name}",
-            f"{ue_path}/SK_{folder_name}"  # Clean up canonical name cache as well
+            f"{ue_path}/SK_{import_name}",
+            f"{ue_path}/PA_{import_name}_PhysicsAsset"
         ]
+        if import_name != folder_name:
+            # Clean up canonical name cache as well just in case they renamed it
+            paths_to_delete.append(f"{ue_path}/SK_{folder_name}")
+            paths_to_delete.append(f"{ue_path}/PA_{folder_name}_PhysicsAsset")
         
         for path in paths_to_delete:
             if unreal.EditorAssetLibrary.does_asset_exist(path):
@@ -32,13 +35,13 @@ def clear_cache(ue_path, fbx_file, folder_name, is_custom_pal=False):
                 except Exception:
                     pass
 
-def import_assets(ue_path, textures, fbx_file, folder_name, template_id=None, is_custom_pal=False):
+def import_assets(ue_path, textures, fbx_file, import_name, folder_name, template_id=None, is_custom_pal=False, import_tex=True):
     """
     Imports textures and the skeletal FBX mesh into Unreal Engine.
     Forces binding to the parent's skeleton if configured as a custom Pal.
     """
     # 1. Textures Import
-    if textures:
+    if import_tex and textures:
         print("[PalBaker] Importing textures...")
         import_tasks = []
         for png in textures:
@@ -63,18 +66,12 @@ def import_assets(ue_path, textures, fbx_file, folder_name, template_id=None, is
     
     if fbx_file and os.path.exists(fbx_file):
         fbx_filename = os.path.basename(fbx_file)
-        fbx_base_name = os.path.splitext(fbx_filename)[0]
         
         print(f"[PalBaker] Importing Skeletal FBX: {fbx_filename}")
         
-        is_vanilla_replace = "Palbaker" not in ue_path
-        if is_vanilla_replace:
-            fbx_import_name = f"SK_{folder_name}"
-        else:
-            fbx_import_name = f"SK_{fbx_base_name}"
-            
+        fbx_import_name = f"SK_{import_name}"
         target_asset_path = f"{ue_path}/{fbx_import_name}"
-        target_phys_path = f"{ue_path}/PA_{folder_name}_PhysicsAsset"
+        target_phys_path = f"{ue_path}/PA_{import_name}_PhysicsAsset"
 
         task = unreal.AssetImportTask()
         task.set_editor_property('filename', fbx_file)
@@ -97,7 +94,7 @@ def import_assets(ue_path, textures, fbx_file, folder_name, template_id=None, is
         skel_data.set_editor_property('use_t0_as_ref_pose', True)
         
         # --- SMART SKELETON BINDING LOGIC ---
-        # Target the parent template's skeleton natively
+        # Target the parent template's skeleton natively using the folder_name parameter
         target_skeleton_name = template_id if (is_custom_pal and template_id) else folder_name
         skeleton_path = f"/Game/Pal/Model/Character/Skeleton/{target_skeleton_name}/SK_{target_skeleton_name}_Skeleton"
         
@@ -113,11 +110,23 @@ def import_assets(ue_path, textures, fbx_file, folder_name, template_id=None, is
         
         # Execute Import
         unreal.AssetToolsHelpers.get_asset_tools().import_asset_tasks([task])
+        
+        # --- VALIDATE IMPORT TYPE ---
+        imported_asset = unreal.EditorAssetLibrary.load_asset(target_asset_path)
+        if imported_asset:
+            asset_class = imported_asset.get_class().get_name()
+            if asset_class == "StaticMesh":
+                raise Exception(
+                    f"\n[!] FATAL ERROR: Unreal Engine imported '{fbx_filename}' as a StaticMesh instead of a SkeletalMesh!\n"
+                    f"This means the FBX exporter could not find a valid Armature or vertex weights for your mesh.\n"
+                    f"Please open your .blend file, ensure your mesh is parented to the 'Armature' object with bone weights, and try again."
+                )
+
         print(f"[PalBaker] Successfully imported skeletal mesh to: {target_asset_path}")
 
         # Relocate the generated PhysicsAsset cleanly to its expected path
-        expected_skeleton_path = f"/Game/Pal/Model/Character/Skeleton/{target_skeleton_name}/SK_{target_skeleton_name}_Skeleton"
-        expected_phys_path = f"{ue_path}/PA_{folder_name}_PhysicsAsset"
+        expected_skeleton_path = skeleton_path
+        expected_phys_path = target_phys_path
         
         skeleton_relocated = False
         phys_relocated = False
@@ -158,6 +167,7 @@ def import_assets(ue_path, textures, fbx_file, folder_name, template_id=None, is
                 unreal.EditorAssetLibrary.rename_asset(generated_phys_path, expected_phys_path)
 
     return target_asset_path, target_phys_path
+
 
 def import_icon(icon_file, destination_path):
     """

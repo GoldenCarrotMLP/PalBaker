@@ -1,6 +1,8 @@
 "use client"
-import { useState, useEffect } from "react"
-import { X, ChevronDown } from "lucide-react"
+
+import { useState, useEffect, useMemo } from "react"
+import { X } from "lucide-react"
+import { SearchableSelect } from "@/components/ui/searchable-select"
 
 interface Props {
   templates: string[]
@@ -21,17 +23,25 @@ export function AddPalModal({ templates, palNames, onConfirm, onCancel }: Props)
     }
   }, [templates, template])
 
+  // Build sorted options list for our searchable select popover
+  const selectOptions = useMemo(() => {
+    return templates.map((t) => ({
+      value: t,
+      label: `${palNames[t] || t} (${t})`
+    }))
+  }, [templates, palNames])
+
   return (
-    <div className="fixed inset-0 z-[100] flex items-center justify-center bg-black/70 backdrop-blur-sm p-4">
+    <div className="fixed inset-0 z-[100] flex items-center justify-center bg-black/70 backdrop-blur-sm p-4 animate-fade-in">
       <div className="bg-background border border-border rounded-lg shadow-lg w-full max-w-md flex flex-col p-6 gap-5">
         <div className="flex items-center justify-between">
           <h3 className="font-bold text-lg text-foreground">Instantiate Custom Pal</h3>
-          <button onClick={onCancel} className="text-muted-foreground hover:text-foreground cursor-pointer">
+          <button onClick={onCancel} className="text-muted-foreground hover:text-foreground cursor-pointer transition-colors">
             <X className="size-5" />
           </button>
         </div>
         
-        <p className="text-xs text-muted-foreground">
+        <p className="text-xs text-muted-foreground leading-relaxed">
           The backend will automatically copy the parent template's base stats, typing, and learnsets so you don't have to start from zero!
         </p>
 
@@ -43,43 +53,30 @@ export function AddPalModal({ templates, palNames, onConfirm, onCancel }: Props)
             placeholder="e.g. ShadowAnubis"
             value={palId}
             onChange={(e) => setPalId(e.target.value.replace(/[^a-zA-Z0-9_]/g, ''))}
-            className="h-9 w-full rounded border border-input bg-transparent px-3 text-sm focus:outline-none focus:ring-1 focus:ring-primary"
+            className="h-9 w-full rounded border border-input bg-transparent px-3 text-sm focus:outline-none focus:ring-1 focus:ring-primary placeholder:text-muted-foreground/40"
           />
         </div>
 
         <div className="flex flex-col gap-1.5">
           <label className="text-xs font-semibold uppercase text-muted-foreground">Parent Template to Clone</label>
-          <div className="relative">
-            <select
-              value={template}
-              onChange={(e) => setTemplate(e.target.value)}
-              className="h-9 w-full rounded border border-input bg-transparent px-3 text-sm appearance-none pr-8 cursor-pointer focus:outline-none focus:ring-1 focus:ring-primary"
-            >
-              {templates.length === 0 ? (
-                <option className="bg-background">Loading templates...</option>
-              ) : (
-                templates.map((t) => {
-                  const localized = palNames[t] || t
-                  return (
-                    <option key={t} value={t} className="bg-background">
-                      {localized} ({t})
-                    </option>
-                  )
-                })
-              )}
-            </select>
-            <ChevronDown className="absolute right-3 top-2.5 size-4 text-muted-foreground pointer-events-none" />
-          </div>
+          <SearchableSelect
+            value={template}
+            onChange={(val) => setTemplate(val)}
+            options={selectOptions}
+            placeholder={templates.length === 0 ? "Loading templates..." : "Select parent template..."}
+            emptyText="No templates found."
+            className="w-full"
+          />
         </div>
 
         <div className="flex justify-end gap-3 mt-2">
-          <button onClick={onCancel} className="h-9 px-4 rounded text-sm font-semibold border border-input hover:bg-muted/50 cursor-pointer">
+          <button onClick={onCancel} className="h-9 px-4 rounded text-sm font-semibold border border-input hover:bg-muted/50 cursor-pointer transition-colors">
             Cancel
           </button>
           <button 
             disabled={!palId || !template}
             onClick={() => onConfirm(palId, template)} 
-            className="h-9 px-4 rounded text-sm font-semibold bg-primary text-primary-foreground hover:bg-primary/90 disabled:opacity-50 cursor-pointer"
+            className="h-9 px-4 rounded text-sm font-semibold bg-primary text-primary-foreground hover:bg-primary/90 disabled:opacity-50 disabled:cursor-not-allowed cursor-pointer transition-colors shadow"
           >
             Create Pal
           </button>
