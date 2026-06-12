@@ -1,11 +1,11 @@
 {
-  "version": "0.1.29",
+  "version": "0.1.31",
   "notes": "Automated seamless update applied via PalBaker! ;3",
-  "pub_date": "2026-06-12T16:56:31.337Z",
+  "pub_date": "2026-06-12T19:52:23.072Z",
   "platforms": {
     "windows-x86_64": {
-      "signature": "dW50cnVzdGVkIGNvbW1lbnQ6IHNpZ25hdHVyZSBmcm9tIHRhdXJpIHNlY3JldCBrZXkKUlVSejR1Vk5Md2MwTWFRd1VnVU1VWS9YQmZlVlBIcEo3OVQzdms0SmtONXhJS1krbkVSN3FQckN5aDV3TTNwSnBnQjhBMm4zYklpT3JLdmRyMHh2aE5JQmFLRXJ6TjNOc3dVPQp0cnVzdGVkIGNvbW1lbnQ6IHRpbWVzdGFtcDoxNzgxMjgzMzg5CWZpbGU6UGFsQmFrZXJfMC4xLjI4X3g2NC1zZXR1cC5leGUKbDlJUEsxSkxhVi9FOGV0OVRpeENiVGxicEZXTmt1T3hhY2FqcmY1K0dwTHVleUpUZ2cvbEozN1VSaXE2ZU5teGVkelIvRVp5aFN2c1FOL1NKVEFQRFE9PQo=",
-      "url": "https://github.com/GoldenCarrotMLP/PalBaker/releases/latest/download/PalBaker_0.1.28_x64-setup.exe"
+      "signature": "dW50cnVzdGVkIGNvbW1lbnQ6IHNpZ25hdHVyZSBmcm9tIHRhdXJpIHNlY3JldCBrZXkKUlVSejR1Vk5Md2MwTVpua1hBeVAyMVdEQ2N1L3p3NnFUQ0prR1JGSGZVdzRvNWRSQ2VtSzNqZjhhcWlmM2tpemVBR3NGU0d4Q3hnSWIzVGF3cGVQN0t5TkFucGJ1Zklzd0FNPQp0cnVzdGVkIGNvbW1lbnQ6IHRpbWVzdGFtcDoxNzgxMjkzOTQxCWZpbGU6UGFsQmFrZXJfMC4xLjMxX3g2NC1zZXR1cC5leGUKcXk4NmtmeHlEaUZOVlgyUXRlQTE2aHpZWS8xMFVFeE5CQ0xpaVplNWNzeGJxeGRBNXIxbktqc2picytXbDUwWC9SaUg0NVNZSlJqWCs0b1ZpNlU2QlE9PQo=",
+      "url": "https://github.com/GoldenCarrotMLP/PalBaker/releases/latest/download/PalBaker_0.1.31_x64-setup.exe"
     }
   }
 }
