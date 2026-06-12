@@ -9,6 +9,8 @@
     "dialog:default",
     "dialog:allow-ask",
     "dialog:allow-message",
-    "dialog:allow-confirm"
+    "dialog:allow-confirm",
+    "updater:default",
+    "process:allow-restart"
   ]
 }
