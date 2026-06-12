@@ -1,4 +1,4 @@
-# build_mod.py
+# pythoncli/build_mod.py
 import os
 import sys
 import glob
@@ -25,6 +25,9 @@ def main():
     MONSTER_NAME = sys.argv[1]
     CATEGORY = sys.argv[2] 
     ACTION = sys.argv[3]   
+    
+    # EXTRACT NEW MATERIAL FLAG
+    PRESERVE_MATS = "--preserve-materials" in sys.argv
 
     from utils.config import load_settings
     settings = load_settings()
@@ -81,16 +84,26 @@ def main():
                 output_json = os.path.join(workspace.fmodel_dir, f"{psk_base}_blend.json")
                 
                 print(f"Generating companion sidecar layout for {psk_base}...", flush=True)
-                run_headless_blender(
+                result_sidecar = run_headless_blender(
                     workspace.blender_path,
                     blend_file,
                     extractor_script,
                     ["--output", output_json]
                 )
+                
+                # Dynamic Diagnostics: Print Blender logs if the sidecar was not generated
+                if not os.path.exists(output_json):
+                    print("❌ ERROR: Sidecar layout generation failed. Blender Terminal Traceback:", flush=True)
+                    if result_sidecar.stdout.strip():
+                        print(result_sidecar.stdout, flush=True)
+                    if result_sidecar.stderr.strip():
+                        print(result_sidecar.stderr, flush=True)
+                    sys.exit(1)
             else:
                 print(f"ERROR: Blender failed to save .blend file for {psk_base}. Traceback:", flush=True)
                 print(result.stdout, flush=True)
                 sys.exit(1)
+
 
     # -------------------------------------------------------------
     # PHASE 1: IMPORT (Push to Unreal)
@@ -158,7 +171,6 @@ def main():
             models = []
             for fbx in fbx_files:
                 fbx_base = os.path.splitext(os.path.basename(fbx))[0]
-                # Single mesh outside Altermatic space -> strict rename. Otherwise -> preserve specific blend name!
                 import_name = MONSTER_NAME if (is_single_mesh and not is_altermatic_target) else fbx_base
                 
                 models.append({
@@ -167,6 +179,19 @@ def main():
                     "import_name": import_name
                 })
 
+            # --- DYNAMIC MATERIALS PRESERVATION SEARCH (Consolidated) ---
+            from utils.sidecar_helper import load_sidecar
+            preserve_materials = True # Default to true for safety
+            sidecar_path = os.path.join(target_dir, f"{MONSTER_NAME}_blend.json")
+            sidecar_data = load_sidecar(sidecar_path)
+            preserve_materials = bool(sidecar_data.get("preserve_materials", True))
+                    
+            # Explicit CLI overrides trump the local sidecar state
+            if "--preserve-materials" in sys.argv:
+                preserve_materials = True
+            elif "--overwrite-materials" in sys.argv:
+                preserve_materials = False
+
             config = {
                 "ue_target_path": virtual_path,
                 "textures": pngs,
@@ -174,7 +199,8 @@ def main():
                 "mi_jsons": jsons,
                 "icon_file": workspace.icon_fmodel_path if (workspace.has_icon and target_dir == workspace.fmodel_dir) else None,
                 "template_id": workspace.template_id,
-                "is_custom_pal": workspace.is_custom_pal
+                "is_custom_pal": workspace.is_custom_pal,
+                "preserve_materials": preserve_materials # Forwarded directly!
             }
             config_path = os.path.join(target_dir, "import_config.json")
             with open(config_path, "w", encoding="utf-8") as f:
@@ -193,6 +219,7 @@ def main():
 
         ue_abs_path = os.path.join(workspace.project_dir, "Content", "Pal", "Model", "Character", CATEGORY, MONSTER_NAME)
         save_push_state(workspace.fmodel_dir, ue_abs_path)
+
 
     # -------------------------------------------------------------
     # PHASE 1.5: REFRESH BLEND (Sync layouts on the spot)

@@ -1,4 +1,4 @@
-# utils/config.py
+# pythoncli/utils/config.py
 import os
 import json
 

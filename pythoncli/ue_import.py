@@ -1,4 +1,4 @@
-# ue_import.py
+# pythoncli/ue_import.py
 import sys
 import os
 import json
@@ -12,7 +12,7 @@ for k in list(sys.modules.keys()):
     if k.startswith("unreal_scripts"):
         del sys.modules[k]
 
-from unreal_scripts.importer import clear_cache, import_assets
+from unreal_scripts.importer import clear_cache, import_assets, harvest_materials
 from unreal_scripts.materials import build_materials, bind_materials_to_mesh
 from unreal_scripts.rigging import apply_rigging
 
@@ -28,6 +28,7 @@ def run_pipeline():
     
     template_id = config.get("template_id")
     is_custom_pal = config.get("is_custom_pal", False)
+    preserve_materials = config.get("preserve_materials", True)
     
     # Handle backward compatibility or single-mesh payloads gracefully
     models = config.get("models", [])
@@ -39,6 +40,11 @@ def run_pipeline():
         bone_data_file = model["bone_data_file"]
         import_name = model.get("import_name", folder_name)
         
+        # HARVEST PHASE: Safely cache any custom shading work the user did!
+        harvested_materials = {}
+        if preserve_materials:
+            harvested_materials = harvest_materials(ue_path, import_name, folder_name)
+        
         clear_cache(ue_path, fbx_file, import_name, folder_name, is_custom_pal)
         
         # Only import textures on the first loop iteration to prevent redundant processing
@@ -47,12 +53,12 @@ def run_pipeline():
             ue_path, config["textures"], fbx_file, import_name, folder_name, template_id, is_custom_pal, import_tex
         )
         
-        # Build material instances dynamically using the specific mesh's sidecar
+        # Build material instances dynamically (Passing preserve_materials to protect existing assets!)
         sidecar_json_path = os.path.join(working_dir, bone_data_file)
-        mi_assets = build_materials(ue_path, sidecar_json_path, config["textures"], target_asset_path)
+        mi_assets = build_materials(ue_path, sidecar_json_path, config["textures"], target_asset_path, preserve_materials)
         
-        # Bind everything together
-        bind_materials_to_mesh(target_asset_path, target_phys_path, mi_assets)
+        # Bind everything together (passing the preserved materials cache)
+        bind_materials_to_mesh(target_asset_path, target_phys_path, mi_assets, harvested_materials)
         
         # Generate & apply rigging per-mesh (Generating Anubis_BP and Anubis_Dark_BP independently)
         apply_rigging(working_dir, ue_path, import_name, folder_name, target_asset_path, bone_data_file, template_id, is_custom_pal)

@@ -1,6 +1,30 @@
-# unreal_scripts/importer.py
+# pythoncli/unreal_scripts/importer.py
 import unreal  # type: ignore
 import os
+
+def harvest_materials(ue_path, import_name, folder_name):
+    """
+    Harvests existing material assignments from the Skeletal Mesh before deletion.
+    Returns a dictionary mapping both slot_names and slot_indices to their current MaterialInstanceConstant.
+    """
+    harvested = {}
+    paths_to_check = [
+        f"{ue_path}/SK_{import_name}",
+        f"{ue_path}/SK_{folder_name}"
+    ]
+    
+    for path in paths_to_check:
+        if unreal.EditorAssetLibrary.does_asset_exist(path):
+            mesh = unreal.EditorAssetLibrary.load_asset(path)
+            if mesh and mesh.get_class().get_name() == "SkeletalMesh":
+                print(f"[PalBaker] Harvesting existing custom materials from {path}...")
+                for i, mat in enumerate(mesh.materials):
+                    slot_name = str(mat.material_slot_name).lower()
+                    if mat.material_interface:
+                        harvested[slot_name] = mat.material_interface
+                        harvested[str(i)] = mat.material_interface
+                break # Found the mesh, stop searching
+    return harvested
 
 def clear_cache(ue_path, fbx_file, import_name, folder_name, is_custom_pal=False):
     """

@@ -92,7 +92,7 @@ def verify_project_integrity(settings: dict) -> tuple[bool, str]:
         
     return True, ""
 
-def run_build_mod_and_stream(monster_name: str, category: str, action: str):
+def run_build_mod_and_stream(monster_name: str, category: str, action: str, preserve_override: bool | None = None):
     """
     Spawns build_mod.py unbuffered, intercepts output lines, and 
     emits version-safe JSONL envelopes for real-time progress.
@@ -104,6 +104,12 @@ def run_build_mod_and_stream(monster_name: str, category: str, action: str):
         repo_root = os.path.dirname(os.path.dirname(os.path.dirname(os.path.abspath(__file__))))
         build_mod_path = os.path.join(repo_root, "build_mod.py")
         cmd = [sys.executable, "-u", build_mod_path, monster_name, category, action]
+        
+    # Append explicit overrides to be picked up by build_mod.py
+    if preserve_override is True:
+        cmd.append("--preserve-materials")
+    elif preserve_override is False:
+        cmd.append("--overwrite-materials")
     
     creation_flags = subprocess.CREATE_NO_WINDOW if os.name == 'nt' else 0
     
@@ -173,40 +179,52 @@ def run_build_mod_and_stream(monster_name: str, category: str, action: str):
         json_print({"type": "result", "status": "error", "message": f"Pipeline execution crashed: {str(e)}"})
 
 
+
 def handle_mod_command(args, settings):
     """Router for all mod-level pipeline commands."""
     
-    # 1. Path Validation Routing
     action = args.action
+    is_valid, err_msg = True, ""
+    
+    # 1. Routing 3-Dots actions down to explicit booleans
+    preserve_override = None # None means we fallback to reading the sidecar directly
+    if action == "push-preserve":
+        action = "push"
+        preserve_override = True
+    elif action == "push-overwrite":
+        action = "push"
+        preserve_override = False
+        
+    # 2. Path Validation Routing
     if action == "extract":
         is_valid, err_msg = validate_settings(settings, ["fmodel_output", "palworld_exe"])
-    elif action in ["create-blend", "set-icon", "open-source"]:
+    elif action in ["create-blend", "set-icon", "open-source", "set-preserve-materials"]:
         is_valid, err_msg = validate_settings(settings, ["fmodel_output"])
     elif action in ["open-ue", "open-pak"]:
         is_valid, err_msg = validate_settings(settings, ["uproject"])
     else:
-        # push, cook, pack, full, decompile, refresh-blend
+        # push, cook, pack, full, decompile, refresh-blend, browse-ue
         is_valid, err_msg = validate_settings(settings, ["fmodel_output", "ue_root", "uproject"])
         
     if not is_valid:
         error_print(err_msg)
         sys.exit(1)
 
-    # 2. Connection Validation Routing (Remote execution circuit breaker)
+    # 3. Connection Validation Routing (Remote execution circuit breaker)
     if action in ["push", "full", "decompile", "browse-ue"]:
         is_connected, err_code, err_msg = verify_unreal_connection(settings)
         if not is_connected:
             json_print({"status": "error", "error_code": err_code, "message": err_msg})
             sys.exit(1)
 
-    # 3. Project Integrity Validation (Missing Assets & Plugin check)
+    # 4. Project Integrity Validation (Missing Assets & Plugin check)
     if action in ["push", "full", "cook", "pack", "decompile"]:
         is_intact, integrity_msg = verify_project_integrity(settings)
         if not is_intact:
             json_print({"status": "error", "message": integrity_msg})
             sys.exit(1)
 
-    # 4. Command Execution
+    # 5. Command Execution
     mods = get_mod_info(settings, args.mod)
     if not mods and action not in ["extract", "cancel-pipeline"]:
         error_print(f"Mod {args.mod} was not found on disk.")
@@ -258,6 +276,52 @@ def handle_mod_command(args, settings):
             json_print({"status": "success", "message": f"Successfully imported custom icon to {dest_icon}"})
         except Exception as e:
             error_print(f"Failed to copy icon: {str(e)}")
+            sys.exit(1)
+
+    # Save Pal-specific materials preservation setting to sidecar
+    elif action == "set-preserve-materials":
+        val_str = getattr(args, "path", "true")
+        preserve_bool = str(val_str).lower() == "true"
+        
+        mod_data = mods[0]
+        sidecar_path = os.path.join(mod_data["fmodel_path"], f"{args.mod}_blend.json")
+        if not os.path.exists(sidecar_path):
+            error_print("Skeletal companion sidecar JSON file not found. Generate the .blend file first!")
+            sys.exit(1)
+            
+        try:
+            from utils.sidecar_helper import update_sidecar_fields
+            update_sidecar_fields(sidecar_path, preserve_materials=preserve_bool)
+            json_print({"status": "success", "message": f"Successfully updated material preservation to {preserve_bool} for {args.mod}."})
+        except Exception as e:
+            error_print(f"Failed to save material preservation setting: {e}")
+            sys.exit(1)
+
+
+    # Focus the running Unreal Editor Content Browser to this Pal's directory
+    elif action == "browse-ue":
+        mod_data = mods[0]
+        category = get_category_from_path(mod_data["fmodel_path"])
+        category_sanitized = category.replace(" ", "_")
+        
+        ue_virtual_path = f"/Game/Pal/Model/Character/{category_sanitized}/{args.mod}"
+        python_cmd = f'import unreal; unreal.EditorUtilityLibrary.sync_browser_to_folders(["{ue_virtual_path}"])'
+        
+        from utils.builder.unreal_helper import run_remote_command, focus_unreal_window
+        target_project_name = os.path.splitext(os.path.basename(settings["uproject"]))[0]
+        
+        print(f"[PalBaker] Ingesting navigation command to Unreal Editor for {ue_virtual_path}...", flush=True)
+        success, msg = run_remote_command(
+            settings["ue_root"],
+            target_project_name,
+            python_cmd
+        )
+        
+        if success:
+            focus_unreal_window(target_project_name)
+            json_print({"status": "success", "message": f"Successfully focused Unreal Content Browser to: {ue_virtual_path}"})
+        else:
+            json_print({"status": "error", "message": f"Failed to focus Unreal: {msg}"})
             sys.exit(1)
 
     # Kill stranded background Unreal build processes safely
@@ -320,12 +384,11 @@ def handle_mod_command(args, settings):
             error_print(msg)
             sys.exit(1)
 
-    # Standard / Long-running pipeline commands (reconstructed via build_mod.py subprocess)
+    # Standard / Long-running pipeline commands
     else:
         mod_data = mods[0]
         category = get_category_from_path(mod_data["fmodel_path"])
         
-        # Map CLI subcommand action name to build_mod.py action argument format
         action_mapping = {
             "create-blend": "create_blend",
             "refresh-blend": "refresh_blend",
@@ -334,7 +397,11 @@ def handle_mod_command(args, settings):
         }
         build_action = action_mapping.get(action, action)
         
-        run_build_mod_and_stream(args.mod, category, build_action)
+        # Passes the preserve_override boolean directly to build_mod.py via subprocess arguments
+        run_build_mod_and_stream(args.mod, category, build_action, preserve_override)
+
+
+
 
 
 def handle_audio_command(args, settings):

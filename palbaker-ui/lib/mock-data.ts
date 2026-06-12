@@ -65,6 +65,7 @@ export interface ModItem {
   audio_overrides: Partial<Record<string, string>>   
   is_altermatic_active: boolean
   altermatic_variants: AltermaticVariant[]
+  preserve_materials: boolean 
 }
 
 export const mockModList: ModItem[] = []

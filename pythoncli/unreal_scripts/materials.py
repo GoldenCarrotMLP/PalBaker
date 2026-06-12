@@ -1,4 +1,4 @@
-# unreal_scripts/materials.py
+# pythoncli/unreal_scripts/materials.py
 import unreal  # type: ignore
 import json
 import os
@@ -6,11 +6,8 @@ import os
 def sanitize_asset_name(name):
     """Sanitizes asset names to comply with Unreal Engine's strict naming rules (alphanumeric and underscores only)."""
     import re
-    # Replace any spaces, hyphens, or other non-alphanumeric chars with underscores
     sanitized = re.sub(r'[^a-zA-Z0-9_]', '_', name)
-    # Collapse multiple consecutive underscores into a single one
     sanitized = re.sub(r'_+', '_', sanitized)
-    # Strip leading/trailing underscores
     return sanitized.strip('_')
 
 def find_best_texture_match(slot_name, textures, suffix):
@@ -69,7 +66,7 @@ def find_best_texture_match(slot_name, textures, suffix):
             
     return best_match if best_score > 0 else None
 
-def build_materials_heuristically(ue_path, textures, material_slots):
+def build_materials_heuristically(ue_path, textures, material_slots, preserve_materials=False):
     """Fallback heuristic binder when no metadata is available."""
     print("No Material Metadata found. Running fallback heuristic suffix binder...")
     asset_tools = unreal.AssetToolsHelpers.get_asset_tools()
@@ -82,6 +79,13 @@ def build_materials_heuristically(ue_path, textures, material_slots):
         
         if unreal.EditorAssetLibrary.does_asset_exist(mi_path):
             existing_asset = unreal.EditorAssetLibrary.load_asset(mi_path)
+            
+            # SAFEGUARD: Skip modification if preserve mode is enabled
+            if preserve_materials and existing_asset:
+                print(f"  [Preserve] Skipping parameter modification for existing asset: {sanitized_slot}")
+                mi_assets.append((sanitized_slot.lower(), existing_asset))
+                continue
+                
             if existing_asset and isinstance(existing_asset, unreal.MaterialInstanceConstant):
                 print(f"Loading existing material instance: {sanitized_slot}")
                 mi_asset = existing_asset
@@ -138,7 +142,7 @@ def build_materials_heuristically(ue_path, textures, material_slots):
         
     return mi_assets
 
-def build_materials(ue_path, json_path, textures, target_asset_path):
+def build_materials(ue_path, json_path, textures, target_asset_path, preserve_materials=False):
     """Orchestrator to evaluate whether to run the Topological or Heuristic binder."""
     material_slots = []
     if target_asset_path:
@@ -149,10 +153,8 @@ def build_materials(ue_path, json_path, textures, target_asset_path):
                 for mat in mesh.materials:
                     material_slots.append(str(mat.material_slot_name))
             elif asset_class == "StaticMesh":
-                # Guard against broken static mesh imports
                 for mat in getattr(mesh, "static_materials", []):
                     material_slots.append(str(mat.material_slot_name))
-
 
     materials_metadata = {}
     if os.path.exists(json_path):
@@ -175,6 +177,13 @@ def build_materials(ue_path, json_path, textures, target_asset_path):
             
             if unreal.EditorAssetLibrary.does_asset_exist(mi_path):
                 existing_asset = unreal.EditorAssetLibrary.load_asset(mi_path)
+                
+                # SAFEGUARD: Skip modification if preserve mode is enabled
+                if preserve_materials and existing_asset:
+                    print(f"  [Preserve] Skipping parameter modification for existing asset: {sanitized_name}")
+                    mi_assets.append((sanitized_name.lower(), existing_asset))
+                    continue
+                    
                 if existing_asset and isinstance(existing_asset, unreal.MaterialInstanceConstant):
                     print(f"Loading existing material instance: {sanitized_name}")
                     mi_asset = existing_asset
@@ -217,8 +226,6 @@ def build_materials(ue_path, json_path, textures, target_asset_path):
                         else:
                             print(f"  [!] Warning: Skipping collision binding: '{tex_name}' loaded as {type(loaded_tex).__name__} (expected Texture)")
             else:
-                # FIXED: If a material slot exists in the sidecar but has an empty texture block,
-                # immediately run our suffix-matching heuristics inside this specific slot.
                 print(f"  [!] No mapped textures found in sidecar for {sanitized_name}. Reverting to heuristic search...", flush=True)
                 
                 tex_b = find_best_texture_match(sanitized_name, textures, "B")
@@ -247,10 +254,9 @@ def build_materials(ue_path, json_path, textures, target_asset_path):
             
         return mi_assets
     else:
-        # Fallback to suffix matching
-        return build_materials_heuristically(ue_path, textures, material_slots)
+        return build_materials_heuristically(ue_path, textures, material_slots, preserve_materials)
 
-def bind_materials_to_mesh(target_asset_path, target_phys_path, mi_assets):
+def bind_materials_to_mesh(target_asset_path, target_phys_path, mi_assets, harvested_materials=None):
     if not target_asset_path:
         return
         
@@ -276,10 +282,20 @@ def bind_materials_to_mesh(target_asset_path, target_phys_path, mi_assets):
     print(f"Skeletal mesh has {len(skel_materials)} material slots.")
     
     new_materials = []
-    for skel_mat in skel_materials:
+    for i, skel_mat in enumerate(skel_materials):
         slot_name = str(skel_mat.material_slot_name).lower()
         print(f"Processing slot: {slot_name}")
         
+        # 1. SAFEGUARD HARVEST OVERRIDE
+        if harvested_materials:
+            preserved_mat = harvested_materials.get(slot_name) or harvested_materials.get(str(i))
+            if preserved_mat:
+                skel_mat.material_interface = preserved_mat
+                print(f"  [Safeguard] Preserved existing custom material -> {preserved_mat.get_name()}")
+                new_materials.append(skel_mat)
+                continue
+
+        # 2. STANDARD MATCHING
         matched_mi = next((mi_asset for mi_name, mi_asset in mi_assets if mi_name == slot_name), None)
             
         if not matched_mi:

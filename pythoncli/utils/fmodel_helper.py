@@ -146,7 +146,8 @@ def resolve_and_copy_material_json(material_name: str, fmodel_dir: str, fmodel_r
         
     print(f"  [Resolved] Material JSON found at: {json_path}", flush=True)
     try:
-        with open(json_path, "r", encoding="utf-8") as f:
+        # FIXED: Use utf-8-sig encoding to safely strip FModel Byte Order Marks (BOM)
+        with open(json_path, "r", encoding="utf-8-sig") as f:
             data = json.load(f)
     except Exception as e:
         print(f"  Error reading resolved JSON: {e}", flush=True)
@@ -198,8 +199,6 @@ def resolve_and_copy_material_json(material_name: str, fmodel_dir: str, fmodel_r
         "parent_class": parent_class,
         "parameters": parameters
     }
-
-
 def preprocess_fmodel_textures(fmodel_dir: str, fmodel_root: str):
     """
     Preprocess existing local folder JSON configurations before running Blender.

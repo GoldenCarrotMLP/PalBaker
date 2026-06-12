@@ -155,7 +155,10 @@ export function SystemSettingsPage() {
       <EnvironmentPaths config={config} updateConfig={updateConfig} onAutodetect={handleAutodetect} />
       
       <div className="grid grid-cols-[1fr_1.5fr] gap-4">
-        <Preferences showMappedNames={showMappedNames} onToggle={handleShowMappedToggle} />
+        <Preferences 
+          showMappedNames={showMappedNames} 
+          onToggleMapped={handleShowMappedToggle} 
+        />
         <EssentialBinaries 
           envStatus={envStatus} 
           onActionUe4ss={async (action: string) => {

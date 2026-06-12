@@ -4,6 +4,7 @@ import json
 from .state import is_ue_modified, is_source_modified
 from .names import get_localized_name, load_names_map
 from .audio_helper import get_pal_sound_metadata
+from .sidecar_helper import load_sidecar # <-- Centralized loader!
 
 def scan_character_folders(base_path: str, target_folder: str | None = None) -> dict:
     """Recursively finds all leaf directories containing .blend, .uasset, .psk, or .json files."""
@@ -96,7 +97,6 @@ def get_mod_info(settings: dict, target_mod: str | None = None):
         fmodel_path = data["fmodel_path"]
         has_fmodel = bool(fmodel_path) and os.path.exists(fmodel_path)
         
-        # If it is not extracted, but is neither a vanilla Pal nor a custom creator Pal, skip it
         is_vanilla_or_creator = (name in names_map) or (name in custom_pals)
         if not has_fmodel and not is_vanilla_or_creator:
             continue
@@ -105,7 +105,6 @@ def get_mod_info(settings: dict, target_mod: str | None = None):
         fmodel_altermatic_path = data["fmodel_altermatic_path"]
         ue_path = data["ue_path"]
         
-        # Calculate predicted fmodel path if it does not exist on disk yet
         active_pak_path = ""
         ue_modified = False
         ue_modified_files = []
@@ -116,6 +115,11 @@ def get_mod_info(settings: dict, target_mod: str | None = None):
             
         has_blend = has_fmodel and any(f.endswith(".blend") for f in os.listdir(fmodel_path))
         has_ue = bool(ue_path) and any(f.endswith(".uasset") for f in os.listdir(ue_path))
+        
+        # --- Read Material Preservation Toggle from Sidecar (Unified) ---
+        sidecar_path = os.path.join(fmodel_path, f"{name}_blend.json")
+        sidecar_data = load_sidecar(sidecar_path)
+        preserve_materials = bool(sidecar_data.get("preserve_materials", True))
         
         # --- Altermatic Detection ---
         is_altermatic_active = False
@@ -194,7 +198,6 @@ def get_mod_info(settings: dict, target_mod: str | None = None):
                 }
                 altermatic_variants.insert(0, base_variant)
 
-        # --- SEPARATED CUSTOM VS VANILLA ICON CHECK ---
         custom_icon_path = os.path.join(fmodel_path, f"T_{name}_icon_normal.png") if has_fmodel else ""
         has_custom_icon = os.path.exists(custom_icon_path) if custom_icon_path else False
 
@@ -315,6 +318,7 @@ def get_mod_info(settings: dict, target_mod: str | None = None):
         data["has_blend"] = has_blend
         data["has_ue"] = has_ue
         data["localized_name"] = get_localized_name(name)
+        data["preserve_materials"] = preserve_materials # <-- EXPOSED TO FRONTEND!
         results.append(data)
 
     return sorted(results, key=lambda x: x["name"])

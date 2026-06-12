@@ -135,7 +135,13 @@ export const ModManagerAPI = {
     }
     return { status: "success", message: "Mocked icon bytes saved." }
   },
-
+async setModPreserveMaterials(modName: string, enabled: boolean): Promise<any> {
+    if (USE_LIVE_DATA) {
+      try { return await invoke("set_mod_preserve_materials", { modName, enabled }) } 
+      catch (err) { handleBackendError(err) }
+    }
+    return { status: "success", message: `Mocked set preserve materials.` }
+  },
   async saveModAudioBytes(modName: string, cryName: string, filename: string, bytes: number[]): Promise<any> {
     if (USE_LIVE_DATA) {
       try { return await invoke("save_mod_audio_bytes", { modName, cryName, filename, bytes }) } 

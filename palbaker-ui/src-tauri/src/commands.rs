@@ -454,3 +454,11 @@ pub async fn env_extract_icons(app: AppHandle, state: State<'_, AppState>) -> Re
     let parsed: Value = parse_last_json_line(&raw).unwrap_or(serde_json::json!({ "status": "success", "message": raw }));
     Ok(parsed)
 }
+
+#[tauri::command]
+pub async fn set_mod_preserve_materials(app: AppHandle, state: State<'_, AppState>, mod_name: String, enabled: bool) -> Result<Value, String> {
+    let status = if enabled { "true" } else { "false" };
+    let raw = run_cli(&app, &state, &["mod", "set-preserve-materials", &mod_name, "--path", status])?;
+    let parsed: Value = parse_last_json_line(&raw).unwrap_or(serde_json::json!({ "status": "success", "message": raw }));
+    Ok(parsed)
+}
