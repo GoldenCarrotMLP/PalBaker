@@ -2,7 +2,7 @@
 import unreal  # type: ignore
 import os
 
-def apply_rigging(working_dir, ue_path, folder_name, target_asset_path, bone_data_file="bone_data.json", template_id=None, is_custom_pal=False):
+def apply_rigging(working_dir, ue_path, import_name, folder_name, target_asset_path, bone_data_file="bone_data.json", template_id=None, is_custom_pal=False):
     json_path = os.path.join(working_dir, bone_data_file)
     if not os.path.exists(json_path):
         return
@@ -23,7 +23,7 @@ def apply_rigging(working_dir, ue_path, folder_name, target_asset_path, bone_dat
         
     target_bp_path = f"{target_bp_dir}/{bp_name}"
     
-    # Target parent skeleton for correct animation compilation
+    # Target parent skeleton for correct animation compilation using folder_name
     target_skeleton_name = template_id if (is_custom_pal and template_id) else folder_name
     skeleton_path = f"/Game/Pal/Model/Character/Skeleton/{target_skeleton_name}/SK_{target_skeleton_name}_Skeleton"
 

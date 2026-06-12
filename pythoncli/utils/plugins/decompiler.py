@@ -1,3 +1,4 @@
+# utils/plugins/decompiler.py
 import os
 import sys
 import time
@@ -53,38 +54,40 @@ def run_decompile_pipeline(ue_root: str, uproject_path: str, monster_name: str, 
     if not fbx_files:
         return False, "No FBX assets were exported by Unreal. Decompile aborted."
 
-    fbx_file = fbx_files[0]
-    blend_file = os.path.join(fmodel_dir, f"{monster_name}.blend")
-
-    if not overwrite and os.path.exists(blend_file):
-        print("Blend file already exists. Skipping reconstruction.")
-        return True, "Decompile completed cleanly (skipped existing files)."
-
     reconstructor_script = os.path.abspath(os.path.join(os.path.dirname(os.path.dirname(os.path.dirname(__file__))), "utils", "blender_reconstruct.py"))
     
-    print("Launching headless Blender to reconstruct .blend workspace...")
-    cmd_args = [
-        blender_path,
-        "-b",
-        "--python", reconstructor_script,
-        "--",
-        "--fbx", fbx_file,
-        "--output", blend_file
-    ]
-    
-    try:
-        result = subprocess.run(
-            cmd_args, 
-            capture_output=True, 
-            text=True, 
-            encoding='utf-8', 
-            errors='replace'
-        )
+    for fbx_file in fbx_files:
+        base_name = os.path.splitext(os.path.basename(fbx_file))[0]
+        # ue_export.py already strips "SK_" natively, so base_name is clean
+        blend_file = os.path.join(fmodel_dir, f"{base_name}.blend")
+
+        if not overwrite and os.path.exists(blend_file):
+            print(f"Blend file {os.path.basename(blend_file)} already exists. Skipping reconstruction.")
+            continue
+
+        print(f"Launching headless Blender to reconstruct {os.path.basename(blend_file)}...")
+        cmd_args = [
+            blender_path,
+            "-b",
+            "--python", reconstructor_script,
+            "--",
+            "--fbx", fbx_file,
+            "--output", blend_file
+        ]
         
-        if os.path.exists(blend_file):
-            return True, "Sources successfully reconstructed from compiled project assets!"
-        else:
-            error_details = result.stdout + "\n" + result.stderr
-            return False, f"Blender executed but failed to save .blend file. Internal traceback:\n{error_details}"
-    except Exception as e:
-        return False, f"Failed to execute Blender process: {e}"
+        try:
+            result = subprocess.run(
+                cmd_args, 
+                capture_output=True, 
+                text=True, 
+                encoding='utf-8', 
+                errors='replace'
+            )
+            
+            if not os.path.exists(blend_file):
+                error_details = result.stdout + "\n" + result.stderr
+                return False, f"Blender executed but failed to save {blend_file}. Traceback:\n{error_details}"
+        except Exception as e:
+            return False, f"Failed to execute Blender process: {e}"
+
+    return True, "Sources successfully reconstructed from compiled project assets!"

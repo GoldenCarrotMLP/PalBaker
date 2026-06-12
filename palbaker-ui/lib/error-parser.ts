@@ -105,6 +105,18 @@ export function parseBackendError(rawError: string): DiagnosticReport {
     };
   }
 
+  // 4b. RIGGING & ARMATURE ERRORS
+  if (err.includes("StaticMesh instead of a SkeletalMesh")) {
+    return {
+      category: "BLENDER",
+      title: "Armature/Rigging Error",
+      friendlyMsg: "Oh noes! Unreal Engine imported your model as a StaticMesh instead of a SkeletalMesh! This usually happens if your mesh isn't parented to the 'Armature' in Blender, or it has no vertex weights assigned. Please open your .blend file, fix the parenting, and try again! ;3",
+      remediations: [
+        { label: "Dismiss", actionKey: "close_modal", style: "secondary" }
+      ]
+    };
+  }
+
   // 5. MSVC C++ COMPILER & TOOLSETS
   if (
     err.includes("No Visual Studio 2022") ||

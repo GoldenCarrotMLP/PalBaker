@@ -1,5 +1,6 @@
 "use client"
 
+import { useState, useMemo, useEffect } from "react"
 import { Plus, Trash2 } from "lucide-react"
 import { Badge } from "@/components/ui/badge"
 import { type CreatorPal, type ActiveSkill, type LearnsetEntry, ELEMENT_COLORS } from "@/lib/mock-data"
@@ -20,31 +21,47 @@ interface Props {
 export function PalLearnset({ pal, activeSkills, onUpdate, onOpenDialog }: Props) {
   const learnset: LearnsetEntry[] = pal.Learnset || []
 
+  // Local state to store levels currently being edited to prevent live re-sorting while typing
+  const [editingLevels, setEditingLevels] = useState<Record<number, string>>({})
+
+  // Reset editing states if the Pal context changes
+  useEffect(() => {
+    setEditingLevels({})
+  }, [pal.CharacterID])
+
   const handleAddMove = () => {
     onOpenDialog("Add Move", activeSkills, (id) => {
       onUpdate({ Learnset: [...learnset, { Level: 1, WazaID: id }] })
     })
   }
 
-  const handleChangeMove = (index: number) => {
+  const handleChangeMove = (originalIndex: number) => {
     onOpenDialog("Select Move", activeSkills, (id) => {
       const next = [...learnset]
-      next[index] = { ...next[index], WazaID: id }
+      next[originalIndex] = { ...next[originalIndex], WazaID: id }
       onUpdate({ Learnset: next })
     })
   }
 
-  const handleChangeLevel = (index: number, level: number) => {
+  const handleChangeLevel = (originalIndex: number, level: number) => {
     const next = [...learnset]
-    next[index] = { ...next[index], Level: level }
+    next[originalIndex] = { ...next[originalIndex], Level: level }
     onUpdate({ Learnset: next })
   }
 
-  const handleRemove = (index: number) => {
-    onUpdate({ Learnset: learnset.filter((_, i) => i !== index) })
+  const handleRemove = (originalIndex: number) => {
+    onUpdate({ Learnset: learnset.filter((_, i) => i !== originalIndex) })
   }
 
-  const sorted = [...learnset].sort((a, b) => a.Level - b.Level)
+  // Map each row with its original index BEFORE sorting to solve the index mismatch bug!
+  const indexedLearnset = useMemo(() => {
+    return learnset.map((row, originalIndex) => ({ ...row, originalIndex }))
+  }, [learnset])
+
+  // Sort the indexed learnset by level
+  const sorted = useMemo(() => {
+    return [...indexedLearnset].sort((a, b) => a.Level - b.Level)
+  }, [indexedLearnset])
 
   return (
     <div>
@@ -69,8 +86,7 @@ export function PalLearnset({ pal, activeSkills, onUpdate, onOpenDialog }: Props
         {sorted.length === 0 ? (
           <p className="text-muted-foreground text-xs italic p-3">No moves. Add one above.</p>
         ) : (
-          sorted.map((row, i) => {
-            // Find the skill object safely even if the object's keys are localized friendly names
+          sorted.map((row) => {
             const skillValues = Object.values(activeSkills)
             const skillObj = skillValues.find(s => s.id === row.WazaID) || activeSkills[row.WazaID]
             
@@ -78,16 +94,40 @@ export function PalLearnset({ pal, activeSkills, onUpdate, onOpenDialog }: Props
             const elColor = ELEMENT_COLORS[el] ?? ELEMENT_COLORS["Normal"]
             const power   = skillObj?.power !== undefined && skillObj?.power !== 0 ? skillObj.power : "—"
 
+            // Check if this specific row is being edited
+            const isEditing = editingLevels[row.originalIndex] !== undefined
+            const displayValue = isEditing ? editingLevels[row.originalIndex] : String(row.Level)
+
             return (
-              <div key={i} className="grid grid-cols-[56px_1fr_100px_64px_32px] gap-2 items-center p-2 border-b border-border/40 last:border-0 hover:bg-accent/20">
+              <div key={row.originalIndex} className="grid grid-cols-[56px_1fr_100px_64px_32px] gap-2 items-center p-2 border-b border-border/40 last:border-0 hover:bg-accent/20">
                 <input
                   type="number"
-                  value={row.Level}
-                  onChange={(e) => handleChangeLevel(i, Number(e.target.value))}
+                  value={displayValue}
+                  onChange={(e) => {
+                    const val = e.target.value
+                    setEditingLevels((prev) => ({ ...prev, [row.originalIndex]: val }))
+                  }}
+                  onBlur={() => {
+                    const val = editingLevels[row.originalIndex]
+                    if (val !== undefined) {
+                      const numVal = parseInt(val) || 1
+                      handleChangeLevel(row.originalIndex, numVal)
+                      setEditingLevels((prev) => {
+                        const next = { ...prev }
+                        delete next[row.originalIndex]
+                        return next
+                      })
+                    }
+                  }}
+                  onKeyDown={(e) => {
+                    if (e.key === "Enter") {
+                      e.currentTarget.blur() // Automatically triggers onBlur save!
+                    }
+                  }}
                   className="bg-muted text-primary text-xs px-1 py-1 rounded border border-border focus:outline-none focus:ring-1 focus:ring-primary"
                 />
                 <button
-                  onClick={() => handleChangeMove(i)}
+                  onClick={() => handleChangeMove(row.originalIndex)}
                   className="text-foreground text-xs truncate text-left hover:text-primary transition-colors cursor-pointer"
                 >
                   {row.WazaID.replace(/_/g, " ")}
@@ -97,7 +137,7 @@ export function PalLearnset({ pal, activeSkills, onUpdate, onOpenDialog }: Props
                 </Badge>
                 <span className="text-foreground text-xs font-mono">{power}</span>
                 <button
-                  onClick={() => handleRemove(i)}
+                  onClick={() => handleRemove(row.originalIndex)}
                   className="text-muted-foreground hover:text-status-error transition-colors cursor-pointer justify-self-end"
                 >
                   <Trash2 className="size-3.5" />

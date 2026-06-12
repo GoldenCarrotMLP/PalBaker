@@ -92,8 +92,7 @@ class PalManager:
                 "Name": clean_id,
                 "Description": f"A custom standalone Pal cloned from {template_id}.",
                 
-                # --- Core Attributes Map (1:1 with DT_PalMonsterParameter) ---
-                "ElementType1": base_properties.get("ElementType1", "EPalElementType::None"),
+                "ElementType1": base_properties.get("ElementType1", "EPalElementType::Normal"),
                 "ElementType2": base_properties.get("ElementType2", "EPalElementType::None"),
                 "Hp": base_properties.get("Hp", 100),
                 "MeleeAttack": base_properties.get("MeleeAttack", 100),
@@ -102,7 +101,6 @@ class PalManager:
                 "Support": base_properties.get("Support", 100),
                 "CraftSpeed": base_properties.get("CraftSpeed", 100),
                 
-                # --- Advanced Physiology Map ---
                 "Size": base_properties.get("Size", "EPalSizeType::M"),
                 "Rarity": base_properties.get("Rarity", 1),
                 "Price": base_properties.get("Price", 1000.0),
@@ -116,7 +114,6 @@ class PalManager:
                 "CombiRank": base_properties.get("CombiRank", 100),
                 "CaptureRateCorrect": base_properties.get("CaptureRateCorrect", 1.0),
 
-                # --- Core Collision Capsule & Translation Map ---
                 "MeshCapsuleHalfHeight": base_properties.get("MeshCapsuleHalfHeight", 110.0),
                 "MeshCapsuleRadius": base_properties.get("MeshCapsuleRadius", 50.0),
                 "MeshRelativeLocation": base_properties.get("MeshRelativeLocation", {"X": 0.0, "Y": 0.0, "Z": -110.0}),
@@ -140,10 +137,9 @@ class PalManager:
                 "PaldexType": "Species"
             }
             
-            # Flattens all Work Suitabilities natively directly into the root level of the JSON
-            for k, v in base_properties.items():
+            for k in p.keys():
                 if k.startswith("WorkSuitability_"):
-                    new_pal_data[k] = v
+                    new_pal_data[k] = p[k]
 
             target_file = os.path.join(creator_dir, f"{clean_id}_creator.json")
             try:
@@ -151,10 +147,20 @@ class PalManager:
                     json.dump(new_pal_data, f, indent=4)
                 self.c.view.write_log(f"Successfully created brand new Pal template: {clean_id}", "success")
                 
+                from utils.extractor.asset_cloner import extract_pal_assets
+                self.c.view.write_log(f"Cloning parent assets and setting up workspace for {clean_id}...", "standard")
+                success, msg = extract_pal_assets(self.c.settings, clean_id, "Monster")
+                if success:
+                    self.c.view.write_log(msg, "success")
+                else:
+                    self.c.view.write_log(f"Workspace cloning failed: {msg}", "warning")
+
                 self.c.exporter.generate_custom_actor_blueprint(new_pal_data)
                 self.c.export_to_palschema(new_pal_data)
             except Exception as e:
                 self.c.view.write_log(f"Failed to save new Pal: {e}", "error")
+                if sync:
+                    raise e
 
             self.refresh_pals()
 
@@ -182,12 +188,15 @@ class PalManager:
                 self.c.export_to_palschema(updated_data)
             except Exception as e:
                 self.c.view.write_log(f"Failed to write Pal updates: {e}", "error")
+                if sync:
+                    raise e
             self.refresh_pals()
 
         if sync:
             background_writer()
         else:
             threading.Thread(target=background_writer, daemon=True).start()
+
 
     def delete_custom_pal(self, pal_id: str, sync: bool = False):
         """Removes the local creator JSON configuration file permanently from disk."""

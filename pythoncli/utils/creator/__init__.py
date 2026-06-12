@@ -23,6 +23,7 @@ class CreatorController:
         self.templates_cache = {}
         self.learnsets_cache = {}
         self.camera_offsets_cache = {}
+        self.pal_drop_item_cache = {} # Added
         
         # Load index caches on startup and dynamically update facade pointers
         self.load_index_caches()
@@ -57,6 +58,9 @@ class CreatorController:
 
         self.camera_offsets_cache.clear()
         self.camera_offsets_cache.update(self.cache.camera_offsets_cache)
+        
+        self.pal_drop_item_cache.clear()
+        self.pal_drop_item_cache.update(self.cache.pal_drop_item_cache)
         
     def get_creator_dir(self) -> str | None:
         return self.manager.get_creator_dir()

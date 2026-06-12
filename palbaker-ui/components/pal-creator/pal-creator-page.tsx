@@ -179,6 +179,8 @@ export function PalCreatorPage() {
                 onOpenDialog={(title, dataset, onSelect, palElements) => { setDialog({ title, dataset, onSelect, palElements }) }}
                 onSave={savePal}
                 onDelete={() => { setDeleteTarget(pal.CharacterID) }}
+                templates={templates}
+                palNames={palNames}
               />
             ))}
           </div>

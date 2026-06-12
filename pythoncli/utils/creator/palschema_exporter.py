@@ -1,3 +1,4 @@
+# utils/creator/palschema_exporter.py
 import os
 import json
 import shutil
@@ -73,10 +74,7 @@ class PalSchemaExporter:
                     self.c.view.write_log(f"Failed to delete deployed PalSchema export: {e}", "error")
 
     def generate_custom_actor_blueprint(self, p: dict) -> bool:
-        """
-        Proxies standalone blueprint compilation cleanly to the centralized
-        shared patching engine and binds console logging to the Flet output window.
-        """
+        """Proxies standalone blueprint compilation cleanly to the centralized patching engine."""
         pal_id = p["CharacterID"]
         template_id = p["TemplateID"]
         
@@ -96,7 +94,6 @@ class PalSchemaExporter:
         paldex_type = p.get("PaldexType", "Species")
         mod_name = f"PalBaker_Custom_{pal_id}"
         
-        # Build the files in the local workspace directory as the single source of truth
         mod_root = os.path.join(creator_dir, "PalSchema", mod_name)
         os.makedirs(mod_root, exist_ok=True)
         
@@ -104,14 +101,15 @@ class PalSchemaExporter:
         
         custom_folder_name = pal_id
         custom_asset_name = f"BP_{pal_id}"
+        bp_virtual_path = f"/Game/Pal/Blueprint/Character/Monster/PalActorBP/{custom_folder_name}/{custom_asset_name}.{custom_asset_name}_C"
         
-        # 1. Write Monster Parameter Table
+        # 1. Write Monster Parameter Table (PalSchema 'pals' folder)
         pals_dir = os.path.join(mod_root, "pals")
         os.makedirs(pals_dir, exist_ok=True)
         
         new_monster_props = dict(base_properties)
         
-        new_monster_props["BPClass"] = f"MOD_{pal_id}"
+        new_monster_props["BPClass"] = f"MOD_{pal_id}" if paldex_type == "Species" else template_id
         new_monster_props["IsPal"] = True
         
         if paldex_type == "Species":
@@ -133,7 +131,6 @@ class PalSchemaExporter:
                 try: os.remove(enums_file)
                 except OSError: pass
 
-        # Serialize exact original game parameters mapped from the frontend state
         new_monster_props["ElementType1"] = p.get("ElementType1", "EPalElementType::Normal")
         new_monster_props["ElementType2"] = p.get("ElementType2", "EPalElementType::None")
         new_monster_props["Hp"] = int(p.get("Hp", p.get("BaseHP", 100)))
@@ -155,7 +152,6 @@ class PalSchemaExporter:
         new_monster_props["CombiRank"] = int(p.get("CombiRank", 100))
         new_monster_props["CaptureRateCorrect"] = float(p.get("CaptureRateCorrect", 1.0))
 
-        # Collision Capsule Heights & Relative Mesh Translation Slices
         new_monster_props["MeshCapsuleHalfHeight"] = float(p.get("MeshCapsuleHalfHeight", 110.0))
         new_monster_props["MeshCapsuleRadius"] = float(p.get("MeshCapsuleRadius", 50.0))
         
@@ -166,16 +162,19 @@ class PalSchemaExporter:
             "Z": float(mesh_loc.get("Z", -110.0))
         }
 
-        new_monster_props["BaseSkills"] = p.get("BaseSkills", [])
-        new_monster_props["PassiveSkills"] = p.get("PassiveSkills", [])
-        new_monster_props["PartnerSkill"] = p.get("PartnerSkill", "None")
+        for rogue_key in ["BaseSkills", "PassiveSkills", "PartnerSkill"]:
+            new_monster_props.pop(rogue_key, None)
+
+        passives = p.get("PassiveSkills", [])
+        new_monster_props["PassiveSkill1"] = passives[0] if len(passives) > 0 else "None"
+        new_monster_props["PassiveSkill2"] = passives[1] if len(passives) > 1 else "None"
+        new_monster_props["PassiveSkill3"] = passives[2] if len(passives) > 2 else "None"
+        new_monster_props["PassiveSkill4"] = passives[3] if len(passives) > 3 else "None"
         
-        # Flattened Work Suitabilities directly into the object
         for k in p.keys():
             if k.startswith("WorkSuitability_"):
                 new_monster_props[k] = int(p[k])
                 
-        # Self-healing legacy fallback for any old creator JSONs
         if "WorkSuitabilities" in p:
             for k, v in p["WorkSuitabilities"].items():
                 if k not in new_monster_props:
@@ -211,10 +210,10 @@ class PalSchemaExporter:
 
         # 3. Learnset
         learnset_list = p.get("Learnset", [])
+        raw_dir = os.path.join(mod_root, "raw")
+        os.makedirs(raw_dir, exist_ok=True)
+        
         if learnset_list:
-            raw_dir = os.path.join(mod_root, "raw")
-            os.makedirs(raw_dir, exist_ok=True)
-            
             learnset_rows = {}
             for idx, entry in enumerate(learnset_list):
                 row_key = f"{pal_id}_Learn_{idx+1}"
@@ -230,12 +229,34 @@ class PalSchemaExporter:
             with open(os.path.join(raw_dir, "DT_WazaMasterLevel_Common.json"), "w", encoding="utf-8") as f:
                 json.dump(learnset_payload, f, indent=4)
 
-        # 4. Resolve DT_PalBPClass Mapping
-        bp_virtual_path = f"/Game/Pal/Blueprint/Character/Monster/PalActorBP/{custom_folder_name}/{custom_asset_name}.{custom_asset_name}_C"
-        
-        raw_dir = os.path.join(mod_root, "raw")
-        os.makedirs(raw_dir, exist_ok=True)
-        
+        # 4. Drop Items (Dynamically cloned from parent template cache)
+        parent_drop_key = f"{template_id}000"
+        parent_drops = {}
+        if hasattr(self.c, "pal_drop_item_cache"):
+            parent_drops = self.c.pal_drop_item_cache.get(parent_drop_key, {})
+            if not parent_drops:
+                for k, v in self.c.pal_drop_item_cache.items():
+                    if k.lower().startswith(template_id.lower()):
+                        parent_drops = v
+                        break
+                        
+        if not parent_drops:
+            parent_drops = {
+                "ItemId1": "Money",
+                "Rate1": 100,
+                "min1": 10,
+                "Max1": 50
+            }
+            
+        drop_payload = {
+            "DT_PalDropItem": {
+                f"MOD_{pal_id}000": parent_drops
+            }
+        }
+        with open(os.path.join(raw_dir, "DT_PalDropItem.json"), "w", encoding="utf-8") as f_drop:
+            json.dump(drop_payload, f_drop, indent=4)
+
+        # 5. Resolve DT_PalBPClass Mapping
         bp_class_payload = {
             "DT_PalBPClass": {
                 f"MOD_{pal_id}": {
@@ -248,14 +269,14 @@ class PalSchemaExporter:
 
         self.c.view.write_log(f"Linked MOD_{pal_id} to standalone blueprint path: {bp_virtual_path}", "success")
 
-        # 5. Blueprint Patch Overrides (Co-op Integrations)
+        # 6. Blueprint Patch Overrides (Co-op Integrations into Blueprint Actor)
         saddle_item = p.get("SaddleItem", "None")
         coop_passives = p.get("CoopPassives", [])
         
         bp_payload = {}
-
         target_bp_key = f"{custom_asset_name}_C"
         pal_bp_data = {}
+        
         if saddle_item and saddle_item != "None":
             pal_bp_data.setdefault("PalPartnerSkillParameter", {})["RestrictionItems"] = [{"Key": saddle_item}]
         
@@ -277,16 +298,13 @@ class PalSchemaExporter:
             with open(os.path.join(bp_dir, f"{pal_id}_blueprint.json"), "w", encoding="utf-8") as f:
                 json.dump(bp_payload, f, indent=4)
 
-        # 6. Custom Icon Row
+        # 7. Custom Icon Row
         fmodel_base = self.c.settings.get("fmodel_output", "")
         if fmodel_base:
             custom_icon_name = f"T_{pal_id}_icon_normal.png"
             custom_icon_path = os.path.normpath(os.path.join(fmodel_base, "Exports", "Pal", "Content", "Pal", "Model", "Character", "Monster", pal_id, custom_icon_name))
             
             if os.path.exists(custom_icon_path):
-                raw_dir = os.path.join(mod_root, "raw")
-                os.makedirs(raw_dir, exist_ok=True)
-                
                 icon_key = f"MOD_{pal_id}" if paldex_type == "Species" else template_id
                 icon_asset_path = f"/Game/Pal/Texture/PalIcon/Normal/T_{pal_id}_icon_normal.T_{pal_id}_icon_normal"
                 icon_payload = {
@@ -296,10 +314,7 @@ class PalSchemaExporter:
                 with open(os.path.join(raw_dir, "DT_PalCharacterIconDataTable.json"), "w", encoding="utf-8") as f_ic:
                     json.dump(icon_payload, f_ic, indent=4)
 
-        # 7. UICaptureCameraOffsetData Row
-        raw_dir = os.path.join(mod_root, "raw")
-        os.makedirs(raw_dir, exist_ok=True)
-        
+        # 8. UICaptureCameraOffsetData Row
         parent_offset = self.c.camera_offsets_cache.get(template_id)
         if parent_offset:
             self.c.view.write_log(f"Dynamic Camera Offset resolved for {template_id} and cloned for {pal_id}.", "success")
@@ -326,43 +341,98 @@ class PalSchemaExporter:
         with open(os.path.join(raw_dir, "DT_PalUICaptureCameraOffsetData.json"), "w", encoding="utf-8") as f_cam:
             json.dump(camera_payload, f_cam, indent=4)
 
-        # 8. Overworld Spawning Export
+        # 9. Overworld Spawning Export (FIXED: Supports SheetsVariant Blueprints)
         if p.get("EnableSpawns", True):
-            spawns_dir = os.path.join(mod_root, "spawns")
-            os.makedirs(spawns_dir, exist_ok=True)
-            
             spawn_location = p.get("SpawnLocationID", "1_1_plain_begginer")
             
-            spawns_payload = [
-                {
-                    "Type": "Sheet",
-                    "SpawnerName": spawn_location,
-                    "SpawnerType": "Common",
-                    "Location": { "X": 23300.0, "Y": -48800.0, "Z": 3000.0 },
-                    "Rotation": { "Pitch": 0.0, "Yaw": 0.0, "Roll": 0.0 },
-                    "SpawnGroupList": [
-                        {
-                            "Weight": 100,
-                            "PalList": [
-                                {
-                                    "PalId": f"MOD_{pal_id}",
-                                    "Level": int(p.get("SpawnMinLevel", 2)),
-                                    "Level_Max": int(p.get("SpawnMaxLevel", 5)),
-                                    "Num": int(p.get("SpawnMinGroup", 1)),
-                                    "Num_Max": int(p.get("SpawnMaxGroup", 3))
-                                }
-                            ]
-                        }
-                    ]
-                }
-            ]
+            spawner_type = "EPalSpawnedCharacterType::Common"
+            if "fboss" in spawn_location.lower():
+                spawner_type = "EPalSpawnedCharacterType::FieldBoss"
+            elif "preboss" in spawn_location.lower():
+                spawner_type = "EPalSpawnedCharacterType::Predator"
             
-            with open(os.path.join(spawns_dir, f"{pal_id}_spawns.json"), "w", encoding="utf-8") as f_spawn:
+            # 9A. Standard Table Fallback
+            spawns_payload = {
+                "DT_PalWildSpawner": {
+                    f"MOD_{pal_id}_Spawn": {
+                        "SpawnerName": spawn_location,
+                        "SpawnerType": spawner_type,
+                        "Weight": 100.0,
+                        "OnlyTime": "EPalOneDayTimeType::Undefined",
+                        "OnlyWeather": "EPalWeatherConditionType::Undefined",
+                        "Pal_1": f"MOD_{pal_id}",
+                        "NPC_1": "None",
+                        "LvMin_1": int(p.get("SpawnMinLevel", 2)),
+                        "LvMax_1": int(p.get("SpawnMaxLevel", 5)),
+                        "NumMin_1": int(p.get("SpawnMinGroup", 1)),
+                        "NumMax_1": int(p.get("SpawnMaxGroup", 3)),
+                        "Pal_2": "None",
+                        "NPC_2": "None",
+                        "LvMin_2": 0,
+                        "LvMax_2": 0,
+                        "NumMin_2": 0,
+                        "NumMax_2": 0,
+                        "Pal_3": "None",
+                        "NPC_3": "None",
+                        "LvMin_3": 0,
+                        "LvMax_3": 0,
+                        "NumMin_3": 0,
+                        "NumMax_3": 0,
+                        "bIsAllowRandomizer": True
+                    }
+                }
+            }
+            with open(os.path.join(raw_dir, "DT_PalWildSpawner.json"), "w", encoding="utf-8") as f_spawn:
                 json.dump(spawns_payload, f_spawn, indent=4)
+                
+            # 9B. Blueprint Array Appending for SheetsVariant
+            bp_dir = os.path.join(mod_root, "blueprints")
+            os.makedirs(bp_dir, exist_ok=True)
+            
+            # The class name is explicitly formatted by Pocketpair based on the SpawnerName
+            spawner_bp_key = f"BP_PalSpawner_Sheets_{spawn_location}_C"
+            
+            spawn_bp_payload = {
+                spawner_bp_key: {
+                    "SpawnGroupList": {
+                        "Items": [
+                            {
+                                "OriginalRowName": "None",
+                                "OriginalSpawnerName": "None",
+                                "Weight": 100,
+                                "OnlyTime": "EPalOneDayTimeType::Undefined",
+                                "OnlyWeather": "EPalWeatherConditionType::Undefined",
+                                "PalList": [
+                                    {
+                                        "PalId": { "Key": f"MOD_{pal_id}" },
+                                        "NPCID": { "Key": "None" },
+                                        "Level": int(p.get("SpawnMinLevel", 2)),
+                                        "Level_Max": int(p.get("SpawnMaxLevel", 5)),
+                                        "Num": int(p.get("SpawnMinGroup", 1)),
+                                        "Num_Max": int(p.get("SpawnMaxGroup", 3))
+                                    }
+                                ]
+                            }
+                        ]
+                    }
+                }
+            }
+            
+            with open(os.path.join(bp_dir, f"{pal_id}_spawner_bp.json"), "w", encoding="utf-8") as f_spbp:
+                json.dump(spawn_bp_payload, f_spbp, indent=4)
+                
+            old_spawns_dir = os.path.join(mod_root, "spawns")
+            if os.path.exists(old_spawns_dir):
+                shutil.rmtree(old_spawns_dir, ignore_errors=True)
         else:
-            spawns_file = os.path.join(mod_root, "spawns", f"{pal_id}_spawns.json")
-            if os.path.exists(spawns_file):
-                try: os.remove(spawns_file)
+            old_spawner_file = os.path.join(mod_root, "raw", "DT_PalWildSpawner.json")
+            if os.path.exists(old_spawner_file):
+                try: os.remove(old_spawner_file)
+                except OSError: pass
+                
+            old_spawn_bp_file = os.path.join(mod_root, "blueprints", f"{pal_id}_spawner_bp.json")
+            if os.path.exists(old_spawn_bp_file):
+                try: os.remove(old_spawn_bp_file)
                 except OSError: pass
 
         # Deploy local workspace configuration natively to the Palworld game directory
@@ -370,13 +440,20 @@ class PalSchemaExporter:
         if game_mods_dir:
             game_mod_root = os.path.join(game_mods_dir, mod_name)
             if os.path.exists(game_mod_root):
-                try:
-                    shutil.rmtree(game_mod_root)
+                for root, dirs, files in os.walk(game_mod_root, topdown=False):
+                    for file in files:
+                        try: os.remove(os.path.join(root, file))
+                        except OSError: pass
+                    for directory in dirs:
+                        try: os.rmdir(os.path.join(root, directory))
+                        except OSError: pass
+                try: os.rmdir(game_mod_root)
                 except OSError: pass
             try:
-                shutil.copytree(mod_root, game_mod_root)
+                shutil.copytree(mod_root, game_mod_root, dirs_exist_ok=True)
                 self.c.view.write_log(f"Deployed PalSchema config to game directory: {mod_name}", "success")
             except Exception as e:
                 self.c.view.write_log(f"Failed to deploy PalSchema config to game: {e}", "error")
+                raise RuntimeError(f"Deployment failed: {e}")
         else:
             self.c.view.write_log("Game PalSchema directory not found. Saved locally but did not deploy to game.", "warning")
