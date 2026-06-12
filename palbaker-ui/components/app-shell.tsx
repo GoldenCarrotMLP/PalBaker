@@ -7,7 +7,8 @@ import { BuildConsole } from "@/components/build-console"
 import { ModManagerPage } from "@/components/mod-manager/mod-manager-page"
 import { PalCreatorPage } from "@/components/pal-creator/pal-creator-page"
 import { SystemSettingsPage } from "@/components/system-settings/system-settings-page"
-import { SystemSettingsAPI } from "@/lib/data-service"
+import { SystemSettingsAPI, UpdaterAPI } from "@/lib/data-service"
+import { UpdateModal } from "@/components/common/update-modal"
 import {
   LayoutGrid,
   PawPrint,
@@ -41,6 +42,7 @@ export function AppShell() {
   const { page, setPage, search, setSearch } = useNav()
   const info = PAGE_INFO[page]
   const [version, setVersion] = useState("v2.4.0-experimental")
+  const [updateAvailable, setUpdateAvailable] = useState<any>(null)
 
   useEffect(() => {
     async function loadVersion() {
@@ -52,6 +54,19 @@ export function AppShell() {
       }
     }
     loadVersion()
+  }, [])
+
+  useEffect(() => {
+    // Check for updates quietly in the background on startup
+    async function checkUpdates() {
+      const update = await UpdaterAPI.checkForUpdates()
+      if (update) {
+        setUpdateAvailable(update)
+      }
+    }
+    // Slight delay so the UI loads smoothly first
+    const timer = setTimeout(checkUpdates, 2000)
+    return () => clearTimeout(timer)
   }, [])
 
   return (
@@ -153,6 +168,14 @@ export function AppShell() {
 
         <BuildConsole />
       </div>
+
+      {/* Background Update Dialog Trigger */}
+      {updateAvailable && (
+        <UpdateModal 
+          update={updateAvailable} 
+          onClose={() => setUpdateAvailable(null)} 
+        />
+      )}
     </div>
   )
 }

@@ -63,3 +63,4 @@ dump.txt
 /palbaker-ui/src-tauri/resources/
 /pythoncli/build/
 /pythoncli/dist/
+.env

@@ -1,6 +1,6 @@
 {
   "productName": "PalBaker",
-  "version": "0.1.29",
+  "version": "0.1.30",
   "identifier": "com.palbaker.app",
   "build": {
     "beforeDevCommand": "pnpm dlx cross-env TAURI_ENV_DEBUG=true TAURI_MODE=true pnpm dev",
@@ -54,6 +54,11 @@
       "icons/128x128@2x.png",
       "icons/icon.icns",
       "icons/icon.ico"
-    ]
+    ],
+    "windows": {
+      "nsis": {
+        "installerIcon": "icons/icon.ico"
+      }
+    }
   }
 }
