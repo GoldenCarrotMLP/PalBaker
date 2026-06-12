@@ -1,4 +1,4 @@
-# utils/cli/mod_handlers.py
+# pythoncli/utils/cli/mod_handlers.py
 import os
 import sys
 import json
@@ -19,24 +19,6 @@ def get_category_from_path(path: str | None) -> str:
         if idx + 1 < len(parts):
             return parts[idx + 1]
     return "Monster"
-
-def play_wav_file(wav_path: str):
-    """Cross-platform lightweight WAV audio previewer."""
-    if not os.path.exists(wav_path):
-        return
-    if sys.platform == "win32":
-        import winsound
-        try:
-            winsound.PlaySound(wav_path, winsound.SND_FILENAME | winsound.SND_ASYNC)
-        except Exception:
-            pass
-    elif sys.platform == 'darwin':
-        subprocess.Popen(["afplay", wav_path], stdout=subprocess.DEVNULL, stderr=subprocess.DEVNULL)
-    else:
-        for player in ["paplay", "aplay", "play"]:
-            if shutil.which(player):
-                subprocess.Popen([player, wav_path], stdout=subprocess.DEVNULL, stderr=subprocess.DEVNULL)
-                break
 
 def verify_unreal_connection(settings: dict) -> tuple[bool, str, str]:
     """
@@ -179,7 +161,6 @@ def run_build_mod_and_stream(monster_name: str, category: str, action: str, pres
         json_print({"type": "result", "status": "error", "message": f"Pipeline execution crashed: {str(e)}"})
 
 
-
 def handle_mod_command(args, settings):
     """Router for all mod-level pipeline commands."""
     
@@ -297,7 +278,6 @@ def handle_mod_command(args, settings):
             error_print(f"Failed to save material preservation setting: {e}")
             sys.exit(1)
 
-
     # Focus the running Unreal Editor Content Browser to this Pal's directory
     elif action == "browse-ue":
         mod_data = mods[0]
@@ -401,9 +381,6 @@ def handle_mod_command(args, settings):
         run_build_mod_and_stream(args.mod, category, build_action, preserve_override)
 
 
-
-
-
 def handle_audio_command(args, settings):
     """Router for all custom audio subcommands."""
     is_valid, err_msg = validate_settings(settings, ["fmodel_output"])
@@ -457,8 +434,7 @@ def handle_audio_command(args, settings):
         if custom_file:
             ext = os.path.splitext(custom_file)[1].lower()
             if ext == ".wav":
-                play_wav_file(custom_file)
-                json_print({"status": "success", "message": "Playing custom WAV override."})
+                json_print({"status": "success", "path": custom_file, "message": "Custom WAV override resolved."})
             else:
                 # Transcode MP3/OGG preview to temp wav via vgmstream
                 repo_root = os.path.dirname(os.path.dirname(os.path.dirname(os.path.abspath(__file__))))
@@ -470,7 +446,8 @@ def handle_audio_command(args, settings):
                     error_print("vgmstream-cli.exe missing. Cannot transcode MP3/OGG preview.")
                     sys.exit(1)
                     
-                temp_preview_wav = os.path.join(audio_dir, ".temp_custom_preview.wav")
+                # FIXED: Suffix the temporary file with the active cry name to bypass browser caching!
+                temp_preview_wav = os.path.join(audio_dir, f".temp_custom_preview_{cry_name}.wav")
                 if os.path.exists(temp_preview_wav):
                     try: os.remove(temp_preview_wav)
                     except OSError: pass
@@ -480,8 +457,7 @@ def handle_audio_command(args, settings):
                 subprocess.run(cmd, stdout=subprocess.DEVNULL, stderr=subprocess.DEVNULL, creationflags=creation_flags)
                 
                 if os.path.exists(temp_preview_wav):
-                    play_wav_file(temp_preview_wav)
-                    json_print({"status": "success", "message": "Playing transcoded MP3/OGG preview."})
+                    json_print({"status": "success", "path": temp_preview_wav, "message": "Transcoded MP3/OGG preview resolved."})
                 else:
                     error_print("Failed to transcode preview file.")
                     sys.exit(1)
@@ -517,7 +493,9 @@ def handle_audio_command(args, settings):
                 
             audio_dir = os.path.join(mod_data["fmodel_path"], ".palbaker_audio")
             os.makedirs(audio_dir, exist_ok=True)
-            temp_wav = os.path.join(audio_dir, ".temp_preview.wav")
+            
+            # FIXED: Suffix the temporary file with the active cry name to bypass browser caching!
+            temp_wav = os.path.join(audio_dir, f".temp_preview_{cry_name}.wav")
             if os.path.exists(temp_wav):
                 try: os.remove(temp_wav)
                 except OSError: pass
@@ -527,8 +505,7 @@ def handle_audio_command(args, settings):
             subprocess.run(cmd, stdout=subprocess.DEVNULL, stderr=subprocess.DEVNULL, creationflags=creation_flags)
             
             if os.path.exists(temp_wav):
-                play_wav_file(temp_wav)
-                json_print({"status": "success", "message": "Playing original game sound preview."})
+                json_print({"status": "success", "path": temp_wav, "message": "Original game sound preview resolved."})
             else:
                 error_print("Failed to transcode original game sound.")
                 sys.exit(1)

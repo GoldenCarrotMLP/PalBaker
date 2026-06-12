@@ -1,9 +1,10 @@
 "use client"
 
-import { useRef } from "react"
+import { useRef, useEffect } from "react"
 import { Play, Trash2, Upload } from "lucide-react"
 import { type ModItem } from "@/lib/mock-data"
 import { ModManagerAPI } from "@/lib/data-service"
+import { convertFileSrc } from "@tauri-apps/api/core"
 import { cn } from "@/lib/utils"
 
 const CRY_SLOTS = ["Normal", "Joy", "Anger", "Sorrow", "Pain", "Death"] as const
@@ -16,8 +17,20 @@ interface Props {
 
 export function CriesPanel({ mod, onRefresh, onNotify }: Props) {
   const audioInputRefs = useRef<Record<string, HTMLInputElement | null>>({})
+  const activeAudioRef = useRef<HTMLAudioElement | null>(null)
+  
   const availableCries = CRY_SLOTS.filter((s) => mod.sound_metadata[s] !== undefined)
   const hasSoundData   = availableCries.length > 0
+
+  // Automatically pause and cleanup audio when the component unmounts
+  useEffect(() => {
+    return () => {
+      if (activeAudioRef.current) {
+        activeAudioRef.current.pause()
+        activeAudioRef.current = null
+      }
+    }
+  }, [])
 
   const handleAudioChange = async (slot: string, e: React.ChangeEvent<HTMLInputElement>) => {
     const file = e.target.files?.[0]
@@ -26,13 +39,13 @@ export function CriesPanel({ mod, onRefresh, onNotify }: Props) {
       const reader = new FileReader()
       reader.onload = async () => {
         const bytes = Array.from(new Uint8Array(reader.result as ArrayBuffer))
-        await ModManagerAPI.saveModAudioBytes(mod.name, slot, file.name, bytes)
-        onNotify(`Custom audio override for ${slot} updated successfully!`, "success")
+        await ModManagerAPI.saveModIconBytes(mod.name, file.name, bytes)
+        onNotify("Custom Pal Icon updated successfully!", "success")
         onRefresh()
       }
       reader.readAsArrayBuffer(file)
     } catch (err) {
-      onNotify(`Failed to save audio: ${err}`, "error", "Operation Failed")
+      onNotify(`Failed to save icon: ${err}`, "error", "Operation Failed")
     }
   }
 
@@ -49,9 +62,32 @@ export function CriesPanel({ mod, onRefresh, onNotify }: Props) {
 
   const handleAudioPlay = async (slot: string) => {
     try {
-      await ModManagerAPI.audioPlay(mod.name, slot)
-    } catch (err) {
-      onNotify(`Failed to play audio: ${err}`, "error", "Playback Failed")
+      const res = await ModManagerAPI.audioPlay(mod.name, slot)
+      if (res && res.status === "success" && res.path) {
+        // Pause any currently playing sound before starting the new preview
+        if (activeAudioRef.current) {
+          activeAudioRef.current.pause()
+          activeAudioRef.current = null
+        }
+
+        const isLive = typeof window !== "undefined" && (window as any).__TAURI_INTERNALS__ !== undefined
+        const src = isLive
+          ? convertFileSrc(res.path)
+          : res.path.startsWith("http") ? res.path : `https://asset.localhost/${res.path}`
+          
+        // FIXED: Append unique timestamp to force the browser to bypass any internal caches!
+        const cacheBusterSrc = `${src}?t=${Date.now()}`
+        
+        const audio = new Audio(cacheBusterSrc)
+        activeAudioRef.current = audio
+        
+        // Play the sound natively in the browser webview!
+        await audio.play()
+      } else {
+        onNotify(res.message || "Failed to locate playable preview path.", "error", "Playback Failed")
+      }
+    } catch (err: any) {
+      onNotify(`Failed to play audio: ${err.message || err}`, "error", "Playback Failed")
     }
   }
 

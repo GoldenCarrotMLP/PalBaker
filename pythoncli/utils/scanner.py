@@ -1,10 +1,10 @@
-# utils/scanner.py
+# pythoncli/utils/scanner.py
 import os
 import json
 from .state import is_ue_modified, is_source_modified
 from .names import get_localized_name, load_names_map
 from .audio_helper import get_pal_sound_metadata
-from .sidecar_helper import load_sidecar # <-- Centralized loader!
+from .sidecar_helper import load_sidecar
 
 def scan_character_folders(base_path: str, target_folder: str | None = None) -> dict:
     """Recursively finds all leaf directories containing .blend, .uasset, .psk, or .json files."""
@@ -243,31 +243,36 @@ def get_mod_info(settings: dict, target_mod: str | None = None):
         data["audio_overrides"] = audio_overrides
         data["sound_metadata"] = sound_meta
 
-        # Badges state indicators
-        active_pak_path = ""
-        ue_modified = False
-        ue_modified_files = []
-        source_modified = False
+        # --- DECOUPLED INDEPENDENT BADGE BUILDING ---
+        # 1. Unextracted vs Raw vs Source
         if not has_fmodel:
             badges.append(("UNEXTRACTED", "#E53935"))
         else:
             if not has_blend:
                 badges.append(("RAW", "#333333"))
-            if has_blend:
+            else:
                 badges.append(("SOURCE", "#2196F3"))
-            if has_ue:
-                badges.append(("UE ASSETS", "#FF9800"))
-            if is_altermatic_active:
-                badges.append(("ALTERMATIC", "#008080"))
 
-            source_modified = is_source_modified(fmodel_path) if has_blend else False
+        # 2. Unreal Engine Assets (Evaluated completely independently of FModel status!)
+        if has_ue:
+            badges.append(("UE ASSETS", "#FF9800"))
+            
+            # Check for manual modifications only if both workspaces exist
+            if has_fmodel:
+                ue_modified_files = is_ue_modified(fmodel_path, ue_path)
+                ue_modified = len(ue_modified_files) > 0
+                if ue_modified:
+                    badges.append(("MODIFIED", "#D32F2F"))
+
+        # 3. Source Changed Warning
+        if has_fmodel and has_blend:
+            source_modified = is_source_modified(fmodel_path)
             if source_modified:
                 badges.append(("SRC CHANGED", "#0D47A1"))
 
-            ue_modified_files = is_ue_modified(fmodel_path, ue_path) if has_ue else []
-            ue_modified = len(ue_modified_files) > 0
-            if ue_modified:
-                badges.append(("MODIFIED", "#D32F2F"))
+        # 4. Altermatic Status
+        if is_altermatic_active:
+            badges.append(("ALTERMATIC", "#008080"))
 
         # Persistent status checks
         pak_status = "Unpacked"

@@ -124,7 +124,7 @@ export function ModCardExpanded({ mod, onRefresh }: Props) {
                       onError={(e) => { e.currentTarget.style.display = "none" }}
                     />
                   )}
-                  <span className="text-muted-foreground text-xs font-mono absolute">icon</span>
+                  <span className="text-muted-foreground text-xs font-mono absolute"></span>
                 </div>
               ) : (
                 <ImagePlus className="size-6 text-muted-foreground group-hover:text-primary transition-colors" />

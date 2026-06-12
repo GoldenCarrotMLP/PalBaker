@@ -158,23 +158,18 @@ if (signature && updateArtifactName) {
         platforms: {
             "windows-x86_64": {
                 signature: signature,
-                url: `https://github.com/GoldenCarrotMLP/PalBaker/releases/latest/download/${updateArtifactName}`
+                url: `https://github.com/GoldenCarrotMLP/PalBaker/releases/download/v${currentVersion}/${updateArtifactName}`
             }
         }
     };
     
-    // Save to the staging release directory
+    // Save only to the staging release directory (not committed to git!)
     fs.writeFileSync(path.join(releaseDir, 'update.json'), JSON.stringify(updaterJson, null, 2));
-    
-    // Overwrite the file inside palbaker-ui/src-tauri/
-    const tauriUpdatePath = path.join(__dirname, 'palbaker-ui', 'src-tauri', 'update.json');
-    fs.writeFileSync(tauriUpdatePath, JSON.stringify(updaterJson, null, 2));
-    
-    console.log(`✅ Generated and updated: ${path.relative(__dirname, tauriUpdatePath)}`);
+    console.log(`✅ Generated update.json inside /release/ folder!`);
 } else {
     console.warn("\n⚠️  Warning: Tauri skipped generating the update files.");
     console.warn("   This happens when the private signing key environment variables are missing.");
     console.warn("   Verify that your .env file in the root directory contains valid paths.");
 }
 
-console.log("\n🎉 Release Build Complete! Upload setup files to GitHub Releases, then commit and push your update.json.");
+console.log("\n🎉 Release Build Complete! Upload all files inside your /release/ folder to your GitHub Release.");
