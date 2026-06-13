@@ -123,6 +123,10 @@ def create_cli_parser() -> argparse.ArgumentParser:
     env_plugin = env_subparsers.add_parser("install-plugin", help="Install or uninstall PalSchema Plugin")
     env_plugin.add_argument("--action", choices=["install", "uninstall"], default="install")
 
+    env_palschema = env_subparsers.add_parser("palschema-install", help="Install or uninstall PalSchema")
+    env_palschema.add_argument("--action", choices=["install", "uninstall"], default="install")
+
+
     env_subparsers.add_parser("inject-assets", help="Inject required ModKit material assets and templates")
 
     env_status = env_subparsers.add_parser("status", help="Fetch complete real-time status of UE4SS and PalSchema")

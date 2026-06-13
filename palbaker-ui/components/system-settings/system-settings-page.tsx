@@ -179,7 +179,13 @@ export function SystemSettingsPage() {
       />
 
       {diagnosticError && <DiagnosticsModal errorText={diagnosticError} onClose={() => setDiagnosticError(null)} />}
-      <PluginInstallModal isOpen={activeWizard === "plugin"} isOutdated={verificationResult?.plugin_outdated} needsCompile={verificationResult?.needs_compile} onClose={() => skip("plugin")} onConfirm={() => executeWizardAction(() => SystemSettingsAPI.managePalSchema("install"), "C++ plugin installed!")} />
+      <PluginInstallModal 
+        isOpen={activeWizard === "plugin"} 
+        isOutdated={verificationResult?.plugin_outdated} 
+        needsCompile={verificationResult?.needs_compile} 
+        onClose={() => skip("plugin")} 
+        onConfirm={() => executeWizardAction(() => SystemSettingsAPI.manageCppPlugin("install"), "C++ plugin installed!")} 
+      />
       <AssetInjectModal isOpen={activeWizard === "asset"} onClose={() => skip("asset")} onConfirm={() => executeWizardAction(() => SystemSettingsAPI.injectAssets(), "Assets injected!")} />
       <ConfigFixModal isOpen={activeWizard === "config"} needsRemoteExec={verificationResult?.needs_remote_exec_enable} needsCooking={verificationResult?.needs_cooking_setup} onClose={() => skip("config")} onConfirm={() => executeWizardAction(() => SystemSettingsAPI.enableRemoteExec(), "Config patched!")} />
       <IconExtractModal isOpen={activeWizard === "icon"} onClose={() => skip("icon")} onConfirm={() => executeWizardAction(() => SystemSettingsAPI.extractIcons(), "Icons extracted!")} />

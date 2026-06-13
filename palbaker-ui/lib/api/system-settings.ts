@@ -45,7 +45,7 @@ export const SystemSettingsAPI = {
     return { status: "success", message: `Mocked UE4SS action: ${action}` }
   },
 
-  async managePalSchema(action: string): Promise<any> {
+async managePalSchema(action: string): Promise<any> {
     if (USE_LIVE_DATA) {
       try { return await invoke("palschema_manage", { action }) } 
       catch (err) { handleBackendError(err) }
@@ -53,6 +53,13 @@ export const SystemSettingsAPI = {
     return { status: "success", message: `Mocked PalSchema action: ${action}` }
   },
 
+    async manageCppPlugin(action: string): Promise<any> {
+    if (USE_LIVE_DATA) {
+      try { return await invoke("cpp_plugin_manage", { action }) } 
+      catch (err) { handleBackendError(err) }
+    }
+    return { status: "success", message: `Mocked C++ Plugin action: ${action}` }
+  },
   async buildDb(): Promise<any> {
     if (USE_LIVE_DATA) {
       try { return await invoke("manager_build_db") } 
