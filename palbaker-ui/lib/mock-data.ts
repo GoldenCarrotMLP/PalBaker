@@ -162,6 +162,7 @@ export interface CreatorPal {
   PartnerSkill?: string
   Learnset: LearnsetEntry[]
   SpawnLocationID?: string
+  SpawnWeight?: number // <-- ADDED
   SpawnMinLevel?: number
   SpawnMaxLevel?: number
   SpawnMinGroup?: number

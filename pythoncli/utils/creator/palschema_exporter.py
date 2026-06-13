@@ -359,51 +359,63 @@ class PalSchemaExporter:
             
         self.c.view.write_log(f"Generated Paldeck UI Camera offsets for MOD_{pal_id}.", "success")
 
-        # 9. Overworld Spawning Export (Restored PalSchema Native 'spawns' Logic)
+        # 9. Overworld Spawning Export (Modified to use Spawner Infiltration via Blueprint patching)
         if p.get("EnableSpawns", True):
-            spawns_dir = os.path.join(mod_root, "spawns")
-            os.makedirs(spawns_dir, exist_ok=True)
+            blueprints_dir = os.path.join(mod_root, "blueprints")
+            os.makedirs(blueprints_dir, exist_ok=True)
             
             spawn_location = p.get("SpawnLocationID", "1_1_plain_begginer")
             
-            spawns_payload = [
-                {
-                    "Type": "Sheet",
-                    "SpawnerName": spawn_location,
-                    "SpawnerType": "Common",
-                    "Location": { "X": 23300.0, "Y": -48800.0, "Z": 3000.0 },
-                    "Rotation": { "Pitch": 0.0, "Yaw": 0.0, "Roll": 0.0 },
-                    "SpawnGroupList": [
-                        {
-                            "Weight": 100,
-                            "PalList": [
-                                {
-                                    "PalId": f"MOD_{pal_id}",
-                                    "Level": int(p.get("SpawnMinLevel", 2)),
-                                    "Level_Max": int(p.get("SpawnMaxLevel", 5)),
-                                    "Num": int(p.get("SpawnMinGroup", 1)),
-                                    "Num_Max": int(p.get("SpawnMaxGroup", 3))
-                                }
-                            ]
-                        }
-                    ]
-                }
-            ]
+            # Construct the target native spawner blueprint path
+            spawner_bp_path = f"/Game/Pal/Blueprint/Spawner/SheetsVariant/BP_PalSpawner_Sheets_{spawn_location}.BP_PalSpawner_Sheets_{spawn_location}_C"
             
-            with open(os.path.join(spawns_dir, f"{pal_id}_spawns.json"), "w", encoding="utf-8") as f_spawn:
-                json.dump(spawns_payload, f_spawn, indent=4)
+            # Use Array Append style ("Items" array-wrapping) to inject the custom Pal into the spawner's SpawnGroupList
+            spawner_payload = {
+                spawner_bp_path: {
+                    "SpawnGroupList": {
+                        "Items": [
+                            {
+                                "Weight": int(p.get("SpawnWeight", 40)), # <-- DYNAMIC WEIGHT VALUE APPLIED HERE
+                                "PalList": [
+                                    {
+                                        "PalId": {
+                                            "Key": f"MOD_{pal_id}"
+                                        },
+                                        "Level": int(p.get("SpawnMinLevel", 2)),
+                                        "Level_Max": int(p.get("SpawnMaxLevel", 5)),
+                                        "Num": int(p.get("SpawnMinGroup", 1)),
+                                        "Num_Max": int(p.get("SpawnMaxGroup", 3))
+                                    }
+                                ]
+                            }
+                        ]
+                    }
+                }
+            }
+            
+            spawner_bp_file = os.path.join(blueprints_dir, f"{pal_id}_spawner_bp.json")
+            with open(spawner_bp_file, "w", encoding="utf-8") as f_bp:
+                json.dump(spawner_payload, f_bp, indent=4)
+
                 
-            # Clean up experimental failed tests
+            self.c.view.write_log(f"Successfully configured spawner infiltration inside blueprints: {os.path.basename(spawner_bp_file)}", "success")
+
+            # Clean up obsolete standalone spawns folders if they exist
+            old_spawns_dir = os.path.join(mod_root, "spawns")
+            if os.path.exists(old_spawns_dir):
+                shutil.rmtree(old_spawns_dir, ignore_errors=True)
+                
             old_spawner_file = os.path.join(mod_root, "raw", "DT_PalWildSpawner.json")
             if os.path.exists(old_spawner_file):
                 try: os.remove(old_spawner_file)
                 except OSError: pass
-                
-            old_spawn_bp_file = os.path.join(mod_root, "blueprints", f"{pal_id}_spawner_bp.json")
-            if os.path.exists(old_spawn_bp_file):
-                try: os.remove(old_spawn_bp_file)
-                except OSError: pass
         else:
+            # If spawns are disabled, clean up the blueprint spawner configuration and legacy directory
+            spawner_bp_file = os.path.join(mod_root, "blueprints", f"{pal_id}_spawner_bp.json")
+            if os.path.exists(spawner_bp_file):
+                try: os.remove(spawner_bp_file)
+                except OSError: pass
+                
             old_spawns_dir = os.path.join(mod_root, "spawns")
             if os.path.exists(old_spawns_dir):
                 shutil.rmtree(old_spawns_dir, ignore_errors=True)

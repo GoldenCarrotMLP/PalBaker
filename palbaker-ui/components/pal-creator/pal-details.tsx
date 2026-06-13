@@ -202,6 +202,23 @@ export function PalDetails({ pal, spawners, activeSkills, onUpdate, onOpenDialog
             <input type="number" value={pal.SpawnMaxGroup || 1} onChange={(e) => onUpdate({ SpawnMaxGroup: Number(e.target.value) })} className="input-field flex-1" placeholder="Max" min={1} />
           </div>
         </FieldGroup>
+        
+        {/* SPAWN WEIGHT SLIDER — OCCUPIES THE SECOND COL OF ROW 2 */}
+        <FieldGroup label="Spawn Weight (1 - 100)">
+          <div className="flex items-center gap-3 h-9">
+            <input
+              type="range"
+              min="1"
+              max="100"
+              value={pal.SpawnWeight ?? 40}
+              onChange={(e) => onUpdate({ SpawnWeight: Number(e.target.value) })}
+              className="flex-1 accent-primary h-1 bg-muted rounded-full cursor-pointer appearance-none"
+            />
+            <div className="w-12 bg-muted/60 border border-border rounded px-2 py-1 text-primary text-xs font-mono text-center shrink-0">
+              {pal.SpawnWeight ?? 40}%
+            </div>
+          </div>
+        </FieldGroup>
       </div>
 
       <PalLearnset pal={pal} activeSkills={activeSkills} onUpdate={onUpdate} onOpenDialog={onOpenDialog} />

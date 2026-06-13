@@ -11,6 +11,9 @@ importers:
       '@tauri-apps/api':
         specifier: ^2.11.0
         version: 2.11.0
+      istextorbinary:
+        specifier: ^9.5.0
+        version: 9.5.0
       lucide-react:
         specifier: ^1.17.0
         version: 1.17.0(react@19.2.4)
@@ -112,7 +115,11 @@ importers:
         specifier: ^5
         version: 5.9.3
 
-  pythoncli: {}
+  pythoncli:
+    dependencies:
+      istextorbinary:
+        specifier: ^9.5.0
+        version: 9.5.0
 
 packages:
 
@@ -1974,6 +1981,13 @@ packages:
     engines: {node: '>=6.0.0'}
     hasBin: true
 
+  /binaryextensions@6.11.0:
+    resolution: {integrity: sha512-sXnYK/Ij80TO3lcqZVV2YgfKN5QjUWIRk/XSm2J/4bd/lPko3lvk0O4ZppH6m+6hB2/GTu+ptNwVFe1xh+QLQw==}
+    engines: {node: '>=4'}
+    dependencies:
+      editions: 6.22.0
+    dev: false
+
   /body-parser@2.2.2:
     resolution: {integrity: sha512-oP5VkATKlNwcgvxi0vM0p/D3n2C3EReYVX+DNYs5TjZFn/oQt2j+4sVJtSMr18pdRr8wjTcBl6LoV+FUwzPmNA==}
     engines: {node: '>=18'}
@@ -2364,6 +2378,13 @@ packages:
       '@noble/ciphers': 1.3.0
       '@noble/curves': 1.9.7
       '@noble/hashes': 1.8.0
+    dev: false
+
+  /editions@6.22.0:
+    resolution: {integrity: sha512-UgGlf8IW75je7HZjNDpJdCv4cGJWIi6yumFdZ0R7A8/CIhQiWUjyGLCxdHpd8bmyD1gnkfUNK0oeOXqUS2cpfQ==}
+    engines: {ecmascript: '>= es5', node: '>=4'}
+    dependencies:
+      version-range: 4.15.0
     dev: false
 
   /ee-first@1.1.1:
@@ -3636,6 +3657,15 @@ packages:
   /isexe@3.1.5:
     resolution: {integrity: sha512-6B3tLtFqtQS4ekarvLVMZ+X+VlvQekbe4taUkf/rhVO3d/h0M2rfARm/pXLcPEsjjMsFgrFgSrhQIxcSVrBz8w==}
     engines: {node: '>=18'}
+    dev: false
+
+  /istextorbinary@9.5.0:
+    resolution: {integrity: sha512-5mbUj3SiZXCuRf9fT3ibzbSSEWiy63gFfksmGfdOzujPjW3k+z8WvIBxcJHBoQNlaZaiyB25deviif2+osLmLw==}
+    engines: {node: '>=4'}
+    dependencies:
+      binaryextensions: 6.11.0
+      editions: 6.22.0
+      textextensions: 6.11.0
     dev: false
 
   /iterator.prototype@1.1.5:
@@ -5069,6 +5099,13 @@ packages:
     engines: {node: '>=6'}
     dev: true
 
+  /textextensions@6.11.0:
+    resolution: {integrity: sha512-tXJwSr9355kFJI3lbCkPpUH5cP8/M0GGy2xLO34aZCjMXBaK3SoPnZwr/oWmo1FdCnELcs4npdCIOFtq9W3ruQ==}
+    engines: {node: '>=4'}
+    dependencies:
+      editions: 6.22.0
+    dev: false
+
   /tiny-invariant@1.3.3:
     resolution: {integrity: sha512-+FbBPE1o9QAYvviau/qC5SE3caw21q3xkvWKBtja5vgqOWIHHJ3ioaq1VPfn/Szqctz2bU/oYeKd9/z5BL+PVg==}
     dev: false
@@ -5311,6 +5348,11 @@ packages:
   /vary@1.1.2:
     resolution: {integrity: sha512-BNGbWLfd0eUPabhkXUVm0j8uuvREyTh5ovRa/dyow/BqAbZJyC+5fU+IzQOzmAKzYqYRAISoRhdQr3eIZ/PXqg==}
     engines: {node: '>= 0.8'}
+    dev: false
+
+  /version-range@4.15.0:
+    resolution: {integrity: sha512-Ck0EJbAGxHwprkzFO966t4/5QkRuzh+/I1RxhLgUKKwEn+Cd8NwM60mE3AqBZg5gYODoXW0EFsQvbZjRlvdqbg==}
+    engines: {node: '>=4'}
     dev: false
 
   /web-streams-polyfill@3.3.3:
