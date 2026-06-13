@@ -162,9 +162,21 @@ def main():
                 
                 extractor_script = os.path.join(os.path.dirname(__file__), "utils", "blender_extractor.py")
                 print(f"Running headless Blender (Exporting FBX for {base_name})...", flush=True)
-                run_headless_blender(workspace.blender_path, blend_file, extractor_script, ["--output", output_json, "--fbx", fbx_file])
+                
+                # Capture the result of the process
+                result = run_headless_blender(workspace.blender_path, blend_file, extractor_script, ["--output", output_json, "--fbx", fbx_file])
+                
+                # Check for fatal crashes so it doesn't fail silently!
+                if result.returncode != 0:
+                    print(f"❌ ERROR: Headless Blender failed to export FBX for {base_name}. Traceback:", flush=True)
+                    if result.stdout.strip():
+                        print(result.stdout, flush=True)
+                    if result.stderr.strip():
+                        print(result.stderr, flush=True)
+                    sys.exit(1)
 
             pngs = glob.glob(os.path.join(target_dir, "*.png"))
+
             jsons = glob.glob(os.path.join(target_dir, "MI_*.json"))
             fbx_files = glob.glob(os.path.join(target_dir, "*.fbx"))
             
