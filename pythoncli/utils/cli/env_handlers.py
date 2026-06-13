@@ -13,7 +13,7 @@ def handle_env_command(args, settings):
     # 1. Route validation based on targeted operations
     if subcommand in ["verify", "install-plugin", "launch-unreal", "restart-unreal"]:
         is_valid, err_msg = validate_settings(settings, ["ue_root", "uproject"])
-    elif subcommand in ["ue4ss-install", "extract-icons"]:
+    elif subcommand in ["ue4ss-install", "extract-icons", "palschema-install"]:
         is_valid, err_msg = validate_settings(settings, ["palworld_exe", "fmodel_output"])
     elif subcommand == "enable-remote-exec":
         is_valid, err_msg = validate_settings(settings, ["uproject"])
@@ -141,6 +141,31 @@ def handle_env_command(args, settings):
         except Exception as e:
             error_print(f"UE4SS routine crashed: {str(e)}")
             sys.exit(1)
+    elif subcommand == "palschema-install":
+        from utils.palschema_helper import download_and_extract_palschema, uninstall_palschema
+        action = getattr(args, "action", "install")
+
+        def log_callback(msg, is_error=False):
+            json_print({"type": "log", "level": "error" if is_error else "standard", "message": msg})
+
+        try:
+            if action == "install":
+                success = download_and_extract_palschema(settings["palworld_exe"], log_callback)
+            elif action == "uninstall":
+                success = uninstall_palschema(settings["palworld_exe"], log_callback)
+            else:
+                success = False
+                log_callback(f"Unknown action: {action}", is_error=True)
+
+            if success:
+                json_print({"status": "success", "message": f"Successfully completed PalSchema action: {action}"})
+            else:
+                json_print({"status": "error", "message": f"PalSchema action failed: {action}"})
+                sys.exit(1)
+        except Exception as e:
+            error_print(f"PalSchema routine crashed: {str(e)}")
+            sys.exit(1)
+
 
     # 5. Handle 'env status'
     elif subcommand == "status":

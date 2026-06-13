@@ -108,6 +108,7 @@ pub fn run() {
             commands::set_config,
             commands::ue4ss_manage,
             commands::palschema_manage,
+            commands::cpp_plugin_manage,
             commands::creator_refresh_bp,
             commands::manager_build_db,
             commands::env_verify,

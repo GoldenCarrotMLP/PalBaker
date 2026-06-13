@@ -398,14 +398,21 @@ pub async fn ue4ss_manage(app: AppHandle, state: State<'_, AppState>, action: St
     let parsed: Value = parse_last_json_line(&raw).unwrap_or(serde_json::json!({ "status": "success", "message": raw }));
     Ok(parsed)
 }
-
-#[tauri::command]
+#[tauri::command] 
 pub async fn palschema_manage(app: AppHandle, state: State<'_, AppState>, action: String) -> Result<Value, String> {
-    let raw = run_cli(&app, &state, &["env", "install-plugin", "--action", &action])?;
+    // FIX: Point this explicitly to our new PalSchema python command
+    let raw = run_cli(&app, &state, &["env", "palschema-install", "--action", &action])?;
     let parsed: Value = parse_last_json_line(&raw).unwrap_or(serde_json::json!({ "status": "success", "message": raw }));
     Ok(parsed)
 }
 
+// NEW: Dedicated command for the C++ Editor Plugin
+#[tauri::command]
+pub async fn cpp_plugin_manage(app: AppHandle, state: State<'_, AppState>, action: String) -> Result<Value, String> {
+    let raw = run_cli(&app, &state, &["env", "install-plugin", "--action", &action])?;
+    let parsed: Value = parse_last_json_line(&raw).unwrap_or(serde_json::json!({ "status": "success", "message": raw }));
+    Ok(parsed)
+}
 #[tauri::command]
 pub async fn creator_refresh_bp(app: AppHandle, state: State<'_, AppState>, id: String) -> Result<Value, String> {
     let raw = run_cli(&app, &state, &["creator", "refresh-bp", &id])?;

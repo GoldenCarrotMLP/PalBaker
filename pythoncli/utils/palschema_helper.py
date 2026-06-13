@@ -154,10 +154,25 @@ def download_and_extract_palschema(palworld_exe: str, log_callback) -> bool:
                 break
 
         dest_palschema_dir = os.path.join(mods_dir, "PalSchema")
+        
+        # Safely clean out the old installation while preserving the 'mods' folder
         if os.path.exists(dest_palschema_dir):
-            shutil.rmtree(dest_palschema_dir)
+            for item in os.listdir(dest_palschema_dir):
+                if item.lower() == "mods":
+                    continue
+                
+                item_path = os.path.join(dest_palschema_dir, item)
+                if os.path.isdir(item_path):
+                    shutil.rmtree(item_path, ignore_errors=True)
+                else:
+                    try:
+                        os.remove(item_path)
+                    except OSError:
+                        pass
 
-        shutil.copytree(actual_root, dest_palschema_dir)
+        # Copy the newly downloaded files over, merging safely with the preserved 'mods' folder
+        shutil.copytree(actual_root, dest_palschema_dir, dirs_exist_ok=True)
+
 
         # Programmatically configure UE4SS mod initialization parameters
         log_callback("Configuring UE4SS mods database variables...", False)
@@ -176,7 +191,7 @@ def download_and_extract_palschema(palworld_exe: str, log_callback) -> bool:
         return False
 
 def uninstall_palschema(palworld_exe: str, log_callback) -> bool:
-    """Permanently deletes the PalSchema mod folder from your UE4SS Mods directory."""
+    """Permanently deletes the PalSchema mod but preserves the user's custom 'mods' directory."""
     bin_dir = get_binaries_dir(palworld_exe)
     if not bin_dir:
         log_callback("Error: Invalid Palworld executable path.", True)
@@ -187,8 +202,21 @@ def uninstall_palschema(palworld_exe: str, log_callback) -> bool:
 
     try:
         if os.path.exists(palschema_dir):
-            shutil.rmtree(palschema_dir)
-            log_callback("PalSchema folder successfully deleted.", False)
+            # Iterate through the PalSchema directory and delete everything except 'mods'
+            for item in os.listdir(palschema_dir):
+                if item.lower() == "mods":
+                    continue  # Skip and preserve the mods folder!
+                
+                item_path = os.path.join(palschema_dir, item)
+                if os.path.isdir(item_path):
+                    shutil.rmtree(item_path, ignore_errors=True)
+                else:
+                    try:
+                        os.remove(item_path)
+                    except OSError:
+                        pass
+
+            log_callback("PalSchema successfully uninstalled (custom 'mods' folder preserved).", False)
             return True
         else:
             log_callback("PalSchema folder not found. Nothing to uninstall.", False)
