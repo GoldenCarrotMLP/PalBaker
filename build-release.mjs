@@ -172,4 +172,143 @@ if (signature && updateArtifactName) {
     console.warn("   Verify that your .env file in the root directory contains valid paths.");
 }
 
+// 8. Auto-upload release and artifacts to GitHub
+const GITHUB_TOKEN = process.env.GITHUB_TOKEN || process.env.GH_TOKEN;
+
+let autodetectedOwner = "";
+let autodetectedRepo = "";
+let autodetectedBranch = "main";
+
+try {
+    const remoteUrl = execSync('git config --get remote.origin.url', { encoding: 'utf8' }).trim();
+    const match = remoteUrl.match(/github\.com[:/]([^/]+)\/([^/.]+)(?:\.git)?$/);
+    if (match) {
+        autodetectedOwner = match[1];
+        autodetectedRepo = match[2];
+    }
+    autodetectedBranch = execSync('git rev-parse --abbrev-ref HEAD', { encoding: 'utf8' }).trim();
+} catch (e) {
+    // Graceful fallback if git commands fail
+}
+
+const GITHUB_OWNER = process.env.GITHUB_OWNER || process.env.GH_OWNER || autodetectedOwner;
+const GITHUB_REPO = process.env.GITHUB_REPO || process.env.GH_REPO || autodetectedRepo;
+
+if (GITHUB_TOKEN && GITHUB_OWNER && GITHUB_REPO) {
+    console.log(`\n🚀 GITHUB_TOKEN detected. Automating Release v${currentVersion} for ${GITHUB_OWNER}/${GITHUB_REPO}...`);
+
+    const headers = {
+        "Accept": "application/vnd.github+json",
+        "Authorization": `Bearer ${GITHUB_TOKEN}`,
+        "X-GitHub-Api-Version": "2022-11-28",
+        "User-Agent": "PalBaker-Release-Builder"
+    };
+
+    let releaseId = null;
+    let uploadUrlTemplate = "";
+
+    try {
+        // Attempt to create a fresh release
+        const createResponse = await fetch(`https://api.github.com/repos/${GITHUB_OWNER}/${GITHUB_REPO}/releases`, {
+            method: "POST",
+            headers,
+            body: JSON.stringify({
+                tag_name: `v${currentVersion}`,
+                target_commitish: autodetectedBranch,
+                name: `v${currentVersion}`,
+                body: `Automated release of PalBaker v${currentVersion}! ;3`,
+                draft: false,
+                prerelease: false,
+                generate_release_notes: true
+            })
+        });
+
+        if (createResponse.ok) {
+            const releaseData = await createResponse.json();
+            releaseId = releaseData.id;
+            uploadUrlTemplate = releaseData.upload_url;
+            console.log(`🎉 Created new GitHub Release: v${currentVersion} (ID: ${releaseId})`);
+        } else if (createResponse.status === 422) {
+            // Self-Healing fallback: If tag already exists, lookup the release ID
+            console.log(`⚠️ Release for tag v${currentVersion} already exists. Fetching existing release metadata...`);
+            const getResponse = await fetch(`https://api.github.com/repos/${GITHUB_OWNER}/${GITHUB_REPO}/releases/tags/v${currentVersion}`, {
+                headers
+            });
+            if (getResponse.ok) {
+                const releaseData = await getResponse.json();
+                releaseId = releaseData.id;
+                uploadUrlTemplate = releaseData.upload_url;
+                console.log(`🔍 Found existing release entry (ID: ${releaseId})`);
+            } else {
+                throw new Error(`Failed to retrieve existing tag: ${getResponse.statusText}`);
+            }
+        } else {
+            const errBody = await createResponse.text();
+            throw new Error(`Failed to create release: ${createResponse.statusText}. Details: ${errBody}`);
+        }
+
+        if (releaseId && uploadUrlTemplate) {
+            // Strip template curly bracket parameters to get the base upload URL endpoint
+            const cleanUploadUrl = uploadUrlTemplate.replace(/\{.*?\}/, "");
+
+            // Query existing assets to allow clean overwriting
+            const assetsResponse = await fetch(`https://api.github.com/repos/${GITHUB_OWNER}/${GITHUB_REPO}/releases/${releaseId}/assets`, {
+                headers
+            });
+            let existingAssets = [];
+            if (assetsResponse.ok) {
+                existingAssets = await assetsResponse.json();
+            }
+
+            const filesToUpload = fs.readdirSync(releaseDir);
+            for (const file of filesToUpload) {
+                const filePath = path.join(releaseDir, file);
+                const stat = fs.statSync(filePath);
+
+                if (!stat.isFile()) continue;
+
+                // Idempotent Cleanup: Delete asset of the same name before uploading the fresh replacement
+                const matchedAsset = existingAssets.find(a => a.name === file);
+                if (matchedAsset) {
+                    console.log(`🧹 Removing existing asset: ${file} (ID: ${matchedAsset.id}) before overwrite...`);
+                    const deleteResponse = await fetch(`https://api.github.com/repos/${GITHUB_OWNER}/${GITHUB_REPO}/releases/assets/${matchedAsset.id}`, {
+                        method: "DELETE",
+                        headers
+                    });
+                    if (!deleteResponse.ok) {
+                        console.warn(`⚠️ Warning: Failed to remove old ${file}. Overwrite might fail.`);
+                    }
+                }
+
+                console.log(`⬆️ Uploading ${file} (${(stat.size / 1024 / 1024).toFixed(2)} MB)...`);
+                const fileBuffer = fs.readFileSync(filePath);
+
+                const uploadResponse = await fetch(`${cleanUploadUrl}?name=${encodeURIComponent(file)}`, {
+                    method: "POST",
+                    headers: {
+                        "Authorization": `Bearer ${GITHUB_TOKEN}`,
+                        "Content-Type": "application/octet-stream",
+                        "Content-Length": stat.size,
+                        "User-Agent": "PalBaker-Release-Builder"
+                    },
+                    body: fileBuffer
+                });
+
+                if (uploadResponse.ok) {
+                    console.log(`✅ Upload completed: ${file}`);
+                } else {
+                    const errBody = await uploadResponse.text();
+                    console.error(`❌ Failed to upload ${file}: ${uploadResponse.statusText}. Details: ${errBody}`);
+                }
+            }
+            console.log(`\n🎉 Success! All release assets published to: https://github.com/To/${GITHUB_OWNER}/${GITHUB_REPO}/releases/tag/v${currentVersion}`);
+        }
+
+    } catch (err) {
+        console.error("❌ GitHub automation encountered a failure:", err);
+    }
+} else {
+    console.log(`\n💡 Tip: To automate creating a GitHub release and uploading your installer, zip, and update.json assets, configure a GITHUB_TOKEN inside your local .env file!`);
+}
+
 console.log("\n🎉 Release Build Complete! Upload all files inside your /release/ folder to your GitHub Release.");
