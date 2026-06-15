@@ -191,7 +191,7 @@ def handle_altermatic_command(args, settings):
 
     elif subcommand == "sidecar":
         mod_name = getattr(args, "mod", "")
-        blend_name = getattr(args, "blend_name", "") # FIXED: Pulling the correct argument!
+        blend_name = getattr(args, "blend_name", "")
         
         if not mod_name or not blend_name:
             error_print("Usage: altermatic sidecar <mod_name> <blend_name>")
@@ -202,10 +202,24 @@ def handle_altermatic_command(args, settings):
             error_print(f"Mod {mod_name} was not found on disk.")
             sys.exit(1)
 
-        f_dir = mc.raw_mods[0]["fmodel_altermatic_path"] or mc.raw_mods[0]["fmodel_path"]
-        blend_path = os.path.join(f_dir, blend_name)
-        
-        if not os.path.exists(blend_path):
+        fmodel_alt_dir = mc.raw_mods[0].get("fmodel_altermatic_path", "")
+        fmodel_dir = mc.raw_mods[0].get("fmodel_path", "")
+
+        # Dual-Path Fall-Through Resolution
+        blend_path = None
+        if fmodel_alt_dir:
+            possible_alt = os.path.join(fmodel_alt_dir, blend_name)
+            if os.path.exists(possible_alt):
+                blend_path = possible_alt
+
+        if not blend_path and fmodel_dir:
+            possible_vanilla = os.path.join(fmodel_dir, blend_name)
+            if os.path.exists(possible_vanilla):
+                blend_path = possible_vanilla
+
+        if not blend_path:
+            f_dir = fmodel_alt_dir or fmodel_dir
+            blend_path = os.path.join(f_dir, blend_name)
             error_print(f"Skeletal blend file not found at: {blend_path}")
             sys.exit(1)
 
@@ -253,10 +267,24 @@ def handle_altermatic_command(args, settings):
             error_print(f"Mod {mod_name} was not found on disk.")
             sys.exit(1)
 
-        f_dir = mc.raw_mods[0]["fmodel_altermatic_path"] or mc.raw_mods[0]["fmodel_path"]
-        blend_path = os.path.join(f_dir, blend_name)
+        fmodel_alt_dir = mc.raw_mods[0].get("fmodel_altermatic_path", "")
+        fmodel_dir = mc.raw_mods[0].get("fmodel_path", "")
 
-        if not os.path.exists(blend_path):
+        # Dual-Path Fall-Through Resolution
+        blend_path = None
+        if fmodel_alt_dir:
+            possible_alt = os.path.join(fmodel_alt_dir, blend_name)
+            if os.path.exists(possible_alt):
+                blend_path = possible_alt
+
+        if not blend_path and fmodel_dir:
+            possible_vanilla = os.path.join(fmodel_dir, blend_name)
+            if os.path.exists(possible_vanilla):
+                blend_path = possible_vanilla
+
+        if not blend_path:
+            f_dir = fmodel_alt_dir or fmodel_dir
+            blend_path = os.path.join(f_dir, blend_name)
             error_print(f"Target blend file not found at: {blend_path}")
             sys.exit(1)
 

@@ -1,6 +1,7 @@
 "use client"
 
-import { Plus } from "lucide-react"
+import { useState } from "react"
+import { Plus, RefreshCw, Loader2 } from "lucide-react"
 import { type ModItem } from "@/lib/mock-data"
 import { ModManagerAPI } from "@/lib/data-service"
 import { VariantChip } from "./variant-chip"
@@ -16,6 +17,8 @@ interface Props {
 }
 
 export function AltermaticPanel({ mod, enabled, onToggle, onOpenAdd, onOpenEdit, onNotify, onRefresh }: Props) {
+  const [refreshing, setRefreshing] = useState(false)
+
   const handleToggle = async (val: boolean) => {
     try {
       await ModManagerAPI.altermaticToggle(mod.name, val)
@@ -24,6 +27,20 @@ export function AltermaticPanel({ mod, enabled, onToggle, onOpenAdd, onOpenEdit,
       onRefresh()
     } catch (err) {
       onNotify(`Failed to toggle Altermatic: ${err}`, "error", "Operation Failed")
+    }
+  }
+
+  const handleRefreshBlend = async () => {
+    setRefreshing(true)
+    onNotify("Scanning Blender workspace to sync material slots and shape keys...", "info")
+    try {
+      const res = await ModManagerAPI.runAction(mod.name, "refresh_blend")
+      onNotify(res.message || "Skeletal layouts synchronized successfully!", "success")
+      onRefresh()
+    } catch (err: any) {
+      onNotify(`Failed to sync layouts: ${err.message || err}`, "error", "Refresh Failed")
+    } finally {
+      setRefreshing(false)
     }
   }
 
@@ -64,13 +81,30 @@ export function AltermaticPanel({ mod, enabled, onToggle, onOpenAdd, onOpenEdit,
               ))}
             </div>
           )}
-          <button
-            onClick={onOpenAdd}
-            className="flex items-center justify-center gap-1.5 border border-dashed border-border rounded px-3 py-2 text-xs text-muted-foreground hover:text-foreground hover:border-primary/50 transition-colors mt-1 cursor-pointer"
-          >
-            <Plus className="size-3.5" />
-            ADD VARIANT
-          </button>
+          
+          <div className="flex gap-2 mt-1">
+            <button
+              onClick={onOpenAdd}
+              disabled={refreshing}
+              className="flex-1 flex items-center justify-center gap-1.5 border border-dashed border-border rounded px-3 py-2 text-xs text-muted-foreground hover:text-foreground hover:border-primary/50 transition-colors cursor-pointer disabled:opacity-50"
+            >
+              <Plus className="size-3.5" />
+              ADD VARIANT
+            </button>
+            <button
+              onClick={handleRefreshBlend}
+              disabled={refreshing}
+              title="Sync layout sidecars"
+              className="flex items-center justify-center gap-1.5 border border-border rounded px-3 py-2 text-xs text-muted-foreground hover:text-foreground hover:border-primary/50 transition-colors cursor-pointer disabled:opacity-50"
+            >
+              {refreshing ? (
+                <Loader2 className="size-3.5 animate-spin" />
+              ) : (
+                <RefreshCw className="size-3.5" />
+              )}
+              {refreshing ? "SYNCING..." : "SYNC"}
+            </button>
+          </div>
         </div>
       )}
     </div>

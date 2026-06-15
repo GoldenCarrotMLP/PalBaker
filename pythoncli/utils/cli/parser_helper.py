@@ -18,7 +18,7 @@ def create_cli_parser() -> argparse.ArgumentParser:
 
     # mod
     mod_parser = subparsers.add_parser("mod", help="Pipeline execution")
-    mod_parser.add_argument("action", choices=["extract", "create-blend", "push", "cook", "pack", "full", "decompile", "set-icon", "browse-ue", "open-source", "open-ue", "open-pak", "ping", "set-preserve-materials"])
+    mod_parser.add_argument("action", choices=["extract", "create-blend", "push", "cook", "pack", "full", "decompile", "set-icon", "browse-ue", "open-source", "open-ue", "open-pak", "ping", "set-preserve-materials", "refresh-blend"])
     mod_parser.add_argument("mod", help="Internal name of the Pal")
     mod_parser.add_argument("--overwrite", action="store_true", help="Overwrite existing .blend files during decompile")
     mod_parser.add_argument("--path", help="Path to icon file (or value for toggle)")

@@ -207,10 +207,34 @@ def compile_unified_altermatic_json(monster_name: str, altermatic_staging_dir: s
     
     final_character_id = f"MOD_{monster_name}" if is_custom_pal else monster_name
 
+    # --- NEW: Pre-Compute True Material Virtual Locations ---
+    material_to_virtual_dir = {}
+    vanilla_dir = os.path.normpath(os.path.join(fmodel_root, "Pal", "Content", "Pal", "Model", "Character", category, monster_name))
+    vanilla_sidecar_path = os.path.join(vanilla_dir, f"{monster_name}_blend.json")
+    
+    if os.path.exists(vanilla_sidecar_path):
+        vanilla_vdir = get_virtual_path_for_file(vanilla_sidecar_path)
+        try:
+            with open(vanilla_sidecar_path, "r", encoding="utf-8") as f:
+                data = json.load(f)
+                for mat_name in data.get("materials", {}).keys():
+                    material_to_virtual_dir[mat_name] = vanilla_vdir
+        except Exception: pass
+        
+    if os.path.exists(altermatic_staging_dir):
+        for f in os.listdir(altermatic_staging_dir):
+            if f.endswith("_blend.json"):
+                alt_sidecar_path = os.path.join(altermatic_staging_dir, f)
+                alt_vdir = get_virtual_path_for_file(alt_sidecar_path)
+                try:
+                    with open(alt_sidecar_path, "r", encoding="utf-8") as file_in:
+                        data = json.load(file_in)
+                        for mat_name in data.get("materials", {}).keys():
+                            material_to_virtual_dir[mat_name] = alt_vdir
+                except Exception: pass
+    # --------------------------------------------------------
+
     for v in variants_list:
-        # We skip 'base' if it's vanilla, because the game's blueprint naturally holds it.
-        # But if it's custom, the game's blueprint holds the template parent (e.g. Chillet),
-        # so Altermatic MUST mesh-swap the base to Furret!
         if v.get("is_base") and not is_custom_pal:
             continue
 
@@ -222,12 +246,26 @@ def compile_unified_altermatic_json(monster_name: str, altermatic_staging_dir: s
                 # Custom standalone Pal - Base Mesh Resolution
                 cat_sanitized = category.replace(" ", "_")
                 mesh_resolved_path = f"/Game/Pal/Model/Character/{cat_sanitized}/{monster_name}/SK_{monster_name}"
-                sidecar_path = os.path.join(fmodel_root, "Pal", "Content", "Pal", "Model", "Character", category, monster_name, f"{monster_name}_blend.json")
+                sidecar_path = os.path.join(vanilla_dir, f"{monster_name}_blend.json")
             else:
-                # Standard Altermatic custom variant resolution
-                blend_base_name = os.path.splitext(v["SkeletonSource"])[0]
-                blend_file_path = os.path.join(altermatic_staging_dir, f"{blend_base_name}.blend")
-                sidecar_path = os.path.join(altermatic_staging_dir, f"{blend_base_name}_blend.json")
+                # Standard Altermatic custom variant resolution (Dual-Path Checking)
+                blend_base_name = os.path.splitext(v.get("SkeletonSource", "base"))[0]
+                if blend_base_name == "base":
+                    blend_base_name = monster_name
+
+                possible_alt_sidecar = os.path.join(altermatic_staging_dir, f"{blend_base_name}_blend.json")
+                possible_alt_blend = os.path.join(altermatic_staging_dir, f"{blend_base_name}.blend")
+                
+                possible_vanilla_sidecar = os.path.join(vanilla_dir, f"{blend_base_name}_blend.json")
+                possible_vanilla_blend = os.path.join(vanilla_dir, f"{blend_base_name}.blend")
+
+                # Properly resolve where the target Skeleton actually lives on disk
+                if os.path.exists(possible_alt_blend) or os.path.exists(possible_alt_sidecar):
+                    blend_file_path = possible_alt_blend
+                    sidecar_path = possible_alt_sidecar
+                else:
+                    blend_file_path = possible_vanilla_blend
+                    sidecar_path = possible_vanilla_sidecar
 
                 clean_path = blend_file_path.replace("\\", "/")
                 marker = "Pal/Content/"
@@ -258,7 +296,12 @@ def compile_unified_altermatic_json(monster_name: str, altermatic_staging_dir: s
                 slot_name_lower = slot_name.lower()
                 if slot_name_lower in slots_order_lower and mat_override_name:
                     idx = slots_order_lower.index(slot_name_lower)
-                    mat_resolved_dir = get_virtual_path_for_file(sidecar_path)
+                    
+                    # --- NEW: Use specific material virtual directory based on where it was found ---
+                    mat_resolved_dir = material_to_virtual_dir.get(mat_override_name)
+                    if not mat_resolved_dir:
+                        mat_resolved_dir = get_virtual_path_for_file(sidecar_path)
+                        
                     resolved_mat_path = f"{mat_resolved_dir}/{mat_override_name}"
                     mat_replace_list.append({
                         "Index": str(idx),
@@ -285,17 +328,10 @@ def compile_unified_altermatic_json(monster_name: str, altermatic_staging_dir: s
             compiled_morphs = []
             for m in v.get("MorphTarget", []):
                 if m.get("Type") == "Static" and "Set" in m:
-                    compiled_morphs.append({
-                        "Target": m["Target"],
-                        "Set": m["Set"]
-                    })
+                    compiled_morphs.append({"Target": m["Target"], "Set": m["Set"]})
                 elif m.get("Type") == "Random":
-                    compiled_morphs.append({
-                        "Target": m["Target"],
-                        "Min": m.get("Min", 0.0),
-                        "Max": m.get("Max", 1.0),
-                        "Type": m.get("Type", "Free")
-                    })
+                    compiled_morphs.append({"Target": m["Target"], "Min": m.get("Min", 0.0), "Max": m.get("Max", 1.0), "Type": m.get("Type", "Free")})
+            
             if compiled_morphs:
                 compiled_swap["MorphTarget"] = compiled_morphs
 
@@ -317,6 +353,7 @@ def compile_unified_altermatic_json(monster_name: str, altermatic_staging_dir: s
         return True, f"SUCCESS: Compiled and deployed Altermatic config to {target_path}"
     except Exception as e:
         return False, f"Failed to write deployment JSON: {e}"
+
 
 def load_traits_database() -> dict:
     root_dir = os.path.dirname(os.path.dirname(os.path.abspath(__file__)))

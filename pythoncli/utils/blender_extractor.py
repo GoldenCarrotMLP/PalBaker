@@ -129,9 +129,9 @@ def extract_metadata(output_path: str, fbx_path: str | None = None):
             merged_materials[k] = v
 
     # Preserve old keys not present in merged materials
-    for k, v in old_materials.items():
-        if k not in merged_materials:
-            merged_materials[k] = v
+    #for k, v in old_materials.items():
+    #    if k not in merged_materials:
+    #        merged_materials[k] = v
 
     layout_data = {
         "jiggle_bones": jiggle_bones,

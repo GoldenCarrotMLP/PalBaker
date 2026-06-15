@@ -246,6 +246,7 @@ pub async fn run_mod_action(app: AppHandle, state: State<'_, AppState>, mod_name
     let mapped_action = match action.as_str() {
         "extract_pal" => "extract",
         "create_blend" => "create-blend",
+        "refresh_blend" => "refresh-blend", // Add this safe mapping case
         "cook_only" => "cook",
         "pack_only" => "pack",
         "browse_ue" | "browse_unreal" => "browse-ue",
@@ -258,6 +259,7 @@ pub async fn run_mod_action(app: AppHandle, state: State<'_, AppState>, mod_name
     let parsed: Value = parse_last_json_line(&raw).unwrap_or(serde_json::json!({ "status": "success", "message": raw }));
     Ok(parsed)
 }
+
 
 #[tauri::command]
 pub async fn unreal_ping(app: AppHandle, state: State<'_, AppState>) -> Result<Value, String> {
