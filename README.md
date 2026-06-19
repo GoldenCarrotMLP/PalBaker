@@ -65,7 +65,7 @@ To run PalBaker in development mode or compile a production-ready release from s
 
 ```text
 palbaker/
-├── pythoncli/        # Python CLI backend (standalone orchestrator)
+├── palbaker-cli/        # Python CLI backend (standalone orchestrator)
 │   ├── deps/         # Third-party compiler & extraction binaries (UAssetGUI, cue4parse, etc.)
 │   ├── plugins/      # Custom Unreal Engine C++ helper plugins
 │   ├── utils/        # Pathing, workspace managers, and CLI command sub-handlers

@@ -106,7 +106,7 @@ pals.forEach((pal) => {
 
 Get all spawner locations (display name → spawn ID mapping).
 
-**Source**: `pythoncli/deps/monster_spawners_cache.json`
+**Source**: `palbaker-cli/deps/monster_spawners_cache.json`
 
 **Example**:
 ```typescript

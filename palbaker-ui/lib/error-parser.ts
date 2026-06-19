@@ -1,5 +1,5 @@
 /**
- * Smart Error Parser for Palworld pythoncli stdout and stderr diagnostics.
+ * Smart Error Parser for Palworld palbaker-cli stdout and stderr diagnostics.
  */
 
 export interface DiagnosticReport {
@@ -193,7 +193,7 @@ export function parseBackendError(rawError: string): DiagnosticReport {
   return {
     category: "GENERAL_ERROR",
     title: "Backend Execution Error",
-    friendlyMsg: "Oopsies! The pythoncli returned an unexpected error qwq. Review the full technical logs below to see what happened!",
+    friendlyMsg: "Oopsies! The palbaker-cli returned an unexpected error qwq. Review the full technical logs below to see what happened!",
     remediations: [
       { label: "Dismiss", actionKey: "close_modal", style: "secondary" }
     ]

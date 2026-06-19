@@ -73,13 +73,13 @@ function cleanPyCache(dir) {
   }
 }
 
-const pythoncliDir = path.join(__dirname, 'pythoncli');
+const palbaker-cliDir = path.join(__dirname, 'palbaker-cli');
 
 // 0b. Pre-build cache cleanup to prevent stale python bytecode packages
 console.log("\n🧹 Cleaning old build caches and temporary python files...");
-fs.rmSync(path.join(pythoncliDir, 'build'), { recursive: true, force: true });
-fs.rmSync(path.join(pythoncliDir, 'dist'), { recursive: true, force: true });
-cleanPyCache(pythoncliDir);
+fs.rmSync(path.join(palbaker-cliDir, 'build'), { recursive: true, force: true });
+fs.rmSync(path.join(palbaker-cliDir, 'dist'), { recursive: true, force: true });
+cleanPyCache(palbaker-cliDir);
 
 // 1. Synchronize version files across the workspace using current git counts
 console.log("\n📌 Synchronizing version files across workspace...");
@@ -87,11 +87,11 @@ execSync('node scripts/update-version.mjs', { stdio: 'inherit' });
 
 // 2. Install Python dependencies
 console.log("\n🐍 Installing Python dependencies...");
-execSync('pip install pyinstaller', { stdio: 'inherit', cwd: pythoncliDir });
+execSync('pip install pyinstaller', { stdio: 'inherit', cwd: palbaker-cliDir });
 
 // 3. Build Python Backend with PyInstaller (Using --clean to force non-stale builds!)
 console.log("\n📦 Compiling Python Backend...");
-execSync('pyinstaller palbaker_cli.spec --noconfirm --clean', { stdio: 'inherit', cwd: pythoncliDir });
+execSync('pyinstaller palbaker_cli.spec --noconfirm --clean', { stdio: 'inherit', cwd: palbaker-cliDir });
 
 // 4. Stage backend for Tauri Resources
 console.log("\n🚚 Staging backend into Tauri resources...");
@@ -100,7 +100,7 @@ if (fs.existsSync(tauriResourcesDir)) {
     fs.rmSync(tauriResourcesDir, { recursive: true, force: true });
 }
 fs.mkdirSync(tauriResourcesDir, { recursive: true });
-fs.cpSync(path.join(pythoncliDir, 'dist', 'palbaker_cli'), tauriResourcesDir, { recursive: true });
+fs.cpSync(path.join(palbaker-cliDir, 'dist', 'palbaker_cli'), tauriResourcesDir, { recursive: true });
 
 // 5. Build Tauri App
 console.log("\n🦀 Building Tauri Desktop App...");

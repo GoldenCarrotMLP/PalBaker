@@ -1,0 +1,3 @@
+[submodule "palbaker-cli"]
+	path = palbaker-cli
+	url = https://github.com/GoldenCarrotMLP/palbaker-cli.git
