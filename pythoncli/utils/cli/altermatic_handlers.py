@@ -47,9 +47,15 @@ def resolve_altermatic_args(args) -> tuple[str, str, str, str]:
     mod_name = getattr(args, "mod", "") or getattr(args, "mod_name", "")
     label = getattr(args, "label", "") or getattr(args, "label_name", "")
     status = getattr(args, "status", "")
-    index = getattr(args, "index", "") or getattr(args, "index_number", "")
+    
+    # FIX: Ensure index 0 isn't treated as a falsy empty string via 'or' short-circuiting!
+    idx_val = getattr(args, "index", None)
+    if idx_val is None or idx_val == "":
+        idx_val = getattr(args, "index_number", None)
+    index = str(idx_val) if idx_val is not None and idx_val != "" else ""
     
     if not mod_name:
+
         known_keywords = {"toggle", "list", "add", "delete", "save", "sidecar", "metadata", "open-blend", "altermatic"}
         for k, v in vars(args).items():
             if isinstance(v, str) and v not in known_keywords and k not in ["command", "subcommand", "action", "key", "value", "data"]:
@@ -193,9 +199,14 @@ def handle_altermatic_command(args, settings):
         mod_name = getattr(args, "mod", "")
         blend_name = getattr(args, "blend_name", "")
         
+        # FIX: Route 'base' strictly to the canonical mod_name.blend!
+        if blend_name == "base":
+            blend_name = f"{mod_name}.blend"
+
         if not mod_name or not blend_name:
             error_print("Usage: altermatic sidecar <mod_name> <blend_name>")
             sys.exit(1)
+
 
         mc.refresh_mods(target_mod=mod_name)
         if not mc.raw_mods:
@@ -257,6 +268,10 @@ def handle_altermatic_command(args, settings):
         mod_name = args.mod
         blend_name = getattr(args, "blend_name", "base")
         category = getattr(args, "category", "Monster")
+
+        # FIX: Route 'base' strictly to the canonical mod_name.blend!
+        if blend_name == "base":
+            blend_name = f"{mod_name}.blend"
 
         if not mod_name or not blend_name:
             error_print("Usage: altermatic open-blend <mod_name> <blend_name> [--category <category>]")

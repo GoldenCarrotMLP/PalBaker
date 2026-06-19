@@ -107,11 +107,15 @@ console.log("\n🦀 Building Tauri Desktop App...");
 execSync('pnpm tauri build', { stdio: 'inherit', cwd: path.join(__dirname, 'palbaker-ui') });
 
 // 6. Gather Artifacts & Generate Updater Manifest
+// 6. Gather Artifacts & Generate Updater Manifest
 console.log("\n📂 Gathering release artifacts and building update.json...");
 const releaseDir = path.join(__dirname, 'release');
-if (!fs.existsSync(releaseDir)) {
-    fs.mkdirSync(releaseDir, { recursive: true });
+
+// Clean the release directory to ensure we only have the current build's outputs
+if (fs.existsSync(releaseDir)) {
+    fs.rmSync(releaseDir, { recursive: true, force: true });
 }
+fs.mkdirSync(releaseDir, { recursive: true });
 
 const nsisDir = path.join(__dirname, 'palbaker-ui', 'src-tauri', 'target', 'release', 'bundle', 'nsis');
 let signature = "";
@@ -129,7 +133,10 @@ const currentZipSigName = `${currentZipName}.sig`;
 if (fs.existsSync(nsisDir)) {
     const files = fs.readdirSync(nsisDir);
     for (const file of files) {
-        if (file.endsWith('.exe') || file.endsWith('.zip') || file.endsWith('.sig')) {
+        const isTargetExtension = file.endsWith('.exe') || file.endsWith('.zip') || file.endsWith('.sig');
+        
+        // Strict Version Match: Only copy files belonging to the active currentVersion!
+        if (isTargetExtension && file.includes(currentVersion)) {
             fs.copyFileSync(path.join(nsisDir, file), path.join(releaseDir, file));
             console.log(`✅ Artifact ready: release/${file}`);
         }
@@ -301,14 +308,14 @@ if (GITHUB_TOKEN && GITHUB_OWNER && GITHUB_REPO) {
                     console.error(`❌ Failed to upload ${file}: ${uploadResponse.statusText}. Details: ${errBody}`);
                 }
             }
-            console.log(`\n🎉 Success! All release assets published to: https://github.com/To/${GITHUB_OWNER}/${GITHUB_REPO}/releases/tag/v${currentVersion}`);
+            console.log(`\n🎉 Success! All release assets published to: https://github.com/${GITHUB_OWNER}/${GITHUB_REPO}/releases/tag/v${currentVersion}`);
         }
 
     } catch (err) {
         console.error("❌ GitHub automation encountered a failure:", err);
     }
 } else {
-    console.log(`\n💡 Tip: To automate creating a GitHub release and uploading your installer, zip, and update.json assets, configure a GITHUB_TOKEN inside your local .env file!`);
+    console.log(`\n💡 Tip: To automate creating a GitHub release and uploading your installer, zips, and update.json assets, configure a GITHUB_TOKEN inside your local .env file!`);
 }
 
 console.log("\n🎉 Release Build Complete! Upload all files inside your /release/ folder to your GitHub Release.");

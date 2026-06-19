@@ -9,6 +9,7 @@ import { PalCreatorPage } from "@/components/pal-creator/pal-creator-page"
 import { SystemSettingsPage } from "@/components/system-settings/system-settings-page"
 import { SystemSettingsAPI, UpdaterAPI } from "@/lib/data-service"
 import { UpdateModal } from "@/components/common/update-modal"
+import { DocsModal } from "@/components/common/docs-modal" // Import your new DocsModal
 import {
   LayoutGrid,
   PawPrint,
@@ -43,6 +44,7 @@ export function AppShell() {
   const info = PAGE_INFO[page]
   const [version, setVersion] = useState("v2.4.0-experimental")
   const [updateAvailable, setUpdateAvailable] = useState<any>(null)
+  const [docsOpen, setDocsOpen] = useState(false) // Add state for docs modal
 
   useEffect(() => {
     async function loadVersion() {
@@ -68,6 +70,23 @@ export function AppShell() {
     const timer = setTimeout(checkUpdates, 2000)
     return () => clearTimeout(timer)
   }, [])
+
+  // Handle bottom clicks securely (Supporting both Tauri environments and standard browser falls)
+    const handleBottomClick = async (label: string) => {
+    if (label === "Support") {
+      try {
+        // Use openUrl instead of open
+        const { openUrl } = await import("@tauri-apps/plugin-opener")
+        await openUrl("https://github.com/GoldenCarrotMLP/PalBaker/issues/new")
+      } catch (err) {
+        console.warn("Tauri opener plugin is unavailable, falling back to browser window open:", err)
+        window.open("https://github.com/GoldenCarrotMLP/PalBaker/issues/new", "_blank")
+      }
+    } else if (label === "Documentation") {
+      setDocsOpen(true)
+
+    }
+  }
 
   return (
     <div className="flex h-screen w-full overflow-hidden bg-background">
@@ -110,7 +129,8 @@ export function AppShell() {
           {BOTTOM_ITEMS.map(({ label, icon: Icon }) => (
             <button
               key={label}
-              className="flex items-center gap-3 px-3 py-2 rounded-md text-sm text-muted-foreground hover:text-foreground hover:bg-sidebar-accent/60 transition-colors w-full text-left"
+              onClick={() => handleBottomClick(label)} // Connected custom handler here
+              className="flex items-center gap-3 px-3 py-2 rounded-md text-sm text-muted-foreground hover:text-foreground hover:bg-sidebar-accent/60 transition-colors w-full text-left cursor-pointer"
             >
               <Icon className="size-4 shrink-0" />
               {label}
@@ -153,7 +173,7 @@ export function AppShell() {
           </div>
         </header>
 
-        {/* Page content — kept mounted to preserve form state and prevent IPC refetching */}
+        {/* Page content */}
         <main className="flex-1 overflow-y-auto px-6 py-5">
           <div className={cn(page !== "mod-manager" && "hidden")}>
             <ModManagerPage />
@@ -174,6 +194,13 @@ export function AppShell() {
         <UpdateModal 
           update={updateAvailable} 
           onClose={() => setUpdateAvailable(null)} 
+        />
+      )}
+
+      {/* Documentation Modal */}
+      {docsOpen && (
+        <DocsModal 
+          onClose={() => setDocsOpen(false)} 
         />
       )}
     </div>
