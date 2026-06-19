@@ -7,7 +7,7 @@
 ## 📌 Core Project Philosophies
 
 ### 🔌 Frontend-to-Backend Alignment (Single Source of Truth)
-* **The Rule**: `pythoncli/` is the absolute, single source of truth for all data structures, schemas, and configurations.
+* **The Rule**: `palbaker-cli/` is the absolute, single source of truth for all data structures, schemas, and configurations.
 * **The Practice**: Always adapt frontend interfaces, Next.js models, and development mock data to match the actual serialized data from the Python backend. 
 * **Avoid**: Never add polymorphic adapters or complex "workaround" parsing logic in the UI layer. Instead, keep the frontend clean and modify the mock datasets to represent real-world API output precisely.
 

@@ -1,4 +1,4 @@
-// Mock data derived from pythoncli/cli_queries_dump.json and pythoncli/components/mods/mod_card.py
+// Mock data derived from palbaker-cli/cli_queries_dump.json and palbaker-cli/components/mods/mod_card.py
 
 export const mockConfig = {
   workspace:      "",

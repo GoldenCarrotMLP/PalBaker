@@ -34,17 +34,17 @@ palbaker-ui/src-tauri/target/
 palbaker-ui/src-tauri/gen/
 
 # ============================================================
-# Python (pythoncli)
+# Python (palbaker-cli)
 # ============================================================
-pythoncli/__pycache__/
-pythoncli/**/__pycache__/
-pythoncli/*.py[cod]
-pythoncli/**/*.py[cod]
-pythoncli/.venv/
-pythoncli/venv/
-pythoncli/*.egg-info/
-pythoncli/dist/
-pythoncli/.pytest_cache/
+palbaker-cli/__pycache__/
+palbaker-cli/**/__pycache__/
+palbaker-cli/*.py[cod]
+palbaker-cli/**/*.py[cod]
+palbaker-cli/.venv/
+palbaker-cli/venv/
+palbaker-cli/*.egg-info/
+palbaker-cli/dist/
+palbaker-cli/.pytest_cache/
 
 # ============================================================
 # OS / editor
@@ -61,6 +61,6 @@ dump.txt
 # Release Artifacts
 /release/
 /palbaker-ui/src-tauri/resources/
-/pythoncli/build/
-/pythoncli/dist/
+/palbaker-cli/build/
+/palbaker-cli/dist/
 .env

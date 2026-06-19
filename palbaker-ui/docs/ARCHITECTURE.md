@@ -2,7 +2,7 @@
 
 ## Overview
 
-PalBaker UI is a Next.js 16 + Tauri v2 desktop app that manages Palworld mods and custom Pals. It communicates with a Python CLI backend (`pythoncli/`) through Tauri's IPC layer.
+PalBaker UI is a Next.js 16 + Tauri v2 desktop app that manages Palworld mods and custom Pals. It communicates with a Python CLI backend (`palbaker-cli/`) through Tauri's IPC layer.
 
 ## Tech Stack
 
@@ -65,7 +65,7 @@ palbaker-ui/
                          ↓
          ┌──────────────────────────────┐
          │    PalBaker Python CLI       │
-         │  (pythoncli/palbaker_cli.py) │
+         │  (palbaker-cli/palbaker_cli.py) │
          │                              │
          │ ├─ manager:list              │
          │ ├─ creator:list              │
@@ -109,7 +109,7 @@ export function useNav() {
 
 ### 3. Mock Data (`lib/mock-data.ts`)
 
-All mock data is derived from `pythoncli/cli_queries_dump.json` and follows the exact shapes that the Python CLI returns. This ensures seamless switching to live data.
+All mock data is derived from `palbaker-cli/cli_queries_dump.json` and follows the exact shapes that the Python CLI returns. This ensures seamless switching to live data.
 
 ## Development Workflow
 

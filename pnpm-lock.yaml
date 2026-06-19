@@ -118,7 +118,7 @@ importers:
         specifier: ^5
         version: 5.9.3
 
-  pythoncli:
+  palbaker-cli:
     dependencies:
       istextorbinary:
         specifier: ^9.5.0

@@ -6,15 +6,15 @@ use std::env;
 use tauri::Manager;
 use commands::AppState;
 
-/// Dynamically find the path of the `pythoncli/palbaker_cli.py` script.
+/// Dynamically find the path of the `palbaker-cli/palbaker_cli.py` script.
 /// Traverses upwards from the current executable directory or working directory
-/// to find the root workspace containing `pythoncli/palbaker_cli.py`.
+/// to find the root workspace containing `palbaker-cli/palbaker_cli.py`.
 fn find_python_cli_path() -> PathBuf {
     // 1. Try resolving relative to current working directory first
     if let Ok(cwd) = env::current_dir() {
         let mut path = cwd.clone();
         for _ in 0..5 {
-            let candidate = path.join("pythoncli/palbaker_cli.py");
+            let candidate = path.join("palbaker-cli/palbaker_cli.py");
             if candidate.exists() {
                 return candidate;
             }
@@ -28,7 +28,7 @@ fn find_python_cli_path() -> PathBuf {
     if let Ok(exe_path) = env::current_exe() {
         let mut path = exe_path;
         for _ in 0..5 {
-            let candidate = path.join("pythoncli/palbaker_cli.py");
+            let candidate = path.join("palbaker-cli/palbaker_cli.py");
             if candidate.exists() {
                 return candidate;
             }
@@ -39,7 +39,7 @@ fn find_python_cli_path() -> PathBuf {
     }
 
     // Default Fallback
-    PathBuf::from("../pythoncli/palbaker_cli.py")
+    PathBuf::from("../palbaker-cli/palbaker_cli.py")
 }
 
 #[cfg_attr(mobile, tauri::mobile_entry_point)]
