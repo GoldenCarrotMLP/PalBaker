@@ -8,12 +8,14 @@ import { useNotifications } from "../mod-manager/mod-card-expanded/use-notificat
 import { NotificationToast } from "../mod-manager/mod-card-expanded/notification-toast"
 import { DatabaseMissingModal } from "@/components/common/database-missing-modal"
 import { useNav } from "@/lib/nav-context"
+import { Tabs, TabsList, TabsTrigger, TabsContent } from "@/components/ui/tabs"
 
 // Sections
 import { EnvironmentPaths } from "./environment-paths"
 import { Preferences } from "./preferences"
 import { EssentialBinaries } from "./essential-binaries"
 import { PipelineHealth } from "./pipeline-health"
+import { ThemeEditor } from "./theme-editor"
 
 // Wizards
 import { PluginInstallModal } from "./setup-wizards/PluginInstallModal"
@@ -152,31 +154,44 @@ export function SystemSettingsPage() {
 
   return (
     <div className="flex flex-col gap-6 max-w-5xl">
-      <EnvironmentPaths config={config} updateConfig={updateConfig} onAutodetect={handleAutodetect} />
-      
-      <div className="grid grid-cols-[1fr_1.5fr] gap-4">
-        <Preferences 
-          showMappedNames={showMappedNames} 
-          onToggleMapped={handleShowMappedToggle} 
-        />
-        <EssentialBinaries 
-          envStatus={envStatus} 
-          onActionUe4ss={async (action: string) => {
-            try { await SystemSettingsAPI.manageUe4ss(action); setEnvStatus(await SystemSettingsAPI.getEnvStatus()) }
-            catch (err: any) { setDiagnosticError(String(err.message || err)) }
-          }} 
-          onActionPalschema={async (action: string) => {
-            try { await SystemSettingsAPI.managePalSchema(action); setEnvStatus(await SystemSettingsAPI.getEnvStatus()) }
-            catch (err: any) { setDiagnosticError(String(err.message || err)) }
-          }} 
-        />
-      </div>
+      <Tabs defaultValue="general">
+        <TabsList variant="line" className="mb-4">
+          <TabsTrigger value="general">General</TabsTrigger>
+          <TabsTrigger value="plugins">Plugins</TabsTrigger>
+          <TabsTrigger value="themes">Themes</TabsTrigger>
+        </TabsList>
 
-      <PipelineHealth 
-        envStatus={envStatus} 
-        onRebuildDb={() => setShowDbModal(true)} 
-        onVerify={() => { setSkippedWizards([]); runVerificationFlow([]) }} 
-      />
+        <TabsContent value="general" className="flex flex-col gap-6">
+          <EnvironmentPaths config={config} updateConfig={updateConfig} onAutodetect={handleAutodetect} />
+          <Preferences 
+            showMappedNames={showMappedNames} 
+            onToggleMapped={handleShowMappedToggle} 
+          />
+        </TabsContent>
+
+        <TabsContent value="plugins" className="flex flex-col gap-6">
+          <EssentialBinaries 
+            envStatus={envStatus} 
+            onActionUe4ss={async (action: string) => {
+              try { await SystemSettingsAPI.manageUe4ss(action); setEnvStatus(await SystemSettingsAPI.getEnvStatus()) }
+              catch (err: any) { setDiagnosticError(String(err.message || err)) }
+            }} 
+            onActionPalschema={async (action: string) => {
+              try { await SystemSettingsAPI.managePalSchema(action); setEnvStatus(await SystemSettingsAPI.getEnvStatus()) }
+              catch (err: any) { setDiagnosticError(String(err.message || err)) }
+            }} 
+          />
+          <PipelineHealth 
+            envStatus={envStatus} 
+            onRebuildDb={() => setShowDbModal(true)} 
+            onVerify={() => { setSkippedWizards([]); runVerificationFlow([]) }} 
+          />
+        </TabsContent>
+
+        <TabsContent value="themes">
+          <ThemeEditor />
+        </TabsContent>
+      </Tabs>
 
       {diagnosticError && <DiagnosticsModal errorText={diagnosticError} onClose={() => setDiagnosticError(null)} />}
       <PluginInstallModal 

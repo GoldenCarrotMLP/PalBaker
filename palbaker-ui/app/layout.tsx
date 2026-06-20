@@ -5,6 +5,7 @@ import "./globals.css"
 import { TooltipProvider } from "@/components/ui/tooltip"
 import { AppShell } from "@/components/app-shell"
 import { NavProvider } from "@/lib/nav-context"
+import { ThemeProvider } from "@/lib/theme-context"
 
 const inter = Inter({ subsets: ["latin"], variable: "--font-sans" })
 const geistMono = Geist_Mono({ subsets: ["latin"], variable: "--font-mono" })
@@ -22,11 +23,13 @@ export default function RootLayout({ children }: { children: React.ReactNode }) 
   return (
     <html lang="en" className={`bg-background ${inter.variable} ${geistMono.variable} font-sans`}>
       <body className="antialiased">
-        <NavProvider>
-          <TooltipProvider>
-            <AppShell />
-          </TooltipProvider>
-        </NavProvider>
+        <ThemeProvider>
+          <NavProvider>
+            <TooltipProvider>
+              <AppShell />
+            </TooltipProvider>
+          </NavProvider>
+        </ThemeProvider>
       </body>
     </html>
   )
