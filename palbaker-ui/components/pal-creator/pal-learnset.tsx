@@ -1,6 +1,6 @@
 "use client"
 
-import { useState, useMemo, useEffect } from "react"
+import { useState, useMemo } from "react"
 import { Plus, Trash2 } from "lucide-react"
 import { Badge } from "@/components/ui/badge"
 import { type CreatorPal, type ActiveSkill, type LearnsetEntry, ELEMENT_COLORS } from "@/lib/mock-data"
@@ -19,15 +19,17 @@ interface Props {
 }
 
 export function PalLearnset({ pal, activeSkills, onUpdate, onOpenDialog }: Props) {
-  const learnset: LearnsetEntry[] = pal.Learnset || []
+  // Sync wrapper (prevents react-hooks/exhaustive-deps trigger)
+  const learnset: LearnsetEntry[] = useMemo(() => pal.Learnset || [], [pal.Learnset])
 
-  // Local state to store levels currently being edited to prevent live re-sorting while typing
+  // Synchronously adjust local state during render (prevents cascading effects)
+  const [prevPalId, setPrevPalId] = useState(pal.CharacterID)
   const [editingLevels, setEditingLevels] = useState<Record<number, string>>({})
 
-  // Reset editing states if the Pal context changes
-  useEffect(() => {
+  if (pal.CharacterID !== prevPalId) {
+    setPrevPalId(pal.CharacterID)
     setEditingLevels({})
-  }, [pal.CharacterID])
+  }
 
   const handleAddMove = () => {
     onOpenDialog("Add Move", activeSkills, (id) => {
@@ -53,12 +55,10 @@ export function PalLearnset({ pal, activeSkills, onUpdate, onOpenDialog }: Props
     onUpdate({ Learnset: learnset.filter((_, i) => i !== originalIndex) })
   }
 
-  // Map each row with its original index BEFORE sorting to solve the index mismatch bug!
   const indexedLearnset = useMemo(() => {
     return learnset.map((row, originalIndex) => ({ ...row, originalIndex }))
   }, [learnset])
 
-  // Sort the indexed learnset by level
   const sorted = useMemo(() => {
     return [...indexedLearnset].sort((a, b) => a.Level - b.Level)
   }, [indexedLearnset])
@@ -94,7 +94,6 @@ export function PalLearnset({ pal, activeSkills, onUpdate, onOpenDialog }: Props
             const elColor = ELEMENT_COLORS[el] ?? ELEMENT_COLORS["Normal"]
             const power   = skillObj?.power !== undefined && skillObj?.power !== 0 ? skillObj.power : "—"
 
-            // Check if this specific row is being edited
             const isEditing = editingLevels[row.originalIndex] !== undefined
             const displayValue = isEditing ? editingLevels[row.originalIndex] : String(row.Level)
 
@@ -121,7 +120,7 @@ export function PalLearnset({ pal, activeSkills, onUpdate, onOpenDialog }: Props
                   }}
                   onKeyDown={(e) => {
                     if (e.key === "Enter") {
-                      e.currentTarget.blur() // Automatically triggers onBlur save!
+                      e.currentTarget.blur()
                     }
                   }}
                   className="bg-muted text-primary text-xs px-1 py-1 rounded border border-border focus:outline-none focus:ring-1 focus:ring-primary"

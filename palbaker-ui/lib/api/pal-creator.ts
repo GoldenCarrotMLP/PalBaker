@@ -27,11 +27,12 @@ export const PalCreatorAPI = {
   async add(id: string, templateId: string): Promise<CreatorItem> {
     if (USE_LIVE_DATA) {
       try {
-        const response = await invoke<{ status: string; data: CreatorItem }>("creator_add", { id, templateId })
-        return response.data
+        const response = await invoke<{ status: string; data: CreatorItem }>("creator_add", { id, templateId });
+        if (response && response.status === "error") throw response;
+        return response.data;
       } catch (err) { handleBackendError(err) }
     }
-    return { CharacterID: id, TemplateID: templateId, Name: id, Description: "", ElementType1: "EPalElementType::Normal", BaseHP: 100, BaseAtk: 100, BaseDef: 100, BaseWorkSpeed: 70 } as CreatorItem
+    return { CharacterID: id, TemplateID: templateId, Name: id, Description: "", ElementType1: "EPalElementType::Normal", BaseHP: 100, BaseAtk: 100, BaseDef: 100, BaseWorkSpeed: 70 } as CreatorItem;
   },
 
   async save(pal: CreatorItem): Promise<CreatorItem> {
@@ -40,11 +41,12 @@ export const PalCreatorAPI = {
         const response = await invoke<{ status: string; data: CreatorItem }>("creator_save", {
           id: pal.CharacterID,
           data: JSON.stringify(pal)
-        })
-        return response.data
+        });
+        if (response && response.status === "error") throw response;
+        return response.data;
       } catch (err) { handleBackendError(err) }
     }
-    return pal
+    return pal;
   },
 
   async delete(id: string): Promise<void> {
@@ -56,9 +58,13 @@ export const PalCreatorAPI = {
 
   async refreshBP(id: string): Promise<any> {
     if (USE_LIVE_DATA) {
-      try { return await invoke("creator_refresh_bp", { id }) } 
+      try { 
+        const res: any = await invoke("creator_refresh_bp", { id });
+        if (res && res.status === "error") throw res;
+        return res;
+      } 
       catch (err) { handleBackendError(err) }
     }
-    return { status: "success", message: `Mocked blueprint refresh.` }
+    return { status: "success", message: `Mocked blueprint refresh.` };
   }
 }

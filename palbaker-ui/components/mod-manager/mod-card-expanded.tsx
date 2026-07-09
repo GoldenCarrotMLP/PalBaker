@@ -22,33 +22,36 @@ export function ModCardExpanded({ mod, onRefresh }: Props) {
   const { notifications, showNotification, dismissNotification } = useNotifications()
   const iconInputRef = useRef<HTMLInputElement>(null)
 
+  // Derived state sync (prevents react-hooks/set-state-in-effect)
+  const [prevPreserve, setPrevPreserve] = useState(mod.preserve_materials)
   const [preserveMaterials, setPreserveMaterials] = useState(mod.preserve_materials !== false)
+
+  if (mod.preserve_materials !== prevPreserve) {
+    setPrevPreserve(mod.preserve_materials)
+    setPreserveMaterials(mod.preserve_materials !== false)
+  }
+
   const [altermaticEnabled, setAltermaticEnabled] = useState(mod.is_altermatic_active)
   const [isAddModalOpen,    setIsAddModalOpen]     = useState(false)
   const [editingVariant,    setEditingVariant]     = useState<AltermaticVariant | null>(null)
   const [editingIndex,      setEditingIndex]       = useState(-1)
-  const [altermaticMetadata, setAltermaticMetadata] = useState<any>(null)
+  const [altermaticMetadata, setAltermaticMetadata] = useState<Record<string, unknown> | null>(null)
   const [traitsDb,          setTraitsDb]           = useState<Record<string, string>>({})
 
-  // Keep state synced if mod properties update externally
   useEffect(() => {
-    setPreserveMaterials(mod.preserve_materials !== false)
-  }, [mod.preserve_materials])
-
-  useEffect(() => {
-    if (!altermaticEnabled) return
+    if (!altermaticEnabled || mod.is_variant) return
     const load = async () => {
       try {
-        const meta   = await ModManagerAPI.altermaticMetadata(mod.name)
+        const meta = await ModManagerAPI.altermaticMetadata(mod.base_pal, mod.name)
         const caches = await ModManagerAPI.getAltermaticCaches()
-        setAltermaticMetadata(meta)
+        setAltermaticMetadata(meta as Record<string, unknown>)
         setTraitsDb(caches?.traits_db ?? caches?.passive_skills ?? {})
       } catch (err) {
         console.error("Failed to load Altermatic metadata:", err)
       }
     }
     load()
-  }, [altermaticEnabled, mod.name])
+  }, [altermaticEnabled, mod.base_pal, mod.name, mod.is_variant])
 
   const handleIconChange = async (e: React.ChangeEvent<HTMLInputElement>) => {
     const file = e.target.files?.[0]
@@ -56,8 +59,9 @@ export function ModCardExpanded({ mod, onRefresh }: Props) {
     try {
       const reader = new FileReader()
       reader.onload = async () => {
-        const bytes = Array.from(new Uint8Array(reader.result as ArrayBuffer))
-        await ModManagerAPI.saveModIconBytes(mod.name, file.name, bytes)
+        const buffer = reader.result as ArrayBuffer
+        const bytes = Array.from(new Uint8Array(buffer))
+        await ModManagerAPI.saveModIconBytes(mod.base_pal, mod.name, file.name, bytes)
         showNotification("Custom Pal Icon updated successfully!", "success")
         onRefresh()
       }
@@ -70,7 +74,7 @@ export function ModCardExpanded({ mod, onRefresh }: Props) {
   const handlePreserveToggle = async (val: boolean) => {
     try {
       setPreserveMaterials(val)
-      await ModManagerAPI.setModPreserveMaterials(mod.name, val)
+      await ModManagerAPI.setModPreserveMaterials(mod.base_pal, mod.name, val)
       showNotification(
         val 
           ? "Material preservation enabled! Custom Unreal shaders won't be overwritten. ;3"
@@ -91,8 +95,6 @@ export function ModCardExpanded({ mod, onRefresh }: Props) {
   return (
     <div className="border-t border-border px-5 py-5">
       <div className="flex gap-6 items-start">
-
-        {/* Col 1: Custom Pal Icon & General Mod Preferences */}
         <div className="flex flex-col gap-4 shrink-0 w-[160px]">
           <div className="flex flex-col gap-2">
             <span className="text-muted-foreground text-xs font-semibold uppercase tracking-wider">
@@ -113,9 +115,10 @@ export function ModCardExpanded({ mod, onRefresh }: Props) {
               {mod.has_icon ? (
                 <div className="size-full rounded flex items-center justify-center bg-muted relative">
                   {mod.icon_path && (
+                    /* eslint-disable-next-line @next/next/no-img-element */
                     <img
                       src={
-                        typeof window !== "undefined" && (window as any).__TAURI_INTERNALS__ !== undefined
+                        typeof window !== "undefined" && (window as unknown as { __TAURI_INTERNALS__?: unknown }).__TAURI_INTERNALS__ !== undefined
                           ? convertFileSrc(mod.icon_path)
                           : mod.icon_path.startsWith("http") ? mod.icon_path : `https://asset.localhost/${mod.icon_path}`
                       }
@@ -124,7 +127,6 @@ export function ModCardExpanded({ mod, onRefresh }: Props) {
                       onError={(e) => { e.currentTarget.style.display = "none" }}
                     />
                   )}
-                  <span className="text-muted-foreground text-xs font-mono absolute"></span>
                 </div>
               ) : (
                 <ImagePlus className="size-6 text-muted-foreground group-hover:text-primary transition-colors" />
@@ -135,7 +137,6 @@ export function ModCardExpanded({ mod, onRefresh }: Props) {
 
           <Separator className="opacity-30" />
 
-          {/* Individual Pal Materials Preservation Toggle */}
           <div className="flex flex-col gap-1.5">
             <div className="flex items-center justify-between gap-1">
               <span className="text-muted-foreground text-[10px] font-bold uppercase tracking-wider">
@@ -159,39 +160,39 @@ export function ModCardExpanded({ mod, onRefresh }: Props) {
         </div>
 
         <Separator orientation="vertical" className="self-stretch opacity-50" />
-
-        {/* Col 2: Cries Replacement */}
         <CriesPanel mod={mod} onRefresh={onRefresh} onNotify={showNotification} />
 
-        <Separator orientation="vertical" className="self-stretch opacity-50" />
-
-        {/* Col 3: Altermatic Variants */}
-        <AltermaticPanel
-          mod={mod}
-          enabled={altermaticEnabled}
-          onToggle={setAltermaticEnabled}
-          onOpenAdd={() => setIsAddModalOpen(true)}
-          onOpenEdit={handleOpenEdit}
-          onNotify={showNotification}
-          onRefresh={onRefresh}
-        />
-
+        {!mod.is_variant && (
+          <>
+            <Separator orientation="vertical" className="self-stretch opacity-50" />
+            <AltermaticPanel
+              mod={mod}
+              enabled={altermaticEnabled}
+              onToggle={setAltermaticEnabled}
+              onOpenAdd={() => setIsAddModalOpen(true)}
+              onOpenEdit={handleOpenEdit}
+              onNotify={showNotification}
+              onRefresh={onRefresh}
+            />
+          </>
+        )}
       </div>
 
-      {/* Modals */}
-      {isAddModalOpen && (
+      {isAddModalOpen && !mod.is_variant && (
         <AddVariantModal
+          basePal={mod.base_pal}
           modName={mod.name}
           localizedName={mod.localized_name}
-          blendFiles={altermaticMetadata?.blend_files ?? []}
+          blendFiles={(altermaticMetadata?.blend_files as string[]) ?? []}
           onClose={() => setIsAddModalOpen(false)}
           onCreated={onRefresh}
           onNotify={showNotification}
         />
       )}
 
-      {editingVariant && (
+      {editingVariant && !mod.is_variant && (
         <EditVariantModal
+          basePal={mod.base_pal}
           modName={mod.name}
           variant={editingVariant}
           variantIndex={editingIndex}

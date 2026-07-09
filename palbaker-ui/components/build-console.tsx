@@ -17,14 +17,33 @@ let logIdCounter = 0;
 
 export function BuildConsole() {
   const [expanded, setExpanded] = useState(false)
-  const [logs, setLogs] = useState<(LogEntry & { id: number })[]>([])
   const [ctxMenu, setCtxMenu] = useState<{ x: number; y: number } | null>(null)
+  
+  // Hydration Mount Guard
+  const [mounted, setMounted] = useState(false)
   
   const [unrealStatus, setUnrealStatus] = useState<string>("READY")
   const [statusColorClass, setStatusColorClass] = useState<string>("text-status-success")
   const [statusTooltip, setStatusTooltip] = useState<string>("Initializing connectivity status...")
 
+  const [logs, setLogs] = useState<(LogEntry & { id: number })[]>(() => {
+    const isLive = typeof window !== "undefined" && (window as unknown as { __TAURI_INTERNALS__?: unknown }).__TAURI_INTERNALS__ !== undefined
+    if (isLive) {
+      return [
+        {
+          id: ++logIdCounter,
+          time: new Date().toLocaleTimeString("en-US", { hour12: false }),
+          level: "INFO",
+          msg: "Terminal connected to Tauri backend. Listening for subprocess logs...",
+        },
+      ]
+    }
+    return CONSOLE_LOGS.map(l => ({ ...l, id: ++logIdCounter }))
+  })
+
   useEffect(() => {
+    setMounted(true)
+    
     const checkHealth = async () => {
       try {
         const res = await UnrealHealthAPI.ping()
@@ -63,32 +82,14 @@ export function BuildConsole() {
   }, [])
 
   useEffect(() => {
-    const isLive = typeof window !== "undefined" && (window as any).__TAURI_INTERNALS__ !== undefined
-    if (isLive) {
-      setLogs([
-        {
-          id: ++logIdCounter,
-          time: new Date().toLocaleTimeString("en-US", { hour12: false }),
-          level: "INFO",
-          msg: "Terminal connected to Tauri backend. Listening for subprocess logs...",
-        },
-      ])
-    } else {
-      setLogs(CONSOLE_LOGS.map(l => ({ ...l, id: ++logIdCounter })))
-    }
-  }, [])
-
-  useEffect(() => {
     const unsubscribe = BuildConsoleAPI.subscribe((newLog) => {
       setLogs((prev) => {
         const nextLogs = [{ ...newLog, id: ++logIdCounter }, ...prev]
-        // Cap the console history to prevent massive memory leaks during UE cooking
         return nextLogs.length > 500 ? nextLogs.slice(0, 500) : nextLogs
       })
     })
     return () => unsubscribe()
   }, [])
-
 
   const copyAll = () => {
     const text = logs
@@ -103,41 +104,39 @@ export function BuildConsole() {
     { label: "Clear console", icon: <Trash2 className="size-3.5" />, danger: true },
   ]
 
-  const latest = logs[0] || { time: "00:00:00", level: "INFO" as const, msg: "Terminal Ready." }
+  // Dynamic Parameter Decoupler: Forces default fallbacks during the hydration render pass
+  const latestTime = mounted && logs[0] ? logs[0].time : "00:00:00"
+  const latestMsg = mounted && logs[0] ? logs[0].msg : "Terminal Ready."
+  const latestLevel = mounted && logs[0] ? logs[0].level : ("INFO" as const)
 
   return (
     <>
-      <div className="shrink-0 border-t border-border bg-console-bg">
-        {/* Collapsed bar */}
-        <div
-          className="flex items-center gap-3 px-4 h-9 cursor-pointer select-none"
-          onClick={() => setExpanded((v) => !v)}
-        >
-          <Terminal className="size-3.5 text-primary shrink-0" />
-          <span className="text-primary text-xs font-semibold font-mono uppercase tracking-wider whitespace-nowrap">
-            Build Console Terminal
-          </span>
+      <div
+        onContextMenu={(e) => {
+          e.preventDefault()
+          setCtxMenu({ x: e.clientX, y: e.clientY })
+        }}
+        className="rounded-md border bg-card transition-colors"
+      >
+        <div className="flex items-center gap-3 px-4 py-3.5">
+          <span className="text-muted-foreground text-xs font-semibold uppercase tracking-wider">Terminal</span>
           <span className="text-muted-foreground text-xs font-mono shrink-0">•</span>
-          <span className="text-muted-foreground text-xs font-mono shrink-0">[{latest.time}]</span>
-          <span className={cn("text-xs font-mono truncate flex-1", LEVEL_COLORS[latest.level] ?? "text-foreground")}>
-            {latest.msg}
+          <span className="text-muted-foreground text-xs font-mono shrink-0">[{latestTime}]</span>
+          <span className={cn("text-xs font-mono truncate flex-1", LEVEL_COLORS[latestLevel])}>
+            {latestMsg}
           </span>
           <div className="flex items-center gap-3 ml-2 shrink-0">
-            <span className="text-muted-foreground text-xs font-mono">
-              BUFFER: {(JSON.stringify(logs).length / 1024).toFixed(1)}KB
-            </span>
             <span className="text-muted-foreground text-xs font-mono">
               UNREAL: <span className={statusColorClass} title={statusTooltip}>{unrealStatus}</span>
             </span>
             {expanded ? (
-              <ChevronDown className="size-3.5 text-muted-foreground" />
+              <ChevronDown className="size-3.5 text-muted-foreground cursor-pointer" onClick={() => setExpanded(false)} />
             ) : (
-              <ChevronUp className="size-3.5 text-muted-foreground" />
+              <ChevronUp className="size-3.5 text-muted-foreground cursor-pointer" onClick={() => setExpanded(true)} />
             )}
           </div>
         </div>
 
-        {/* Expanded log panel — right-click for Clear / Copy */}
         {expanded && (
           <div
             className="border-t border-border px-4 py-3 max-h-48 overflow-y-auto"
@@ -146,11 +145,11 @@ export function BuildConsole() {
               setCtxMenu({ x: e.clientX, y: e.clientY })
             }}
           >
-           <div className="flex flex-col gap-1">
+            <div className="flex flex-col gap-1">
               {logs.map((log) => (
                 <div key={log.id} className="flex items-start gap-3 text-xs font-mono">
                   <span className="text-muted-foreground shrink-0">[{log.time}]</span>
-                  <span className={cn("shrink-0 font-semibold w-[52px]", LEVEL_COLORS[log.level] ?? "text-foreground")}>
+                  <span className={cn("shrink-0 font-semibold w-[52px]", LEVEL_COLORS[log.level])}>
                     {log.level}
                   </span>
                   <span className="text-foreground/80">{log.msg}</span>

@@ -1,27 +1,38 @@
 // lib/api/core.ts
-export const USE_LIVE_DATA = typeof window !== "undefined" && (window as any).__TAURI_INTERNALS__ !== undefined;
+export const USE_LIVE_DATA = typeof window !== "undefined" && (window as unknown as { __TAURI_INTERNALS__?: unknown }).__TAURI_INTERNALS__ !== undefined;
 
 export const IS_DEV = typeof window !== "undefined" && (
   process.env.NODE_ENV === "development" || 
-  !(window as any).__TAURI_INTERNALS__
+  !(window as unknown as { __TAURI_INTERNALS__?: unknown }).__TAURI_INTERNALS__
 );
 
-export function handleBackendError(err: any): never {
-  let cleanMessage = String(err);
+export function handleBackendError(err: unknown): never {
+  let cleanMessage = "";
   let errorCode: string | null = null;
 
-  try {
-    const parsed = JSON.parse(cleanMessage);
-    if (parsed.error_code) {
-      errorCode = parsed.error_code;
-    } else if (parsed.message) {
-      cleanMessage = parsed.message;
-    } else if (parsed.error) {
-      cleanMessage = parsed.error;
+  if (err && typeof err === "object") {
+    const errObj = err as Record<string, unknown>;
+    errorCode = typeof errObj.error_code === "string" ? errObj.error_code : null;
+    cleanMessage = typeof errObj.message === "string" 
+      ? errObj.message 
+      : (typeof errObj.error === "string" ? errObj.error : JSON.stringify(err));
+  } else {
+    cleanMessage = String(err);
+    try {
+      const parsed = JSON.parse(cleanMessage);
+      if (parsed && typeof parsed === "object") {
+        const parsedObj = parsed as Record<string, unknown>;
+        if (typeof parsedObj.error_code === "string") {
+          errorCode = parsedObj.error_code;
+        } else if (typeof parsedObj.message === "string") {
+          cleanMessage = parsedObj.message;
+        } else if (typeof parsedObj.error === "string") {
+          cleanMessage = parsedObj.error;
+        }
+      }
+    } catch {
+      // Clean bypass
     }
-  } catch (e) {
-    // If JSON parsing fails (e.g. raw "CLI exited with status 1" strings),
-    // we do absolutely nothing. We just let the cleanMessage string pass through intact!
   }
 
   if (errorCode) {

@@ -38,7 +38,7 @@ export function AssetInjectModal({ isOpen, onClose, onConfirm }: Props) {
         </h3>
         
         <p className="text-muted-foreground text-sm leading-relaxed">
-          Some required material assets and templates are missing from your ModKit's Content folder. I can inject these matching assets automatically for you! 🦊✨
+          Some required material assets and templates are missing from your ModKit&apos;s Content folder. I can inject these matching assets automatically for you! 🦊✨
         </p>
 
         <div className="flex flex-col gap-2.5 w-full mt-2">

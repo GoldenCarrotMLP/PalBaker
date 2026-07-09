@@ -38,7 +38,7 @@ export function RemoteExecDisabledModal({ isOpen, onClose, onConfirm }: Props) {
         </h3>
         
         <p className="text-muted-foreground text-sm leading-relaxed">
-          Oh noes! Python Remote Execution setting is disabled in Unreal Editor. I cannot compile, sync, or trigger commands automatically without it! Let's configure it and boot! ;3
+          Oh noes! Python Remote Execution setting is disabled in Unreal Editor. I cannot compile, sync, or trigger commands automatically without it! Let&apos;s configure it and boot! ;3
         </p>
 
         <div className="flex flex-col gap-2.5 w-full mt-2">

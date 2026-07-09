@@ -18,7 +18,7 @@ export const viewport: Viewport = {
   themeColor: "#031427",
 }
 
-export default function RootLayout({ children }: { children: React.ReactNode }) {
+export default function RootLayout() {
   return (
     <html lang="en" className={`bg-background ${inter.variable} ${geistMono.variable} font-sans`}>
       <body className="antialiased">

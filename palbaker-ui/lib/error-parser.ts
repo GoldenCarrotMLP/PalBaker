@@ -16,19 +16,55 @@ export interface DiagnosticReport {
 export function parseBackendError(rawError: string): DiagnosticReport {
   let err = String(rawError).trim();
 
-  // Unpack raw JSON error envelopes to extract the core descriptive message
+  // 1. PHYSICAL MEMORY (RAM) LIMIT EXHAUSTIONS
+  // Detects the signature of the low memory block immediately
+  if (
+    err.includes("Low Physical Memory") || 
+    err.includes("free RAM is available") || 
+    err.includes("Win32 memory limits")
+  ) {
+    let extractedMsg = "";
+    
+    // Attempt to extract the exact text from the JSON line outputted by the background thread
+    const match = err.match(/"message":\s*"([^"]*(?:Low Physical Memory|free RAM is available)[^"]*)"/i);
+    if (match && match[1]) {
+      extractedMsg = match[1];
+    } else {
+      // Fallback: extract the physical raw line containing the memory limits
+      const lines = err.split(/[\r\n]+/);
+      const matchedLine = lines.find(l => l.includes("Low Physical Memory") || l.includes("free RAM is available"));
+      extractedMsg = matchedLine ? matchedLine.trim() : err;
+    }
+
+    // Clean up escaped sequences left by JSON serialization
+    extractedMsg = extractedMsg.replace(/\\"/g, '"').replace(/\\n/g, '\n');
+
+    return {
+      category: "COOK_PACK",
+      title: "Low System Memory Warning",
+      friendlyMsg: extractedMsg, // Forward raw backend message directly
+      remediations: [
+        { label: "Dismiss", actionKey: "close_modal", style: "primary" }
+      ]
+    };
+  }
+
+  // Unpack raw JSON error envelopes to extract the core descriptive message for downstream checks
   try {
     const parsed = JSON.parse(err);
-    if (parsed.message) {
-      err = parsed.message;
-    } else if (parsed.error) {
-      err = parsed.error;
+    if (parsed && typeof parsed === "object") {
+      const parsedObj = parsed as Record<string, unknown>;
+      if (typeof parsedObj.message === "string") {
+        err = parsedObj.message;
+      } else if (typeof parsedObj.error === "string") {
+        err = parsedObj.error;
+      }
     }
-  } catch (e) {
+  } catch {
     // Not a JSON string, keep it as is
   }
 
-  // 1. CONFIGURATION & PATH ERRORS
+  // 2. CONFIGURATION & PATH ERRORS
   if (
     err.includes("Missing required setting") ||
     err.includes("does not exist on disk") ||
@@ -46,7 +82,7 @@ export function parseBackendError(rawError: string): DiagnosticReport {
     };
   }
 
-  // 2. UNREAL EDITOR CONNECTIVITY
+  // 3. UNREAL EDITOR CONNECTIVITY
   if (
     err.includes("Unreal Editor is not running") ||
     err.includes("Remote Execution is currently disabled") ||
@@ -68,7 +104,7 @@ export function parseBackendError(rawError: string): DiagnosticReport {
     };
   }
 
-  // 3. ARCHIVE EXTRACTION & LOCALIZATION
+  // 4. ARCHIVE EXTRACTION & LOCALIZATION
   if (
     err.includes("cue4parse") ||
     err.includes("usmap") ||
@@ -87,7 +123,7 @@ export function parseBackendError(rawError: string): DiagnosticReport {
     };
   }
 
-  // 4. BLENDER HEADLESS PIPELINE
+  // 5. BLENDER HEADLESS PIPELINE
   if (
     err.includes("Failed to pre-install PSK addon") ||
     err.includes("no .psk skeletal mesh found") ||
@@ -105,7 +141,7 @@ export function parseBackendError(rawError: string): DiagnosticReport {
     };
   }
 
-  // 4b. RIGGING & ARMATURE ERRORS
+  // 5b. RIGGING & ARMATURE ERRORS
   if (err.includes("StaticMesh instead of a SkeletalMesh")) {
     return {
       category: "BLENDER",
@@ -117,7 +153,7 @@ export function parseBackendError(rawError: string): DiagnosticReport {
     };
   }
 
-  // 5. MSVC C++ COMPILER & TOOLSETS
+  // 6. MSVC C++ COMPILER & TOOLSETS
   if (
     err.includes("No Visual Studio 2022") ||
     err.includes("No compliant v143") ||
@@ -136,7 +172,7 @@ export function parseBackendError(rawError: string): DiagnosticReport {
     };
   }
 
-  // 6. STANDALONE PAL CREATION
+  // 7. STANDALONE PAL CREATION
   if (
     err.includes("UAssetGUI") ||
     err.includes("already exists") ||
@@ -154,7 +190,7 @@ export function parseBackendError(rawError: string): DiagnosticReport {
     };
   }
 
-  // 7. WWISE AUDIO pipeline
+  // 8. WWISE AUDIO pipeline
   if (
     err.includes("vgmstream-cli") ||
     err.includes("Wwise environment not found") ||
@@ -171,12 +207,11 @@ export function parseBackendError(rawError: string): DiagnosticReport {
     };
   }
 
-  // 8. COOK & PACK SYSTEM
+  // 9. COOK & PACK SYSTEM
   if (
     err.includes("Cannot overwrite") ||
     err.includes("Close the game") ||
-    err.includes("COOK FAILED") ||
-    err.includes("Low Physical Memory")
+    err.includes("COOK FAILED")
   ) {
     return {
       category: "COOK_PACK",
