@@ -26,8 +26,6 @@ fn emit_log(app: &AppHandle, level: &str, msg: &str) {
     let _ = app.emit("console_log", payload);
 }
 
-/// Robust JSON extractor: Scans backwards structurally for matching {} brackets.
-/// This guarantees extraction even if the terminal appends invisible ANSI codes or newlines.
 fn parse_last_json_line(raw: &str) -> Result<Value, String> {
     for line in raw.lines().rev() {
         if let Some(start) = line.find('{') {
@@ -41,7 +39,6 @@ fn parse_last_json_line(raw: &str) -> Result<Value, String> {
             }
         }
     }
-    // Fallback to parsing the whole string if no line-by-line match succeeded
     serde_json::from_str(raw).map_err(|e| format!("JSON parse error: {}. Raw output: {}", e, raw))
 }
 
@@ -242,11 +239,11 @@ pub async fn get_app_version() -> Result<String, String> {
 }
 
 #[tauri::command]
-pub async fn run_mod_action(app: AppHandle, state: State<'_, AppState>, mod_name: String, action: String) -> Result<Value, String> {
+pub async fn run_mod_action(app: AppHandle, state: State<'_, AppState>, base_pal: String, mod_name: String, action: String) -> Result<Value, String> {
     let mapped_action = match action.as_str() {
         "extract_pal" => "extract",
         "create_blend" => "create-blend",
-        "refresh_blend" => "refresh-blend", // Add this safe mapping case
+        "refresh_blend" => "refresh-blend",
         "cook_only" => "cook",
         "pack_only" => "pack",
         "browse_ue" | "browse_unreal" => "browse-ue",
@@ -255,15 +252,15 @@ pub async fn run_mod_action(app: AppHandle, state: State<'_, AppState>, mod_name
         "open_pak" => "open-pak",
         other => other,
     };
-    let raw = run_cli(&app, &state, &["mod", mapped_action, &mod_name])?;
+    let raw = run_cli(&app, &state, &["mod", mapped_action, &base_pal, &mod_name])?;
     let parsed: Value = parse_last_json_line(&raw).unwrap_or(serde_json::json!({ "status": "success", "message": raw }));
     Ok(parsed)
 }
 
-
 #[tauri::command]
 pub async fn unreal_ping(app: AppHandle, state: State<'_, AppState>) -> Result<Value, String> {
-    let raw = run_cli(&app, &state, &["mod", "ping", "_"])?;
+    // We can just ping with dummy base_pal and mod
+    let raw = run_cli(&app, &state, &["mod", "ping", "PingCheck", "PingCheck"])?;
     let parsed: Value = parse_last_json_line(&raw).unwrap_or(serde_json::json!({
         "unreal_running": false, "ini_enabled": false, "connection_active": false,
         "plugin_loaded": false, "diagnostic_code": "UNREAL_CLOSED",
@@ -273,44 +270,44 @@ pub async fn unreal_ping(app: AppHandle, state: State<'_, AppState>) -> Result<V
 }
 
 #[tauri::command]
-pub async fn audio_set(app: AppHandle, state: State<'_, AppState>, mod_name: String, cry_name: String, path: String) -> Result<Value, String> {
-    let raw = run_cli(&app, &state, &["audio", "set", &mod_name, &cry_name, &path])?;
+pub async fn audio_set(app: AppHandle, state: State<'_, AppState>, base_pal: String, mod_name: String, cry_name: String, path: String) -> Result<Value, String> {
+    let raw = run_cli(&app, &state, &["audio", "set", &base_pal, &mod_name, &cry_name, &path])?;
     let parsed: Value = parse_last_json_line(&raw).unwrap_or(serde_json::json!({ "status": "success", "message": raw }));
     Ok(parsed)
 }
 
 #[tauri::command]
-pub async fn audio_clear(app: AppHandle, state: State<'_, AppState>, mod_name: String, cry_name: String) -> Result<Value, String> {
-    let raw = run_cli(&app, &state, &["audio", "clear", &mod_name, &cry_name])?;
+pub async fn audio_clear(app: AppHandle, state: State<'_, AppState>, base_pal: String, mod_name: String, cry_name: String) -> Result<Value, String> {
+    let raw = run_cli(&app, &state, &["audio", "clear", &base_pal, &mod_name, &cry_name])?;
     let parsed: Value = parse_last_json_line(&raw).unwrap_or(serde_json::json!({ "status": "success", "message": raw }));
     Ok(parsed)
 }
 
 #[tauri::command]
-pub async fn audio_play(app: AppHandle, state: State<'_, AppState>, mod_name: String, cry_name: String) -> Result<Value, String> {
-    let raw = run_cli(&app, &state, &["audio", "play", &mod_name, &cry_name])?;
+pub async fn audio_play(app: AppHandle, state: State<'_, AppState>, base_pal: String, mod_name: String, cry_name: String) -> Result<Value, String> {
+    let raw = run_cli(&app, &state, &["audio", "play", &base_pal, &mod_name, &cry_name])?;
     let parsed: Value = parse_last_json_line(&raw).unwrap_or(serde_json::json!({ "status": "success", "message": raw }));
     Ok(parsed)
 }
 
 #[tauri::command]
-pub async fn altermatic_toggle(app: AppHandle, state: State<'_, AppState>, mod_name: String, enabled: bool) -> Result<Value, String> {
+pub async fn altermatic_toggle(app: AppHandle, state: State<'_, AppState>, base_pal: String, mod_name: String, enabled: bool) -> Result<Value, String> {
     let status = if enabled { "on" } else { "off" };
-    let raw = run_cli(&app, &state, &["altermatic", "toggle", &mod_name, status])?;
+    let raw = run_cli(&app, &state, &["altermatic", "toggle", &base_pal, &mod_name, status])?;
     let parsed: Value = parse_last_json_line(&raw).unwrap_or(serde_json::json!({ "status": "success", "message": raw }));
     Ok(parsed)
 }
 
 #[tauri::command]
-pub async fn altermatic_metadata(app: AppHandle, state: State<'_, AppState>, mod_name: String) -> Result<Value, String> {
-    let raw = run_cli(&app, &state, &["altermatic", "metadata", &mod_name])?;
+pub async fn altermatic_metadata(app: AppHandle, state: State<'_, AppState>, base_pal: String, mod_name: String) -> Result<Value, String> {
+    let raw = run_cli(&app, &state, &["altermatic", "metadata", &base_pal, &mod_name])?;
     let parsed: Value = parse_last_json_line(&raw)?;
     Ok(parsed)
 }
 
 #[tauri::command]
-pub async fn altermatic_add(app: AppHandle, state: State<'_, AppState>, mod_name: String, label: String, custom: bool, source: String) -> Result<Value, String> {
-    let mut args = vec!["altermatic", "add", &mod_name, &label];
+pub async fn altermatic_add(app: AppHandle, state: State<'_, AppState>, base_pal: String, mod_name: String, label: String, custom: bool, source: String) -> Result<Value, String> {
+    let mut args = vec!["altermatic", "add", &base_pal, &mod_name, &label];
     if custom { args.push("--custom"); }
     args.push("--source");
     args.push(&source);
@@ -320,9 +317,9 @@ pub async fn altermatic_add(app: AppHandle, state: State<'_, AppState>, mod_name
 }
 
 #[tauri::command]
-pub async fn altermatic_delete(app: AppHandle, state: State<'_, AppState>, mod_name: String, index: i32) -> Result<Value, String> {
+pub async fn altermatic_delete(app: AppHandle, state: State<'_, AppState>, base_pal: String, mod_name: String, index: i32) -> Result<Value, String> {
     let index_str = index.to_string();
-    let raw = run_cli(&app, &state, &["altermatic", "delete", &mod_name, &index_str])?;
+    let raw = run_cli(&app, &state, &["altermatic", "delete", &base_pal, &mod_name, &index_str])?;
     let parsed: Value = parse_last_json_line(&raw).unwrap_or(serde_json::json!({ "status": "success", "message": raw }));
     Ok(parsed)
 }
@@ -336,46 +333,54 @@ pub async fn altermatic_save(app: AppHandle, state: State<'_, AppState>, index: 
 }
 
 #[tauri::command]
-pub async fn altermatic_open_blend(app: AppHandle, state: State<'_, AppState>, mod_name: String, blend_name: String, category: String) -> Result<Value, String> {
-    let raw = run_cli(&app, &state, &["altermatic", "open-blend", &mod_name, &blend_name, "--category", &category])?;
+pub async fn altermatic_open_blend(app: AppHandle, state: State<'_, AppState>, base_pal: String, mod_name: String, blend_name: String, category: String) -> Result<Value, String> {
+    let raw = run_cli(&app, &state, &["altermatic", "open-blend", &base_pal, &mod_name, &blend_name, "--category", &category])?;
     let parsed: Value = parse_last_json_line(&raw).unwrap_or(serde_json::json!({ "status": "success", "message": raw }));
     Ok(parsed)
 }
 
 #[tauri::command]
-pub async fn altermatic_sidecar(app: AppHandle, state: State<'_, AppState>, mod_name: String, blend_name: String) -> Result<Value, String> {
-    let raw = run_cli(&app, &state, &["altermatic", "sidecar", &mod_name, &blend_name])?;
+pub async fn altermatic_sidecar(app: AppHandle, state: State<'_, AppState>, base_pal: String, mod_name: String, blend_name: String) -> Result<Value, String> {
+    let raw = run_cli(&app, &state, &["altermatic", "sidecar", &base_pal, &mod_name, &blend_name])?;
     let parsed: Value = parse_last_json_line(&raw)?;
     Ok(parsed)
 }
 
 #[tauri::command]
-pub async fn set_mod_icon(app: AppHandle, state: State<'_, AppState>, mod_name: String, path: String) -> Result<Value, String> {
-    let raw = run_cli(&app, &state, &["mod", "set-icon", &mod_name, "--path", &path])?;
+pub async fn set_mod_icon(app: AppHandle, state: State<'_, AppState>, base_pal: String, mod_name: String, path: String) -> Result<Value, String> {
+    let raw = run_cli(&app, &state, &["mod", "set-icon", &base_pal, &mod_name, "--path", &path])?;
     let parsed: Value = parse_last_json_line(&raw).unwrap_or(serde_json::json!({ "status": "success", "message": raw }));
     Ok(parsed)
 }
 
 #[tauri::command]
-pub async fn save_mod_icon_bytes(app: AppHandle, state: State<'_, AppState>, mod_name: String, filename: String, bytes: Vec<u8>) -> Result<Value, String> {
+pub async fn save_mod_icon_bytes(app: AppHandle, state: State<'_, AppState>, base_pal: String, mod_name: String, filename: String, bytes: Vec<u8>) -> Result<Value, String> {
     let temp_dir = std::env::temp_dir();
     let temp_file_path = temp_dir.join(&filename);
     std::fs::write(&temp_file_path, bytes).map_err(|e| format!("Failed to write temp file: {}", e))?;
     let path_str = temp_file_path.to_string_lossy().into_owned();
-    let raw = run_cli(&app, &state, &["mod", "set-icon", &mod_name, "--path", &path_str])?;
+    let raw = run_cli(&app, &state, &["mod", "set-icon", &base_pal, &mod_name, "--path", &path_str])?;
     let _ = std::fs::remove_file(temp_file_path);
     let parsed: Value = parse_last_json_line(&raw).unwrap_or(serde_json::json!({ "status": "success", "message": raw }));
     Ok(parsed)
 }
 
 #[tauri::command]
-pub async fn save_mod_audio_bytes(app: AppHandle, state: State<'_, AppState>, mod_name: String, cry_name: String, filename: String, bytes: Vec<u8>) -> Result<Value, String> {
+pub async fn save_mod_audio_bytes(app: AppHandle, state: State<'_, AppState>, base_pal: String, mod_name: String, cry_name: String, filename: String, bytes: Vec<u8>) -> Result<Value, String> {
     let temp_dir = std::env::temp_dir();
     let temp_file_path = temp_dir.join(&filename);
     std::fs::write(&temp_file_path, bytes).map_err(|e| format!("Failed to write temp file: {}", e))?;
     let path_str = temp_file_path.to_string_lossy().into_owned();
-    let raw = run_cli(&app, &state, &["audio", "set", &mod_name, &cry_name, &path_str])?;
+    let raw = run_cli(&app, &state, &["audio", "set", &base_pal, &mod_name, &cry_name, &path_str])?;
     let _ = std::fs::remove_file(temp_file_path);
+    let parsed: Value = parse_last_json_line(&raw).unwrap_or(serde_json::json!({ "status": "success", "message": raw }));
+    Ok(parsed)
+}
+
+#[tauri::command]
+pub async fn set_mod_preserve_materials(app: AppHandle, state: State<'_, AppState>, base_pal: String, mod_name: String, enabled: bool) -> Result<Value, String> {
+    let status = if enabled { "true" } else { "false" };
+    let raw = run_cli(&app, &state, &["mod", "set-preserve-materials", &base_pal, &mod_name, "--path", status])?;
     let parsed: Value = parse_last_json_line(&raw).unwrap_or(serde_json::json!({ "status": "success", "message": raw }));
     Ok(parsed)
 }
@@ -400,21 +405,21 @@ pub async fn ue4ss_manage(app: AppHandle, state: State<'_, AppState>, action: St
     let parsed: Value = parse_last_json_line(&raw).unwrap_or(serde_json::json!({ "status": "success", "message": raw }));
     Ok(parsed)
 }
+
 #[tauri::command] 
 pub async fn palschema_manage(app: AppHandle, state: State<'_, AppState>, action: String) -> Result<Value, String> {
-    // FIX: Point this explicitly to our new PalSchema python command
     let raw = run_cli(&app, &state, &["env", "palschema-install", "--action", &action])?;
     let parsed: Value = parse_last_json_line(&raw).unwrap_or(serde_json::json!({ "status": "success", "message": raw }));
     Ok(parsed)
 }
 
-// NEW: Dedicated command for the C++ Editor Plugin
 #[tauri::command]
 pub async fn cpp_plugin_manage(app: AppHandle, state: State<'_, AppState>, action: String) -> Result<Value, String> {
     let raw = run_cli(&app, &state, &["env", "install-plugin", "--action", &action])?;
     let parsed: Value = parse_last_json_line(&raw).unwrap_or(serde_json::json!({ "status": "success", "message": raw }));
     Ok(parsed)
 }
+
 #[tauri::command]
 pub async fn creator_refresh_bp(app: AppHandle, state: State<'_, AppState>, id: String) -> Result<Value, String> {
     let raw = run_cli(&app, &state, &["creator", "refresh-bp", &id])?;
@@ -458,16 +463,15 @@ pub async fn env_inject_assets(app: AppHandle, state: State<'_, AppState>) -> Re
 }
 
 #[tauri::command]
-pub async fn env_extract_icons(app: AppHandle, state: State<'_, AppState>) -> Result<Value, String> {
-    let raw = run_cli(&app, &state, &["env", "extract-icons"])?;
+pub async fn set_vanilla_replacer(app: AppHandle, state: State<'_, AppState>, base_pal: String, variant_name: String) -> Result<Value, String> {
+    let raw = run_cli(&app, &state, &["mod", "set-vanilla-replacer", &base_pal, &variant_name])?;
     let parsed: Value = parse_last_json_line(&raw).unwrap_or(serde_json::json!({ "status": "success", "message": raw }));
     Ok(parsed)
 }
 
 #[tauri::command]
-pub async fn set_mod_preserve_materials(app: AppHandle, state: State<'_, AppState>, mod_name: String, enabled: bool) -> Result<Value, String> {
-    let status = if enabled { "true" } else { "false" };
-    let raw = run_cli(&app, &state, &["mod", "set-preserve-materials", &mod_name, "--path", status])?;
+pub async fn env_extract_icons(app: AppHandle, state: State<'_, AppState>) -> Result<Value, String> {
+    let raw = run_cli(&app, &state, &["env", "extract-icons"])?;
     let parsed: Value = parse_last_json_line(&raw).unwrap_or(serde_json::json!({ "status": "success", "message": raw }));
     Ok(parsed)
 }

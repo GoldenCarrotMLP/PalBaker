@@ -73,13 +73,14 @@ function cleanPyCache(dir) {
   }
 }
 
-const palbaker-cliDir = path.join(__dirname, 'palbaker-cli');
+// FIXED: Renamed identifier from 'palbaker-cliDir' to 'palbakerCliDir' to fix SyntaxError
+const palbakerCliDir = path.join(__dirname, 'palbaker-cli');
 
 // 0b. Pre-build cache cleanup to prevent stale python bytecode packages
 console.log("\n🧹 Cleaning old build caches and temporary python files...");
-fs.rmSync(path.join(palbaker-cliDir, 'build'), { recursive: true, force: true });
-fs.rmSync(path.join(palbaker-cliDir, 'dist'), { recursive: true, force: true });
-cleanPyCache(palbaker-cliDir);
+fs.rmSync(path.join(palbakerCliDir, 'build'), { recursive: true, force: true });
+fs.rmSync(path.join(palbakerCliDir, 'dist'), { recursive: true, force: true });
+cleanPyCache(palbakerCliDir);
 
 // 1. Synchronize version files across the workspace using current git counts
 console.log("\n📌 Synchronizing version files across workspace...");
@@ -87,11 +88,11 @@ execSync('node scripts/update-version.mjs', { stdio: 'inherit' });
 
 // 2. Install Python dependencies
 console.log("\n🐍 Installing Python dependencies...");
-execSync('pip install pyinstaller', { stdio: 'inherit', cwd: palbaker-cliDir });
+execSync('pip install pyinstaller', { stdio: 'inherit', cwd: palbakerCliDir });
 
 // 3. Build Python Backend with PyInstaller (Using --clean to force non-stale builds!)
 console.log("\n📦 Compiling Python Backend...");
-execSync('pyinstaller palbaker_cli.spec --noconfirm --clean', { stdio: 'inherit', cwd: palbaker-cliDir });
+execSync('pyinstaller palbaker_cli.spec --noconfirm --clean', { stdio: 'inherit', cwd: palbakerCliDir });
 
 // 4. Stage backend for Tauri Resources
 console.log("\n🚚 Staging backend into Tauri resources...");
@@ -100,13 +101,12 @@ if (fs.existsSync(tauriResourcesDir)) {
     fs.rmSync(tauriResourcesDir, { recursive: true, force: true });
 }
 fs.mkdirSync(tauriResourcesDir, { recursive: true });
-fs.cpSync(path.join(palbaker-cliDir, 'dist', 'palbaker_cli'), tauriResourcesDir, { recursive: true });
+fs.cpSync(path.join(palbakerCliDir, 'dist', 'palbaker_cli'), tauriResourcesDir, { recursive: true });
 
 // 5. Build Tauri App
 console.log("\n🦀 Building Tauri Desktop App...");
 execSync('pnpm tauri build', { stdio: 'inherit', cwd: path.join(__dirname, 'palbaker-ui') });
 
-// 6. Gather Artifacts & Generate Updater Manifest
 // 6. Gather Artifacts & Generate Updater Manifest
 console.log("\n📂 Gathering release artifacts and building update.json...");
 const releaseDir = path.join(__dirname, 'release');

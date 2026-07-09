@@ -1,8 +1,10 @@
+// palbaker-ui/components/mod-manager/mod-card.tsx
 "use client"
 
 import { useState } from "react"
 import { cn } from "@/lib/utils"
 import { type ModItem } from "@/lib/mock-data"
+import { ModManagerAPI } from "@/lib/data-service"
 import { convertFileSrc } from "@tauri-apps/api/core"
 import {
   ChevronUp,
@@ -28,9 +30,25 @@ interface Props {
 }
 
 function getPrimaryButton(mod: ModItem): { label: string; actionClass: string; action: string } {
-  if (!mod.has_fmodel) {
-    return { label: "EXTRACT PAL", actionClass: "bg-status-error hover:bg-status-error/80 text-white", action: "extract_pal" }
+  const hasVariants = !mod.is_variant && mod.physical_variants && mod.physical_variants.length > 0
+
+  // 1. Variant Routing: Variants cannot be extracted, but can have sources generated if they exist in UE
+  if (mod.is_variant) {
+    if (mod.has_ue && !mod.has_fmodel) {
+      return { label: "GENERATE SOURCES", actionClass: "bg-primary hover:bg-primary/80 text-primary-foreground", action: "decompile" }
+    }
+  } else {
+    // 2. Base Pal Routing: If it has physical variant subfolders, treat it as a ready workspace compiler
+    if (hasVariants) {
+      return { label: "RECURSIVE COOK & PACK", actionClass: "bg-status-success hover:bg-status-success/80 text-white", action: "cook" }
+    }
+    // Unextracted base game Pals must be extracted
+    if (!mod.has_fmodel) {
+      return { label: "EXTRACT PAL", actionClass: "bg-status-error hover:bg-status-error/80 text-white", action: "extract_pal" }
+    }
   }
+
+  // 3. Standard compilation/pipeline choices
   if (mod.has_ue) {
     if (mod.source_modified) {
       return { label: "FULL PIPELINE (PUSH & COOK)", actionClass: "bg-status-warning hover:bg-status-warning/80 text-white", action: "full" }
@@ -63,7 +81,7 @@ function ModCardIcon({ mod }: { mod: ModItem }) {
   }
 
   if (mod.has_icon && mod.icon_path && !failed) {
-    const isLive = typeof window !== "undefined" && (window as any).__TAURI_INTERNALS__ !== undefined
+    const isLive = typeof window !== "undefined" && (window as unknown as { __TAURI_INTERNALS__?: unknown }).__TAURI_INTERNALS__ !== undefined
     const src = isLive
       ? convertFileSrc(mod.icon_path)
       : mod.icon_path.startsWith("http") ? mod.icon_path : `https://asset.localhost/${mod.icon_path}`
@@ -82,32 +100,21 @@ function ModCardIcon({ mod }: { mod: ModItem }) {
   )
 }
 
-function getBadgeTooltip(text: string): string {
-  switch (text) {
-    case "UNEXTRACTED":
-      return "This Pal mesh and texture database resides purely inside your game archives. Click Extract to build its workspace folders."
-    case "RAW":
-      return "FModel files extracted, but no Blender (.blend) file has been created yet."
-    case "SOURCE":
-      return "Blender (.blend) source file detected. Mod is actively being worked on."
-    case "UE ASSETS":
-    case "MODIFIED":
-      return "Warning: Files have been manually modified inside Unreal Engine since your last Push!"
-    case "SRC CHANGED":
-      return "Source files (Blender/textures) have been edited since your last Push! It is recommended to run 'Push & Cook & Pack'."
-    case "ALTERMATIC":
-      return "Altermatic dynamic variants are active for this Pal."
-    default:
-      return ""
-  }
-}
-
 export function ModCard({ mod, expanded, onToggle, onAction, onRefresh, showMapped }: Props) {
   const [menuOpen, setMenuOpen] = useState(false)
   const [ctxMenu, setCtxMenu] = useState<{ x: number; y: number } | null>(null)
   const primary = getPrimaryButton(mod)
 
-  // Right-click context menu items — file explorer + Unreal browser actions
+  const handleReplacerChange = async (e: React.ChangeEvent<HTMLSelectElement>) => {
+    const val = e.target.value
+    try {
+      await ModManagerAPI.setVanillaReplacer(mod.base_pal, val)
+      onRefresh()
+    } catch (err) {
+      console.error(err)
+    }
+  }
+
   const contextItems: ContextMenuEntry[] = [
     {
       label: "Open source files in Explorer",
@@ -139,6 +146,10 @@ export function ModCard({ mod, expanded, onToggle, onAction, onRefresh, showMapp
     "Show in Unreal Content Browser": "browse_unreal",
   }
 
+  const displayTitle = mod.is_variant ? mod.name : (showMapped ? (mod.localized_name || mod.name) : mod.name)
+  const displaySubtitle = mod.is_variant ? mod.base_pal : (showMapped ? mod.name : null)
+  const hasVariants = !mod.is_variant && mod.physical_variants && mod.physical_variants.length > 0
+
   return (
     <>
       <div
@@ -150,37 +161,34 @@ export function ModCard({ mod, expanded, onToggle, onAction, onRefresh, showMapp
           "rounded-md border bg-card transition-colors",
           expanded ? "border-border/80" : "border-border",
           mod.source_modified && "border-l-2 border-l-status-warning",
-          !mod.has_fmodel && "border-l-2 border-l-status-error",
+          !mod.has_fmodel && !hasVariants && "border-l-2 border-l-status-error",
+          hasVariants && "border-l-2 border-l-status-success",
           mod.has_ue && !mod.source_modified && "border-l-2 border-l-status-success",
         )}
       >
-        {/* Main row */}
         <div className="flex items-center gap-3 px-4 py-3.5">
           <ModCardIcon mod={mod} />
 
-          {/* Name + badges */}
           <div className="flex-1 min-w-0">
             <div className="font-semibold text-foreground text-sm leading-snug">
-              {showMapped ? (mod.localized_name || mod.name) : mod.name}
+              {displayTitle}
             </div>
             <div className="flex items-center gap-2 mt-0.5 flex-wrap">
-              {showMapped && (
-                <span className="text-muted-foreground text-xs">{mod.name}</span>
+              {displaySubtitle && (
+                <span className="text-muted-foreground text-xs">{displaySubtitle}</span>
               )}
               {mod.badges.map((badge, idx) => {
                 const text = badge[0]
                 const colorHex = badge[1]
-                const tooltip = getBadgeTooltip(text)
                 return (
                   <span
                     key={text || idx}
-                    title={tooltip}
                     className="text-[10px] font-bold px-1.5 py-0.5 rounded border tracking-wide cursor-default select-none"
-                    style={colorHex && colorHex.startsWith('#') ? {
+                    style={{
                       borderColor: colorHex,
                       color: colorHex,
                       backgroundColor: `${colorHex}1A`,
-                    } : undefined}
+                    }}
                   >
                     {text}
                   </span>
@@ -189,17 +197,31 @@ export function ModCard({ mod, expanded, onToggle, onAction, onRefresh, showMapp
             </div>
           </div>
 
-          {/* Expand toggle */}
+          {!mod.is_variant && mod.physical_variants && mod.physical_variants.length > 0 && (
+            <div className="flex flex-col gap-0.5 max-w-[150px] shrink-0 mr-2">
+              <span className="text-[9px] font-bold uppercase tracking-wider text-muted-foreground leading-none">Vanilla Replacer</span>
+              <select
+                value={mod.active_vanilla_replacer || ""}
+                onChange={handleReplacerChange}
+                className="bg-muted/80 text-foreground border border-border rounded px-2 py-1 text-xs focus:outline-none cursor-pointer w-full"
+              >
+                <option value="" className="bg-background">Default Vanilla</option>
+                {mod.physical_variants.map((varName: string) => (
+                  <option key={varName} value={varName} className="bg-background">{varName}</option>
+                ))}
+              </select>
+            </div>
+          )}
+
           <button
             onClick={onToggle}
-            disabled={!mod.has_fmodel}
+            disabled={!mod.has_fmodel && !hasVariants}
             className="p-1.5 rounded text-muted-foreground hover:text-foreground hover:bg-accent transition-colors disabled:opacity-30 disabled:cursor-not-allowed"
             aria-label={expanded ? "Collapse" : "Expand"}
           >
             {expanded ? <ChevronUp className="size-4" /> : <ChevronDown className="size-4" />}
           </button>
 
-          {/* Primary action button */}
           <button
             onClick={() => onAction(mod, primary.action)}
             className={cn(
@@ -210,7 +232,6 @@ export function ModCard({ mod, expanded, onToggle, onAction, onRefresh, showMapp
             {primary.label}
           </button>
 
-          {/* Three-dots overflow menu — pipeline actions only (file explorer moved to right-click) */}
           <div className="relative shrink-0">
             <button
               onClick={() => setMenuOpen((v) => !v)}
@@ -232,12 +253,12 @@ export function ModCard({ mod, expanded, onToggle, onAction, onRefresh, showMapp
                         ? "Push to Unreal (Overwrite)" 
                         : "Push to Unreal (Preserve)", 
                       action: "push",       
-                      disabled: !mod.has_fmodel || !mod.has_blend 
+                      disabled: !hasVariants && (!mod.has_fmodel || !mod.has_blend) 
                     },
-                    { label: "Cook (Compile only)",       action: "cook_only",  disabled: !mod.has_ue },
-                    { label: "Pack (Package only)",       action: "pack_only",  disabled: !mod.has_ue },
-                    { label: "Cook & Pack (Skip Import)", action: "cook",       disabled: !mod.has_ue },
-                    { label: "Push & Cook & Pack",        action: "full",       disabled: !mod.has_fmodel || !mod.has_blend },
+                    { label: "Cook (Compile only)",       action: "cook_only",  disabled: !hasVariants && !mod.has_ue },
+                    { label: "Pack (Package only)",       action: "pack_only",  disabled: !hasVariants && !mod.has_ue },
+                    { label: "Cook & Pack (Skip Import)", action: "cook",       disabled: !hasVariants && !mod.has_ue },
+                    { label: "Push & Cook & Pack",        action: "full",       disabled: !hasVariants && (!mod.has_fmodel || !mod.has_blend) },
                     { label: "Generate Sources",          action: "decompile",  disabled: !mod.has_ue },
                   ].map(({ label, action, disabled }) => (
                     <button
@@ -252,9 +273,6 @@ export function ModCard({ mod, expanded, onToggle, onAction, onRefresh, showMapp
                       {label}
                     </button>
                   ))}
-                  <div className="px-3 pt-2 pb-1 text-[10px] font-semibold text-muted-foreground uppercase tracking-widest border-t border-border mt-1">
-                    Tip: Right-click for Explorer actions
-                  </div>
                 </div>
               </>
             )}
@@ -264,7 +282,6 @@ export function ModCard({ mod, expanded, onToggle, onAction, onRefresh, showMapp
         {expanded && <ModCardExpanded mod={mod} onRefresh={onRefresh} />}
       </div>
 
-      {/* Right-click context menu portal */}
       {ctxMenu && (
         <ContextMenuPortal
           x={ctxMenu.x}

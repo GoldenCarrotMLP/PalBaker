@@ -1,3 +1,4 @@
+// palbaker-ui/lib/mock-data.ts
 // Mock data derived from palbaker-cli/cli_queries_dump.json and palbaker-cli/components/mods/mod_card.py
 
 export const mockConfig = {
@@ -40,8 +41,8 @@ export interface AltermaticVariant {
   SkinName?: string
   ReqTrait: string[]
   PrefTrait: string[]
-  MatReplace: any[]
-  MorphTarget: any[]
+  MatReplace: { Index: string; MatPath: string; SlotName?: string }[]
+  MorphTarget: { Target: string; Type: string; Set?: number; Min?: number; Max?: number; TypeVal?: string }[]
 }
 
 export type ModBadge = [string, string]
@@ -49,6 +50,9 @@ export type ModBadge = [string, string]
 export interface ModItem {
   id: string
   name: string
+  base_pal: string
+  category: string
+  is_variant: boolean
   localized_name: string
   pak_status: PakStatus
   modified: string
@@ -66,6 +70,8 @@ export interface ModItem {
   is_altermatic_active: boolean
   altermatic_variants: AltermaticVariant[]
   preserve_materials: boolean 
+  physical_variants?: string[]      // <-- ADDED FOR TYPECHECK
+  active_vanilla_replacer?: string  // <-- ADDED FOR TYPECHECK
 }
 
 export const mockModList: ModItem[] = []
@@ -104,14 +110,11 @@ export interface WorkSuitability {
   Medicine: boolean
 }
 
-// Strictly modeled 1:1 against DT_PalMonsterParameter to map directly into PalSchema
 export interface CreatorPal {
   CharacterID: string
   TemplateID: string
   Name: string
   Description: string
-  
-  // Exact Palworld Keys
   ElementType1: string
   ElementType2: string
   Hp?: number
@@ -132,8 +135,6 @@ export interface CreatorPal {
   MaleProbability?: number
   CombiRank?: number
   CaptureRateCorrect?: number
-
-  // Core Collision Capsule Heights & Relative Mesh Translation Slices
   MeshCapsuleHalfHeight?: number
   MeshCapsuleRadius?: number
   MeshRelativeLocation?: {
@@ -141,8 +142,6 @@ export interface CreatorPal {
     Y: number
     Z: number
   }
-  
-  // Flat Native Palworld Suitabilities
   WorkSuitability_EmitFlame?: number
   WorkSuitability_Watering?: number
   WorkSuitability_Seeding?: number
@@ -156,13 +155,12 @@ export interface CreatorPal {
   WorkSuitability_Cool?: number
   WorkSuitability_Transport?: number
   WorkSuitability_MonsterFarm?: number
-  
   BaseSkills?: string[]
   PassiveSkills?: string[]
   PartnerSkill?: string
   Learnset: LearnsetEntry[]
   SpawnLocationID?: string
-  SpawnWeight?: number // <-- ADDED
+  SpawnWeight?: number 
   SpawnMinLevel?: number
   SpawnMaxLevel?: number
   SpawnMinGroup?: number
@@ -172,10 +170,7 @@ export interface CreatorPal {
   ZukanIndexSuffix?: string
   PaldexType?: string
   LongDescription?: string
-
   resolved_icon_path?: string
-  
-  // Legacy Fallbacks
   BaseHP?: number
   BaseMelee?: number
   BaseAtk?: number
@@ -212,7 +207,6 @@ export interface EnvStatusType {
 }
 
 export const mockCreatorPals: CreatorPal[] = []
-
 export const mockTraitsDb: Record<string, string> = {}
 
 export const mockEnvStatus: EnvStatusType = {
@@ -241,5 +235,4 @@ export interface LogEntry {
 }
 
 export const CONSOLE_LOGS: LogEntry[] = []
-
 export const mockCreatorList: CreatorItem[] = []

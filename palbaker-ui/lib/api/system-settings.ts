@@ -62,26 +62,38 @@ async managePalSchema(action: string): Promise<any> {
   },
   async buildDb(): Promise<any> {
     if (USE_LIVE_DATA) {
-      try { return await invoke("manager_build_db") } 
+      try { 
+        const res: any = await invoke("manager_build_db");
+        if (res && res.status === "error") throw res;
+        return res;
+      } 
       catch (err) { handleBackendError(err) }
     }
-    return { status: "success", message: "Mocked build-db completed." }
+    return { status: "success", message: "Mocked build-db completed." };
   },
 
   async verifyEnv(): Promise<any> {
     if (USE_LIVE_DATA) {
-      try { return await invoke("env_verify") } 
+      try { 
+        const res: any = await invoke("env_verify");
+        if (res && res.status === "error") throw res;
+        return res;
+      } 
       catch (err) { handleBackendError(err) }
     }
-    return { status: "success", message: "Mocked verify-env completed." }
+    return { status: "success", message: "Mocked verify-env completed." };
   },
 
   async enableRemoteExec(): Promise<any> {
     if (USE_LIVE_DATA) {
-      try { return await invoke("env_enable_remote_exec") } 
+      try { 
+        const res: any = await invoke("env_enable_remote_exec");
+        if (res && res.status === "error") throw res;
+        return res;
+      } 
       catch (err) { handleBackendError(err) }
     }
-    return { status: "success", message: "Mocked enable-remote-exec completed." }
+    return { status: "success", message: "Mocked enable-remote-exec completed." };
   },
 
   async autodetect(): Promise<any> {

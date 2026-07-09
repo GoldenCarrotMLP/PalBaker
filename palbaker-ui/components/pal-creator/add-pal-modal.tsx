@@ -1,6 +1,6 @@
 "use client"
 
-import { useState, useEffect, useMemo } from "react"
+import { useState, useMemo } from "react"
 import { X } from "lucide-react"
 import { SearchableSelect } from "@/components/ui/searchable-select"
 
@@ -13,17 +13,20 @@ interface Props {
 
 export function AddPalModal({ templates, palNames, onConfirm, onCancel }: Props) {
   const [palId, setPalId] = useState("")
-  const [template, setTemplate] = useState("")
 
-  // Safely initialize the default template selection once the async database cache loads
-  useEffect(() => {
-    if (templates.length > 0 && !template) {
-      const defaultTemplate = templates.includes("Anubis") ? "Anubis" : templates[0]
-      setTemplate(defaultTemplate)
+  // Derived state sync (prevents react-hooks/set-state-in-effect)
+  const [prevTemplates, setPrevTemplates] = useState(templates)
+  const [template, setTemplate] = useState(() => {
+    return templates.includes("Anubis") ? "Anubis" : (templates[0] || "")
+  })
+
+  if (templates !== prevTemplates) {
+    setPrevTemplates(templates)
+    if (!template && templates.length > 0) {
+      setTemplate(templates.includes("Anubis") ? "Anubis" : templates[0])
     }
-  }, [templates, template])
+  }
 
-  // Build sorted options list for our searchable select popover
   const selectOptions = useMemo(() => {
     return templates.map((t) => ({
       value: t,
@@ -42,7 +45,7 @@ export function AddPalModal({ templates, palNames, onConfirm, onCancel }: Props)
         </div>
         
         <p className="text-xs text-muted-foreground leading-relaxed">
-          The backend will automatically copy the parent template's base stats, typing, and learnsets so you don't have to start from zero!
+          The backend will automatically copy the parent template&apos;s base stats, typing, and learnsets so you don&apos;t have to start from zero!
         </p>
 
         <div className="flex flex-col gap-1.5">
@@ -53,7 +56,7 @@ export function AddPalModal({ templates, palNames, onConfirm, onCancel }: Props)
             placeholder="e.g. ShadowAnubis"
             value={palId}
             onChange={(e) => setPalId(e.target.value.replace(/[^a-zA-Z0-9_]/g, ''))}
-            className="h-9 w-full rounded border border-input bg-transparent px-3 text-sm focus:outline-none focus:ring-1 focus:ring-primary placeholder:text-muted-foreground/40"
+            className="h-9 w-full rounded border border-input bg-transparent px-3 py-1 text-sm focus:outline-none focus:ring-1 focus:ring-primary placeholder:text-muted-foreground/40"
           />
         </div>
 

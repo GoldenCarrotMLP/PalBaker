@@ -1,6 +1,6 @@
 "use client"
 
-import { useState, useMemo, useEffect, useRef } from "react"
+import { useState, useMemo, useEffect, useRef, useCallback } from "react"
 import { ChevronDown, SlidersHorizontal, Plus } from "lucide-react"
 import { useNav } from "@/lib/nav-context"
 import { ModManagerAPI, SystemSettingsAPI, UnrealHealthAPI } from "@/lib/data-service"
@@ -11,12 +11,11 @@ import { useNotifications } from "./mod-card-expanded/use-notifications"
 import { NotificationToast } from "./mod-card-expanded/notification-toast"
 import { DiagnosticsModal } from "@/components/common/diagnostics-modal"
 
-// Importing Unreal Wizards
 import { UnrealClosedModal } from "@/components/common/unreal-wizards/UnrealClosedModal"
 import { RemoteExecDisabledModal } from "@/components/common/unreal-wizards/RemoteExecDisabledModal"
 
-// ── Tag definitions ────────────────────────────────────────────────────────────
-type Tag = "unextracted" | "raw" | "source" | "ue_assets" | "altermatic" | "src_changed" | "modified"
+type Tag = "unextracted" | "raw" | "source" | "ue_assets" | "altermatic" | "src_changed" | "modified" | "variant"
+
 const TAG_LABELS: Record<Tag, string> = {
   unextracted: "Unextracted",
   raw: "Raw Unpacked",
@@ -25,10 +24,11 @@ const TAG_LABELS: Record<Tag, string> = {
   altermatic: "Altermatic",
   src_changed: "Src Changed",
   modified: "Modified (Unreal)",
+  variant: "Variant"
 }
 
 const BASE_TAGS: Tag[] = ["unextracted", "raw", "source", "ue_assets"]
-const MODIFIER_TAGS: Tag[] = ["altermatic", "src_changed", "modified"]
+const MODIFIER_TAGS: Tag[] = ["altermatic", "src_changed", "modified", "variant"]
 
 function modMatchesTag(mod: ModItem, tag: Tag): boolean {
   const tagToBadge: Record<Tag, string> = {
@@ -39,12 +39,12 @@ function modMatchesTag(mod: ModItem, tag: Tag): boolean {
     modified:    "MODIFIED",
     src_changed: "SRC CHANGED",
     altermatic:  "ALTERMATIC",
+    variant:     "VARIANT",
   }
   const badgeLabel = tagToBadge[tag]
   return (mod.badges || []).some((b) => b && b[0] && b[0].toUpperCase() === badgeLabel)
 }
 
-// ── Preset definitions ────────────────────────────────────────────────────────
 type Preset = "workspace" | "unextracted" | "in-progress" | "ready" | "done" | "all"
 
 interface PresetDef {
@@ -104,7 +104,6 @@ const PRESET_CHIP_CLASS: Record<Preset, string> = {
   all:          "border-border text-foreground",
 }
 
-// ── Helpers ────────────────────────────────────────────────────────────────────
 function resolveActiveTags(preset: Preset, customTags: Tag[] | null): Tag[] | null {
   if (customTags !== null) return customTags
   return PRESETS[preset].activeTags
@@ -125,17 +124,23 @@ function applyFilters(mods: ModItem[], preset: Preset, customTags: Tag[] | null,
     if (activeBase.length > 0 && !activeBase.some((t) => modMatchesTag(mod, t))) return false
     if (activeMods.length > 0 && !activeMods.every((t) => modMatchesTag(mod, t))) return false
     
-    if (q && !mod.name.toLowerCase().includes(q) && !(mod.localized_name?.toLowerCase().includes(q))) return false
+    if (q && 
+        !mod.name.toLowerCase().includes(q) && 
+        !(mod.localized_name?.toLowerCase().includes(q)) &&
+        !(mod.base_pal?.toLowerCase().includes(q))
+    ) {
+      return false
+    }
     return true
   })
 }
 
-// ── Component ──────────────────────────────────────────────────────────────────
 export function ModManagerPage() {
-  const { search: searchQuery, setPage, refreshTrigger } = useNav() as any
+  const { search: searchQuery, setPage, refreshTrigger } = useNav()
   const { notifications, showNotification, dismissNotification } = useNotifications()
   const [mods, setMods]               = useState<ModItem[]>([])
   const [expandedId, setExpandedId]   = useState<string | null>(null)
+  
   const [loading, setLoading]         = useState(true)
   const [showMapped, setShowMapped]   = useState(false)
   const [activePreset, setActivePreset] = useState<Preset>("workspace")
@@ -149,11 +154,10 @@ export function ModManagerPage() {
   const effectiveTags = resolveActiveTags(activePreset, customTags)
   const isCustom = customTags !== null
 
-  async function loadMods() {
+  // RESOLUTION: Scoped at top-level with stable dependency lookup reference
+  const loadMods = useCallback(async () => {
     try {
       setLoading(true)
-
-      // 1. Retrieve configurations first (guaranteed to succeed without path validation)
       const config = await SystemSettingsAPI.getConfig()
       setShowMapped(config.show_mapped !== false)
 
@@ -167,12 +171,11 @@ export function ModManagerPage() {
       setIsConfigured(configured)
 
       if (!configured) {
-        // Aggressively alert on startup if paths are unconfigured
         setDiagnosticError("You need to configure your environment paths in Settings before PalBaker can run any mod bakes, extractions, or cooks! ;3")
-        return // Short-circuit: skip fetching mods since we know the backend will reject it
+        setLoading(false)
+        return
       }
 
-      // 2. Safely query the active list only if the requirements are satisfied
       const data = await ModManagerAPI.list()
       setMods(data)
     } catch (err) {
@@ -180,9 +183,11 @@ export function ModManagerPage() {
     } finally {
       setLoading(false)
     }
-  }
+  }, [])
 
-  useEffect(() => { loadMods() }, [refreshTrigger])
+  useEffect(() => {
+    loadMods()
+  }, [refreshTrigger, loadMods])
 
   useEffect(() => {
     function onClickOutside(e: MouseEvent) {
@@ -213,15 +218,14 @@ export function ModManagerPage() {
     setCustomTags(null)
   }
 
-  // Active Unreal wizards handlers
   async function handleLaunchUnreal() {
     try {
       showNotification("Sending launch command for Unreal Editor... 🦊🚀", "info", "Unreal Editor")
       await UnrealHealthAPI.launchUnreal()
       showNotification("Unreal Editor launch request sent! Please wait for it to boot up.", "success", "Unreal Launching")
-    } catch (err: any) {
+    } catch (err) {
       console.error("Unreal launch failed:", err)
-      setDiagnosticError(String(err.message || err))
+      setDiagnosticError(String(err instanceof Error ? err.message : err))
     }
   }
 
@@ -231,9 +235,9 @@ export function ModManagerPage() {
       await SystemSettingsAPI.enableRemoteExec()
       showNotification("Remote Execution successfully enabled! Launching Unreal Editor... 🦊🚀", "success", "Configured")
       await UnrealHealthAPI.launchUnreal()
-    } catch (err: any) {
+    } catch (err) {
       console.error("Remote exec configure & launch failed:", err)
-      setDiagnosticError(String(err.message || err))
+      setDiagnosticError(String(err instanceof Error ? err.message : err))
     }
   }
 
@@ -242,13 +246,14 @@ export function ModManagerPage() {
     
     if (isNavigation) {
       try {
-        const res = await ModManagerAPI.runAction(mod.name, action)
+        const res = await ModManagerAPI.runAction(mod.base_pal, mod.name, action)
         showNotification(res.message || `Opened folder successfully!`, "success", "Explorer Action")
-      } catch (err: any) {
+      } catch (err) {
         console.error("Action failed:", err)
-        if (err.message === "UNREAL_CLOSED") {
+        const errMsg = err instanceof Error ? err.message : String(err)
+        if (errMsg === "UNREAL_CLOSED") {
           setActiveUnrealWizard("unreal_closed")
-        } else if (err.message === "REMOTE_EXEC_DISABLED") {
+        } else if (errMsg === "REMOTE_EXEC_DISABLED") {
           setActiveUnrealWizard("remote_exec_disabled")
         } else {
           setDiagnosticError(String(err.message || err))
@@ -259,18 +264,18 @@ export function ModManagerPage() {
 
     try {
       setLoading(true)
-      const res = await ModManagerAPI.runAction(mod.name, action)
-      const data = await ModManagerAPI.list()
-      setMods(data)
+      const res = await ModManagerAPI.runAction(mod.base_pal, mod.name, action)
       showNotification(res.message || "Action executed successfully!", "success", "Pipeline Success")
-    } catch (err: any) {
+      await loadMods()
+    } catch (err) {
       console.error("Action failed:", err)
-      if (err.message === "UNREAL_CLOSED") {
+      const errMsg = err instanceof Error ? err.message : String(err)
+      if (errMsg === "UNREAL_CLOSED") {
         setActiveUnrealWizard("unreal_closed")
-      } else if (err.message === "REMOTE_EXEC_DISABLED") {
+      } else if (errMsg === "REMOTE_EXEC_DISABLED") {
         setActiveUnrealWizard("remote_exec_disabled")
       } else {
-        setDiagnosticError(String(err.message || err))
+        setDiagnosticError(errMsg)
       }
     } finally {
       setLoading(false)
@@ -292,11 +297,7 @@ export function ModManagerPage() {
 
   return (
     <div className="flex flex-col gap-4">
-
-      {/* ── Filter bar ── */}
       <div className="flex items-center gap-2 flex-wrap">
-
-        {/* Preset chips */}
         {PRESET_ORDER.map((p) => {
           const def = PRESETS[p]
           const isActive = activePreset === p && !isCustom
@@ -322,10 +323,8 @@ export function ModManagerPage() {
           )
         })}
 
-        {/* Divider */}
         <div className="w-px h-4 bg-border mx-1" />
 
-        {/* Advanced / Tags toggle */}
         <div className="relative" ref={advancedRef}>
           <button
             onClick={() => setAdvancedOpen((v) => !v)}
@@ -346,7 +345,6 @@ export function ModManagerPage() {
             <ChevronDown className={cn("size-3 transition-transform", advancedOpen && "rotate-180")} />
           </button>
 
-          {/* Dropdown panel */}
           {advancedOpen && (
             <div className="absolute top-full left-0 mt-1.5 z-50 bg-card border border-border rounded-lg shadow-xl p-3 min-w-[220px] flex flex-col gap-3">
               <p className="text-[10px] text-muted-foreground uppercase tracking-widest font-semibold">
@@ -392,10 +390,8 @@ export function ModManagerPage() {
             </div>
           )}
         </div>
-
       </div>
 
-      {/* ── Mod list ── */}
       {loading ? (
         <div className="text-muted-foreground text-sm text-center py-12">Loading...</div>
       ) : !isConfigured ? (
@@ -449,7 +445,6 @@ export function ModManagerPage() {
       )}
       <NotificationToast notifications={notifications} onDismiss={dismissNotification} />
 
-      {/* ── Diagnostics / Self-Healing Smart Modal ── */}
       {diagnosticError && (
         <DiagnosticsModal
           errorText={diagnosticError}
@@ -457,7 +452,6 @@ export function ModManagerPage() {
         />
       )}
 
-      {/* Sequential Unreal Wizards */}
       <UnrealClosedModal
         isOpen={activeUnrealWizard === "unreal_closed"}
         onClose={() => { setActiveUnrealWizard(null) }}
