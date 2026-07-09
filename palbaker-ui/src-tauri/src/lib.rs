@@ -117,6 +117,7 @@ pub fn run() {
             commands::env_inject_assets,
             commands::env_extract_icons,
             commands::set_mod_preserve_materials,
+            commands::set_vanilla_replacer,
         ])
         .run(tauri::generate_context!())
         .expect("error while running tauri application");

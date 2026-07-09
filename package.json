@@ -1,6 +1,6 @@
 {
   "name": "palbaker-monorepo",
-  "version": "0.1.45",
+  "version": "0.1.46",
   "private": true,
   "scripts": {
     "dev": "pnpm --filter palbaker-ui dev",
