@@ -154,7 +154,6 @@ export function ModManagerPage() {
   const effectiveTags = resolveActiveTags(activePreset, customTags)
   const isCustom = customTags !== null
 
-  // RESOLUTION: Scoped at top-level with stable dependency lookup reference
   const loadMods = useCallback(async () => {
     try {
       setLoading(true)
@@ -256,7 +255,8 @@ export function ModManagerPage() {
         } else if (errMsg === "REMOTE_EXEC_DISABLED") {
           setActiveUnrealWizard("remote_exec_disabled")
         } else {
-          setDiagnosticError(String(err.message || err))
+          // RESOLUTION: Pass type-safe resolved string (prevents 'err' is of type 'unknown')
+          setDiagnosticError(errMsg)
         }
       }
       return
@@ -275,6 +275,7 @@ export function ModManagerPage() {
       } else if (errMsg === "REMOTE_EXEC_DISABLED") {
         setActiveUnrealWizard("remote_exec_disabled")
       } else {
+        // RESOLUTION: Pass type-safe resolved string (prevents 'err' is of type 'unknown')
         setDiagnosticError(errMsg)
       }
     } finally {
@@ -399,7 +400,7 @@ export function ModManagerPage() {
           <span className="text-3xl animate-pulse">🦊⚙️</span>
           <h3 className="text-foreground font-extrabold text-lg uppercase tracking-wider">Paths Not Configured</h3>
           <p className="text-muted-foreground text-sm max-w-sm leading-relaxed">
-            Please configure your environment paths in Settings before PalBaker can run mod bakes, extractions, or cooks! ;3
+            Please configure your environment paths in Settings before PalBaker can run any mod bakes, extractions, or cooks! ;3
           </p>
           <button
             onClick={() => { setPage("system-settings") }}
