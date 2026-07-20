@@ -27,7 +27,7 @@ function main() {
   for (const rel of files) {
 
     // 🚫 Ignore anything inside the deps folder
-    let bool = rel.split("/").map( item => ["deps", "flet_docs_dump","node_modules", "package-lock","icons","Cargo", "pnpm-lock","Assets"].includes(item.split(".")[0])).some(Boolean);
+    let bool = rel.split("/").map( item => ["deps","output","memory", "flet_docs_dump","node_modules", "package-lock","icons","Cargo", "pnpm-lock","Assets"].includes(item.split(".")[0])).some(Boolean);
     
     if (bool) continue;
     console.log(rel)
