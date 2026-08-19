@@ -38,10 +38,6 @@ function getPrimaryButton(mod: ModItem): { label: string; actionClass: string; a
       return { label: "GENERATE SOURCES", actionClass: "bg-primary hover:bg-primary/80 text-primary-foreground", action: "decompile" }
     }
   } else {
-    // 2. Base Pal Routing: If it has physical variant subfolders, treat it as a ready workspace compiler
-    if (hasVariants) {
-      return { label: "RECURSIVE COOK & PACK", actionClass: "bg-status-success hover:bg-status-success/80 text-white", action: "cook" }
-    }
     // Unextracted base game Pals must be extracted
     if (!mod.has_fmodel) {
       return { label: "EXTRACT PAL", actionClass: "bg-status-error hover:bg-status-error/80 text-white", action: "extract_pal" }
@@ -53,13 +49,19 @@ function getPrimaryButton(mod: ModItem): { label: string; actionClass: string; a
     if (mod.source_modified) {
       return { label: "FULL PIPELINE (PUSH & COOK)", actionClass: "bg-status-warning hover:bg-status-warning/80 text-white", action: "full" }
     }
+    if (hasVariants) {
+      return { label: "RECURSIVE COOK & PACK", actionClass: "bg-status-success hover:bg-status-success/80 text-white", action: "cook" }
+    }
     return { label: "COOK & PACK", actionClass: "bg-status-success hover:bg-status-success/80 text-white", action: "cook" }
   }
+  
   if (mod.has_blend) {
     return { label: "PUSH TO UNREAL", actionClass: "bg-primary hover:bg-primary/80 text-primary-foreground", action: "push" }
   }
+  
   return { label: "CREATE .BLEND FILE", actionClass: "bg-muted hover:bg-muted/80 text-foreground border border-border", action: "create_blend" }
 }
+
 
 function StatusIcon({ mod }: { mod: ModItem }) {
   if (!mod.has_fmodel) return <AlertTriangle className="size-4 text-status-error shrink-0" />

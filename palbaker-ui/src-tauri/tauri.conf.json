@@ -1,6 +1,6 @@
 {
   "productName": "PalBaker",
-  "version": "0.1.47",
+  "version": "0.1.48",
   "identifier": "com.palbaker.app",
   "build": {
     "beforeDevCommand": "pnpm dlx cross-env TAURI_ENV_DEBUG=true TAURI_MODE=true pnpm dev",
