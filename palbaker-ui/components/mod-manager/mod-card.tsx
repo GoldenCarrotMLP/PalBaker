@@ -29,7 +29,7 @@ interface Props {
   showMapped?: boolean
 }
 
-function getPrimaryButton(mod: ModItem): { label: string; actionClass: string; action: string } {
+function getPrimaryButton(mod: ModItem): { label: string; actionClass: string; action: string; disabled?: boolean } {
   const hasVariants = !mod.is_variant && mod.physical_variants && mod.physical_variants.length > 0
 
   // 1. Variant Routing: Variants cannot be extracted, but can have sources generated if they exist in UE
@@ -47,6 +47,9 @@ function getPrimaryButton(mod: ModItem): { label: string; actionClass: string; a
   // 3. Standard compilation/pipeline choices
   if (mod.has_ue) {
     if (mod.source_modified) {
+      if (hasVariants) {
+        return { label: "RECURSIVE PUSH & COOK", actionClass: "bg-status-warning hover:bg-status-warning/80 text-white", action: "full" }
+      }
       return { label: "FULL PIPELINE (PUSH & COOK)", actionClass: "bg-status-warning hover:bg-status-warning/80 text-white", action: "full" }
     }
     if (hasVariants) {
@@ -59,7 +62,12 @@ function getPrimaryButton(mod: ModItem): { label: string; actionClass: string; a
     return { label: "PUSH TO UNREAL", actionClass: "bg-primary hover:bg-primary/80 text-primary-foreground", action: "push" }
   }
   
-  return { label: "CREATE .BLEND FILE", actionClass: "bg-muted hover:bg-muted/80 text-foreground border border-border", action: "create_blend" }
+ return { 
+    label: "CREATE .BLEND FILE", 
+    actionClass: "bg-muted hover:bg-muted/80 text-foreground border border-border", 
+    action: "create_blend",
+    disabled: !mod.has_psk
+  }
 }
 
 
@@ -226,9 +234,11 @@ export function ModCard({ mod, expanded, onToggle, onAction, onRefresh, showMapp
 
           <button
             onClick={() => onAction(mod, primary.action)}
+            disabled={primary.disabled}
             className={cn(
               "px-3.5 py-1.5 rounded text-xs font-bold tracking-wider uppercase transition-colors whitespace-nowrap shrink-0",
               primary.actionClass,
+              primary.disabled && "opacity-40 cursor-not-allowed"
             )}
           >
             {primary.label}
@@ -249,7 +259,8 @@ export function ModCard({ mod, expanded, onToggle, onAction, onRefresh, showMapp
                   <div className="px-3 py-1.5 text-[10px] font-semibold text-muted-foreground uppercase tracking-widest">
                     Pipeline Actions
                   </div>
-                  {[
+                 {[
+                    { label: "Create / Rebuild .blend file", action: "create_blend", disabled: !mod.has_psk },
                     { 
                       label: mod.preserve_materials === false 
                         ? "Push to Unreal (Overwrite)" 
@@ -257,11 +268,11 @@ export function ModCard({ mod, expanded, onToggle, onAction, onRefresh, showMapp
                       action: "push",       
                       disabled: !hasVariants && (!mod.has_fmodel || !mod.has_blend) 
                     },
-                    { label: "Cook (Compile only)",       action: "cook_only",  disabled: !hasVariants && !mod.has_ue },
-                    { label: "Pack (Package only)",       action: "pack_only",  disabled: !hasVariants && !mod.has_ue },
-                    { label: "Cook & Pack (Skip Import)", action: "cook",       disabled: !hasVariants && !mod.has_ue },
-                    { label: "Push & Cook & Pack",        action: "full",       disabled: !hasVariants && (!mod.has_fmodel || !mod.has_blend) },
-                    { label: "Generate Sources",          action: "decompile",  disabled: !mod.has_ue },
+                    { label: hasVariants ? "Recursive Cook (Compile only)" : "Cook (Compile only)", action: "cook_only", disabled: !hasVariants && !mod.has_ue },
+                    { label: hasVariants ? "Recursive Pack (Package only)" : "Pack (Package only)", action: "pack_only", disabled: !hasVariants && !mod.has_ue },
+                    { label: hasVariants ? "Recursive Cook & Pack" : "Cook & Pack (Skip Import)", action: "cook", disabled: !hasVariants && !mod.has_ue },
+                    { label: hasVariants ? "Recursive Push, Cook & Pack" : "Push & Cook & Pack", action: "full", disabled: !hasVariants && (!mod.has_fmodel || !mod.has_blend) },
+                    { label: "Generate Sources", action: "decompile", disabled: !mod.has_ue },
                   ].map(({ label, action, disabled }) => (
                     <button
                       key={action}
