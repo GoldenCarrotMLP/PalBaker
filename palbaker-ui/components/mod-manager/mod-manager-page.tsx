@@ -1,7 +1,7 @@
 "use client"
 
 import { useState, useMemo, useEffect, useRef, useCallback } from "react"
-import { ChevronDown, SlidersHorizontal, Plus } from "lucide-react"
+import { ChevronDown, SlidersHorizontal, Plus, PawPrint, Users, User } from "lucide-react"
 import { useNav } from "@/lib/nav-context"
 import { ModManagerAPI, SystemSettingsAPI, UnrealHealthAPI } from "@/lib/data-service"
 import { type ModItem } from "@/lib/mock-data"
@@ -14,7 +14,15 @@ import { DiagnosticsModal } from "@/components/common/diagnostics-modal"
 import { UnrealClosedModal } from "@/components/common/unreal-wizards/UnrealClosedModal"
 import { RemoteExecDisabledModal } from "@/components/common/unreal-wizards/RemoteExecDisabledModal"
 
+type CategoryTab = "pals" | "npcs" | "player"
 type Tag = "unextracted" | "raw" | "source" | "ue_assets" | "altermatic" | "src_changed" | "modified" | "variant"
+
+function getModTab(mod: ModItem): CategoryTab {
+  const cat = (mod.category || "Monster").toLowerCase()
+  if (cat.startsWith("player")) return "player"
+  if (cat.startsWith("npc")) return "npcs"
+  return "pals"
+}
 
 const TAG_LABELS: Record<Tag, string> = {
   unextracted: "Unextracted",
@@ -109,7 +117,7 @@ function resolveActiveTags(preset: Preset, customTags: Tag[] | null): Tag[] | nu
   return PRESETS[preset].activeTags
 }
 
-function applyFilters(mods: ModItem[], preset: Preset, customTags: Tag[] | null, search: string): ModItem[] {
+function applyFilters(mods: ModItem[], activeTab: CategoryTab, preset: Preset, customTags: Tag[] | null, search: string): ModItem[] {
   const isCustom = customTags !== null
   const def = PRESETS[preset]
   const tags = resolveActiveTags(preset, customTags) || []
@@ -119,6 +127,9 @@ function applyFilters(mods: ModItem[], preset: Preset, customTags: Tag[] | null,
   const activeMods = tags.filter(t => MODIFIER_TAGS.includes(t))
 
   return mods.filter((mod) => {
+    // Top-Level Tab Isolation
+    if (getModTab(mod) !== activeTab) return false
+
     if (!isCustom && def.statusMatch && !def.statusMatch(mod)) return false
     
     if (activeBase.length > 0 && !activeBase.some((t) => modMatchesTag(mod, t))) return false
@@ -143,6 +154,7 @@ export function ModManagerPage() {
   
   const [loading, setLoading]         = useState(true)
   const [showMapped, setShowMapped]   = useState(false)
+  const [activeTab, setActiveTab]     = useState<CategoryTab>("pals")
   const [activePreset, setActivePreset] = useState<Preset>("workspace")
   const [customTags, setCustomTags]   = useState<Tag[] | null>(null)
   const [advancedOpen, setAdvancedOpen] = useState(false)
@@ -284,20 +296,73 @@ export function ModManagerPage() {
   }
 
   const filtered = useMemo(
-    () => applyFilters(mods, activePreset, customTags, searchQuery),
-    [mods, activePreset, customTags, searchQuery],
+    () => applyFilters(mods, activeTab, activePreset, customTags, searchQuery),
+    [mods, activeTab, activePreset, customTags, searchQuery],
   )
+
+  const categoryCounts = useMemo(() => {
+    return {
+      pals: mods.filter(m => getModTab(m) === "pals").length,
+      npcs: mods.filter(m => getModTab(m) === "npcs").length,
+      player: mods.filter(m => getModTab(m) === "player").length
+    }
+  }, [mods])
 
   const presetCounts = useMemo(() => {
     const counts: Partial<Record<Preset, number>> = {}
     for (const p of PRESET_ORDER) {
-      counts[p] = applyFilters(mods, p, null, "").length
+      counts[p] = applyFilters(mods, activeTab, p, null, "").length
     }
     return counts
-  }, [mods])
+  }, [mods, activeTab])
 
   return (
     <div className="flex flex-col gap-4">
+      {/* Top Level Category Tabs Switcher */}
+      <div className="flex items-center justify-between gap-4 border-b border-border pb-3">
+        <div className="flex items-center gap-2 bg-muted/40 p-1 rounded-lg border border-border">
+          <button
+            onClick={() => { setActiveTab("pals"); setCustomTags(null); }}
+            className={cn(
+              "flex items-center gap-2 px-3.5 py-1.5 rounded-md text-xs font-bold uppercase tracking-wider transition-all cursor-pointer",
+              activeTab === "pals"
+                ? "bg-primary text-primary-foreground shadow"
+                : "text-muted-foreground hover:text-foreground hover:bg-muted/60"
+            )}
+          >
+            <PawPrint className="size-3.5" />
+            Pals
+            <span className="text-[10px] opacity-75 font-mono">({categoryCounts.pals})</span>
+          </button>
+          <button
+            onClick={() => { setActiveTab("npcs"); setCustomTags(null); }}
+            className={cn(
+              "flex items-center gap-2 px-3.5 py-1.5 rounded-md text-xs font-bold uppercase tracking-wider transition-all cursor-pointer",
+              activeTab === "npcs"
+                ? "bg-primary text-primary-foreground shadow"
+                : "text-muted-foreground hover:text-foreground hover:bg-muted/60"
+            )}
+          >
+            <Users className="size-3.5" />
+            NPCs
+            <span className="text-[10px] opacity-75 font-mono">({categoryCounts.npcs})</span>
+          </button>
+          <button
+            onClick={() => { setActiveTab("player"); setCustomTags(null); }}
+            className={cn(
+              "flex items-center gap-2 px-3.5 py-1.5 rounded-md text-xs font-bold uppercase tracking-wider transition-all cursor-pointer",
+              activeTab === "player"
+                ? "bg-primary text-primary-foreground shadow"
+                : "text-muted-foreground hover:text-foreground hover:bg-muted/60"
+            )}
+          >
+            <User className="size-3.5" />
+            Player
+            <span className="text-[10px] opacity-75 font-mono">({categoryCounts.player})</span>
+          </button>
+        </div>
+      </div>
+
       <div className="flex items-center gap-2 flex-wrap">
         {PRESET_ORDER.map((p) => {
           const def = PRESETS[p]

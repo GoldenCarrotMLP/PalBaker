@@ -59,6 +59,7 @@ export interface ModItem {
   source_ext: string
   has_fmodel: boolean
   has_blend: boolean
+  has_psk?: boolean
   has_ue: boolean
   source_modified: boolean
   ue_modified?: boolean
