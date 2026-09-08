@@ -152,6 +152,14 @@ export const ModManagerAPI = {
     return { status: "success", message: "Mocked icon bytes saved." }
   },
 
+  async setModPushSetting(basePal: string, modName: string, key: "materials" | "textures" | "animbp", enabled: boolean): Promise<any> {
+    if (USE_LIVE_DATA) {
+      try { return await invoke("set_mod_push_setting", { basePal, modName, key, enabled }) } 
+      catch (err) { handleBackendError(err) }
+    }
+    return { status: "success", message: `Mocked push setting ${key} updated.` }
+  },
+
   async setModPreserveMaterials(basePal: string, modName: string, enabled: boolean): Promise<any> {
     if (USE_LIVE_DATA) {
       try { return await invoke("set_mod_preserve_materials", { basePal, modName, enabled }) } 

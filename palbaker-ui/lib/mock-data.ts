@@ -71,8 +71,11 @@ export interface ModItem {
   is_altermatic_active: boolean
   altermatic_variants: AltermaticVariant[]
   preserve_materials: boolean 
-  physical_variants?: string[]      // <-- ADDED FOR TYPECHECK
-  active_vanilla_replacer?: string  // <-- ADDED FOR TYPECHECK
+  push_materials?: boolean
+  push_textures?: boolean
+  push_animbp?: boolean
+  physical_variants?: string[]
+  active_vanilla_replacer?: string
 }
 
 export const mockModList: ModItem[] = []
