@@ -12,6 +12,8 @@ import { CriesPanel } from "./mod-card-expanded/cries-panel"
 import { AltermaticPanel } from "./mod-card-expanded/altermatic-panel"
 import { AddVariantModal } from "./mod-card-expanded/add-variant-modal"
 import { EditVariantModal } from "./mod-card-expanded/edit-variant-modal"
+import { SelectivePushPanel } from "./mod-card-expanded/selective-push-panel"
+
 
 interface Props {
   mod: ModItem
@@ -162,20 +164,31 @@ export function ModCardExpanded({ mod, onRefresh }: Props) {
         <Separator orientation="vertical" className="self-stretch opacity-50" />
         <CriesPanel mod={mod} onRefresh={onRefresh} onNotify={showNotification} />
 
-        {!mod.is_variant && (
-          <>
-            <Separator orientation="vertical" className="self-stretch opacity-50" />
-            <AltermaticPanel
-              mod={mod}
-              enabled={altermaticEnabled}
-              onToggle={setAltermaticEnabled}
-              onOpenAdd={() => setIsAddModalOpen(true)}
-              onOpenEdit={handleOpenEdit}
-              onNotify={showNotification}
-              onRefresh={onRefresh}
-            />
-          </>
-        )}
+        <Separator orientation="vertical" className="self-stretch opacity-50" />
+
+        {/* Right Column: Altermatic on top, Selective Push right below */}
+        <div className="flex flex-col gap-4 min-w-[240px] shrink-0">
+          {!mod.is_variant && (
+            <>
+              <AltermaticPanel
+                mod={mod}
+                enabled={altermaticEnabled}
+                onToggle={setAltermaticEnabled}
+                onOpenAdd={() => setIsAddModalOpen(true)}
+                onOpenEdit={handleOpenEdit}
+                onNotify={showNotification}
+                onRefresh={onRefresh}
+              />
+              <Separator className="opacity-30" />
+            </>
+          )}
+
+          <SelectivePushPanel
+            mod={mod}
+            onRefresh={onRefresh}
+            onNotify={showNotification}
+          />
+        </div>
       </div>
 
       {isAddModalOpen && !mod.is_variant && (

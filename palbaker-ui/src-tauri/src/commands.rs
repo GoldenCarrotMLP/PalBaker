@@ -246,6 +246,7 @@ pub async fn run_mod_action(app: AppHandle, state: State<'_, AppState>, base_pal
         "refresh_blend" => "refresh-blend",
         "cook_only" => "cook",
         "pack_only" => "pack",
+        "recursive_cook" => "recursive-cook",
         "browse_ue" | "browse_unreal" => "browse-ue",
         "open_source" => "open-source",
         "open_ue" => "open-ue",
@@ -373,6 +374,14 @@ pub async fn save_mod_audio_bytes(app: AppHandle, state: State<'_, AppState>, ba
     let path_str = temp_file_path.to_string_lossy().into_owned();
     let raw = run_cli(&app, &state, &["audio", "set", &base_pal, &mod_name, &cry_name, &path_str])?;
     let _ = std::fs::remove_file(temp_file_path);
+    let parsed: Value = parse_last_json_line(&raw).unwrap_or(serde_json::json!({ "status": "success", "message": raw }));
+    Ok(parsed)
+}
+
+#[tauri::command]
+pub async fn set_mod_push_setting(app: AppHandle, state: State<'_, AppState>, base_pal: String, mod_name: String, key: String, enabled: bool) -> Result<Value, String> {
+    let status = if enabled { "true" } else { "false" };
+    let raw = run_cli(&app, &state, &["mod", "set-push-setting", &base_pal, &mod_name, "--key", &key, "--path", status])?;
     let parsed: Value = parse_last_json_line(&raw).unwrap_or(serde_json::json!({ "status": "success", "message": raw }));
     Ok(parsed)
 }

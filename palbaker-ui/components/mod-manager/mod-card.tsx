@@ -259,7 +259,8 @@ export function ModCard({ mod, expanded, onToggle, onAction, onRefresh, showMapp
                   <div className="px-3 py-1.5 text-[10px] font-semibold text-muted-foreground uppercase tracking-widest">
                     Pipeline Actions
                   </div>
-                 {[
+                {[
+                    { label: "True Recursive Cook & Pack (Deep Dependencies)", action: "recursive_cook", disabled: !mod.has_ue },
                     { label: "Create / Rebuild .blend file", action: "create_blend", disabled: !mod.has_psk },
                     { 
                       label: mod.preserve_materials === false 
