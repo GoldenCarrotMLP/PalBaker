@@ -9,7 +9,8 @@ import { PalCreatorPage } from "@/components/pal-creator/pal-creator-page"
 import { SystemSettingsPage } from "@/components/system-settings/system-settings-page"
 import { SystemSettingsAPI, UpdaterAPI } from "@/lib/data-service"
 import { UpdateModal } from "@/components/common/update-modal"
-import { DocsModal } from "@/components/common/docs-modal" // Import your new DocsModal
+import { DocsModal } from "@/components/common/docs-modal"
+import { DatabaseMissingModal } from "@/components/common/database-missing-modal"
 import {
   LayoutGrid,
   PawPrint,
@@ -44,7 +45,8 @@ export function AppShell() {
   const info = PAGE_INFO[page]
   const [version, setVersion] = useState("v2.4.0-experimental")
   const [updateAvailable, setUpdateAvailable] = useState<any>(null)
-  const [docsOpen, setDocsOpen] = useState(false) // Add state for docs modal
+  const [docsOpen, setDocsOpen] = useState(false)
+  const [missingDbFiles, setMissingDbFiles] = useState<string[] | null>(null)
 
   useEffect(() => {
     async function loadVersion() {
@@ -66,8 +68,26 @@ export function AppShell() {
         setUpdateAvailable(update)
       }
     }
-    // Slight delay so the UI loads smoothly first
     const timer = setTimeout(checkUpdates, 2000)
+    return () => clearTimeout(timer)
+  }, [])
+
+  useEffect(() => {
+    // Check database health globally on app startup
+    async function verifyDatabase() {
+      try {
+        const config = await SystemSettingsAPI.getConfig()
+        if (config.fmodel_output && config.palworld_exe) {
+          const res = await SystemSettingsAPI.verifyEnv()
+          if (res?.data?.needs_db_build && Array.isArray(res.data.missing_db_files) && res.data.missing_db_files.length > 0) {
+            setMissingDbFiles(res.data.missing_db_files)
+          }
+        }
+      } catch (err) {
+        console.error("Startup database verification check failed:", err)
+      }
+    }
+    const timer = setTimeout(verifyDatabase, 1200)
     return () => clearTimeout(timer)
   }, [])
 
@@ -201,6 +221,15 @@ export function AppShell() {
       {docsOpen && (
         <DocsModal 
           onClose={() => setDocsOpen(false)} 
+        />
+      )}
+
+      {/* Global Database Rebuild Modal */}
+      {missingDbFiles && (
+        <DatabaseMissingModal
+          missingFiles={missingDbFiles}
+          onClose={() => setMissingDbFiles(null)}
+          onSuccess={() => setMissingDbFiles(null)}
         />
       )}
     </div>

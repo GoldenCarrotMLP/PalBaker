@@ -81,7 +81,7 @@ pub fn run() {
         .invoke_handler(tauri::generate_handler![
             commands::manager_list,
             commands::creator_list,
-            commands::creator_add,          // <-- ADDED: The missing command router!
+            commands::creator_add,
             commands::env_status,
             commands::env_launch_unreal,
             commands::env_restart_unreal,
@@ -119,6 +119,7 @@ pub fn run() {
             commands::set_mod_preserve_materials,
             commands::set_mod_push_setting,
             commands::set_vanilla_replacer,
+            commands::set_mod_blacklist,
         ])
         .run(tauri::generate_context!())
         .expect("error while running tauri application");

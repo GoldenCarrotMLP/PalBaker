@@ -1,9 +1,10 @@
+// palbaker-ui/components/mod-manager/mod-card-expanded.tsx
 "use client"
 
 import { useState, useRef, useEffect } from "react"
 import { type ModItem, type AltermaticVariant } from "@/lib/mock-data"
 import { Separator } from "@/components/ui/separator"
-import { ImagePlus } from "lucide-react"
+import { ImagePlus, FileMinus } from "lucide-react"
 import { ModManagerAPI } from "@/lib/data-service"
 import { convertFileSrc } from "@tauri-apps/api/core"
 import { useNotifications } from "./mod-card-expanded/use-notifications"
@@ -13,6 +14,7 @@ import { AltermaticPanel } from "./mod-card-expanded/altermatic-panel"
 import { AddVariantModal } from "./mod-card-expanded/add-variant-modal"
 import { EditVariantModal } from "./mod-card-expanded/edit-variant-modal"
 import { SelectivePushPanel } from "./mod-card-expanded/selective-push-panel"
+import { BlacklistModal } from "./mod-card-expanded/blacklist-modal"
 
 
 interface Props {
@@ -35,6 +37,7 @@ export function ModCardExpanded({ mod, onRefresh }: Props) {
 
   const [altermaticEnabled, setAltermaticEnabled] = useState(mod.is_altermatic_active)
   const [isAddModalOpen,    setIsAddModalOpen]     = useState(false)
+  const [isBlacklistOpen,   setIsBlacklistOpen]    = useState(false)
   const [editingVariant,    setEditingVariant]     = useState<AltermaticVariant | null>(null)
   const [editingIndex,      setEditingIndex]       = useState(-1)
   const [altermaticMetadata, setAltermaticMetadata] = useState<Record<string, unknown> | null>(null)
@@ -95,7 +98,7 @@ export function ModCardExpanded({ mod, onRefresh }: Props) {
   }
 
   return (
-    <div className="border-t border-border px-5 py-5">
+    <div className="border-t border-border px-5 py-5 relative">
       <div className="flex gap-6 items-start">
         <div className="flex flex-col gap-4 shrink-0 w-[160px]">
           <div className="flex flex-col gap-2">
@@ -191,6 +194,15 @@ export function ModCardExpanded({ mod, onRefresh }: Props) {
         </div>
       </div>
 
+      {/* Floating Blacklist Button */}
+      <button 
+        onClick={() => setIsBlacklistOpen(true)}
+        title="Custom Packaging Blacklist"
+        className="absolute bottom-4 right-4 p-2 bg-muted/30 hover:bg-muted/80 border border-border rounded-md text-muted-foreground hover:text-foreground transition-colors cursor-pointer"
+      >
+        <FileMinus className="size-4" />
+      </button>
+
       {isAddModalOpen && !mod.is_variant && (
         <AddVariantModal
           basePal={mod.base_pal}
@@ -212,6 +224,17 @@ export function ModCardExpanded({ mod, onRefresh }: Props) {
           altermaticMetadata={altermaticMetadata}
           traitsDb={traitsDb}
           onClose={() => { setEditingVariant(null); setEditingIndex(-1) }}
+          onSaved={onRefresh}
+          onNotify={showNotification}
+        />
+      )}
+
+      {isBlacklistOpen && (
+        <BlacklistModal
+          basePal={mod.base_pal}
+          modName={mod.name}
+          initialBlacklist={(mod as any).custom_blacklist || []}
+          onClose={() => setIsBlacklistOpen(false)}
           onSaved={onRefresh}
           onNotify={showNotification}
         />

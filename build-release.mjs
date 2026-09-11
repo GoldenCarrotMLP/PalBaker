@@ -180,7 +180,7 @@ if (signature && updateArtifactName) {
 }
 
 // 8. Auto-upload release and artifacts to GitHub
-const GITHUB_TOKEN = process.env.GITHUB_TOKEN || process.env.GH_TOKEN;
+const GITHUB_TOKEN = ""// process.env.GITHUB_TOKEN || process.env.GH_TOKEN;
 
 let autodetectedOwner = "";
 let autodetectedRepo = "";

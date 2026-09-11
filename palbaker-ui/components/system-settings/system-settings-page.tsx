@@ -53,6 +53,11 @@ export function SystemSettingsPage() {
           fmodel_output: liveConfig.fmodel_output || "",
         })
         setShowMappedNames(liveConfig.show_mapped !== false)
+
+        // Automatically audit environment & database caches on page load
+        if (liveConfig.fmodel_output && liveConfig.palworld_exe) {
+          runVerificationFlow()
+        }
       } catch (err: any) {
         setDiagnosticError(String(err.message || err))
       }
