@@ -29,16 +29,19 @@ export function PalCreatorPage() {
   const [deleteTarget, setDeleteTarget] = useState<string | null>(null)
   const { refreshTrigger } = useNav() as any
 
-  // Dynamic Dictionaries populated entirely by the Python Backend
+  // Dynamic Dictionaries populated from backend database caches
   const [spawners, setSpawners] = useState<Record<string, string>>({})
   const [activeSkills, setActiveSkills] = useState<Record<string, ActiveSkill>>({})
+  const [partnerSkills, setPartnerSkills] = useState<Record<string, string>>({})
+  const [items, setItems] = useState<Record<string, any>>({})
+  const [cageFields, setCageFields] = useState<string[]>([])
+  const [bossSpawnerPresets, setBossSpawnerPresets] = useState<Record<string, any>>({})
 
   useEffect(() => {
     async function loadPalsAndCaches() {
       try {
         setLoading(true)
 
-        // 1. Check path configuration status first
         const config = await SystemSettingsAPI.getConfig()
         const configured = Boolean(
           config.fmodel_output &&
@@ -49,12 +52,10 @@ export function PalCreatorPage() {
         )
 
         if (!configured) {
-          // If unconfigured, gracefully set defaults and halt to avoid backend failures
           setTemplates(mockPalTemplates)
           return
         }
 
-        // 2. Safe query when environments are healthy
         const [data, caches] = await Promise.all([
           PalCreatorAPI.list(),
           ModManagerAPI.getAltermaticCaches()
@@ -62,9 +63,12 @@ export function PalCreatorPage() {
         setPals(data as unknown as CreatorPal[])
         
         if (caches) {
-          // Hydrate dynamic menus
           if (caches.monster_spawners) setSpawners(caches.monster_spawners)
           if (caches.active_skills) setActiveSkills(caches.active_skills)
+          if (caches.partner_skills) setPartnerSkills(caches.partner_skills)
+          if (caches.items) setItems(caches.items)
+          if (caches.cage_pals?.field_names) setCageFields(caches.cage_pals.field_names)
+          if (caches.boss_spawners) setBossSpawnerPresets(caches.boss_spawners)
           
           if (caches.templates) {
             const validTemplates = Object.keys(caches.templates)
@@ -174,6 +178,10 @@ export function PalCreatorPage() {
                 expanded={expandedId === pal.CharacterID}
                 spawners={spawners}
                 activeSkills={activeSkills}
+                partnerSkills={partnerSkills}
+                items={items}
+                cageFields={cageFields}
+                bossSpawnerPresets={bossSpawnerPresets}
                 onToggle={() => { setExpandedId(expandedId === pal.CharacterID ? null : pal.CharacterID) }}
                 onUpdate={(patch) => { updatePal(pal.CharacterID, patch) }}
                 onOpenDialog={(title, dataset, onSelect, palElements) => { setDialog({ title, dataset, onSelect, palElements }) }}

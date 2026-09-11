@@ -12,6 +12,10 @@ interface Props {
   expanded: boolean
   spawners: Record<string, string>
   activeSkills: Record<string, ActiveSkill>
+  partnerSkills: Record<string, string>
+  items: Record<string, any>
+  cageFields: string[]
+  bossSpawnerPresets: Record<string, any>
   onToggle: () => void
   onUpdate: (patch: Partial<CreatorPal>) => void
   onOpenDialog: (
@@ -26,7 +30,10 @@ interface Props {
   palNames: Record<string, string>
 }
 
-export function PalListRow({ pal, expanded, spawners, activeSkills, onToggle, onUpdate, onOpenDialog, onSave, onDelete, templates, palNames }: Props) {
+export function PalListRow({ 
+  pal, expanded, spawners, activeSkills, partnerSkills, items, cageFields, bossSpawnerPresets, 
+  onToggle, onUpdate, onOpenDialog, onSave, onDelete, templates, palNames 
+}: Props) {
   const el1       = cleanElement(pal.ElementType1) || "Normal"
   const el2       = cleanElement(pal.ElementType2)
   const el1Color  = ELEMENT_COLORS[el1]  ?? ELEMENT_COLORS["Normal"]
@@ -37,7 +44,6 @@ export function PalListRow({ pal, expanded, spawners, activeSkills, onToggle, on
 
   return (
     <div className="bg-card">
-      {/* Collapsed row */}
       <button
         onClick={onToggle}
         className="w-full px-4 py-3 flex items-center gap-3 hover:bg-accent/50 transition-colors cursor-pointer"
@@ -61,12 +67,15 @@ export function PalListRow({ pal, expanded, spawners, activeSkills, onToggle, on
         <span className="text-muted-foreground text-xs font-mono shrink-0">{pal.TemplateID}</span>
       </button>
 
-      {/* Expanded details */}
       {expanded && (
         <PalDetails
           pal={pal}
           spawners={spawners}
           activeSkills={activeSkills}
+          partnerSkills={partnerSkills}
+          items={items}
+          cageFields={cageFields}
+          bossSpawnerPresets={bossSpawnerPresets}
           onUpdate={onUpdate}
           onOpenDialog={onOpenDialog}
           onSave={onSave}

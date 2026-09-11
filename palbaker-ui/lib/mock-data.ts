@@ -114,6 +114,37 @@ export interface WorkSuitability {
   Medicine: boolean
 }
 
+export interface ItemDropConfig {
+  itemId: string
+  rate: number
+  min: number
+  max: number
+}
+
+export interface BreedingCombo {
+  parentA: string
+  parentB: string
+}
+
+export interface AdvancedSpawnerRule {
+  locationId: string
+  weight: number
+  minLevel: number
+  maxLevel: number
+  minGroup: number
+  maxGroup: number
+  time: "EPalOneDayTimeType::Undefined" | "EPalOneDayTimeType::Day" | "EPalOneDayTimeType::Night"
+  weather: "EPalWeatherConditionType::Undefined" | "EPalWeatherConditionType::Sunny" | "EPalWeatherConditionType::Rain"
+}
+
+export interface FieldBossRule {
+  level: number
+  x: number
+  y: number
+  z: number
+  adds: { palId: string; levelMin: number; levelMax: number; count: number }[]
+}
+
 export interface CreatorPal {
   CharacterID: string
   TemplateID: string
@@ -162,13 +193,49 @@ export interface CreatorPal {
   BaseSkills?: string[]
   PassiveSkills?: string[]
   PartnerSkill?: string
+  PartnerSkillName?: string
   Learnset: LearnsetEntry[]
+  
+ // Partner Weapon Overrides
+  PartnerWeaponElement?: string
+  PartnerWeaponEffectType?: string
+  PartnerWeaponNiagara?: string
+
+
+  // Legacy Spawners
   SpawnLocationID?: string
   SpawnWeight?: number 
   SpawnMinLevel?: number
   SpawnMaxLevel?: number
   SpawnMinGroup?: number
   SpawnMaxGroup?: number
+  EnableSpawns?: boolean
+
+  // Advanced Ecology & Spawners
+  AdvancedSpawners?: AdvancedSpawnerRule[]
+  BreedingCombos?: BreedingCombo[]
+  CageSpawns?: string[] // e.g. ["Grass2", "Desert1", "Viking1"]
+
+  // Loot & Drops
+  ItemDrops?: ItemDropConfig[]
+
+  // Partner Skills & Buffs
+  PartnerPlayerBuff?: "None" | "Attack" | "Defense" | "WorkSpeed"
+  PartnerCampBuff?: "None" | "Handcraft" | "Transport" | "Mining" | "Lumbering" | "Kindling" | "Watering" | "Gathering" | "Planting" | "Medicine" | "Electricity" | "Cooling" | "Farming"
+  PartnerDropItems?: string[]
+
+  // Variants (Boss / Predator)
+  GenerateBoss?: boolean
+  GeneratePredator?: boolean
+  BossPrefix?: string
+  PredatorPrefix?: string
+  BossHPMultiplier?: number
+  PredatorHPMultiplier?: number
+  PredatorAtkMultiplier?: number
+  PredatorSpeedMultiplier?: number
+  FieldBossSpawns?: FieldBossRule[]
+  GenerateBountyToken?: boolean
+  
   EnablePaldeck?: boolean
   ZukanIndex?: number
   ZukanIndexSuffix?: string

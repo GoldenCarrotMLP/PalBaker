@@ -395,6 +395,13 @@ pub async fn set_mod_preserve_materials(app: AppHandle, state: State<'_, AppStat
 }
 
 #[tauri::command]
+pub async fn set_mod_blacklist(app: AppHandle, state: State<'_, AppState>, base_pal: String, mod_name: String, blacklist_str: String) -> Result<Value, String> {
+    let raw = run_cli(&app, &state, &["mod", "set-blacklist", &base_pal, &mod_name, "--path", &blacklist_str])?;
+    let parsed: Value = parse_last_json_line(&raw).unwrap_or(serde_json::json!({ "status": "success", "message": raw }));
+    Ok(parsed)
+}
+
+#[tauri::command]
 pub async fn get_config(app: AppHandle, state: State<'_, AppState>) -> Result<Value, String> {
     let raw = run_cli(&app, &state, &["config", "get"])?;
     let parsed: Value = parse_last_json_line(&raw)?;

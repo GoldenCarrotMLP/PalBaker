@@ -1,10 +1,19 @@
-// lib/api/mod-manager.ts
+// palbaker-ui/lib/api/mod-manager.ts
 import { invoke } from "@tauri-apps/api/core"
 import { USE_LIVE_DATA, IS_DEV, handleBackendError } from "./core"
 import { mockModList, type ModItem } from "../mock-data"
 
 export const ModManagerAPI = {
-  // Append this method inside the ModManagerAPI dictionary wrapper:
+  async setModBlacklist(basePal: string, modName: string, blacklistArray: string[]): Promise<any> {
+    if (USE_LIVE_DATA) {
+      try { 
+        return await invoke("set_mod_blacklist", { basePal, modName, blacklistStr: JSON.stringify(blacklistArray) });
+      } 
+      catch (err) { handleBackendError(err) }
+    }
+    return { status: "success", message: `Mocked blacklist updated.` }
+  },
+
   async setVanillaReplacer(basePal: string, variantName: string): Promise<any> {
     if (USE_LIVE_DATA) {
       try { 
@@ -14,6 +23,7 @@ export const ModManagerAPI = {
     }
     return { status: "success", message: `Vanilla Replacer configured.` }
   },
+
   async list(): Promise<ModItem[]> {
     if (USE_LIVE_DATA) {
       try {
