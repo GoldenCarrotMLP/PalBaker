@@ -236,6 +236,10 @@ export interface CreatorPal {
   FieldBossSpawns?: FieldBossRule[]
   GenerateBountyToken?: boolean
   
+  // Funnel Capabilities
+  HasFunnel?: boolean
+  FunnelWazaID?: string
+  
   EnablePaldeck?: boolean
   ZukanIndex?: number
   ZukanIndexSuffix?: string

@@ -16,7 +16,8 @@ import {
   ELEMENT_OPTIONS,
   WEAPON_EFFECT_OPTIONS,
   NIAGARA_EFFECT_LIST,
-  CUSTOMIZABLE_WEAPON_SKILLS
+  CUSTOMIZABLE_WEAPON_SKILLS,
+  FUNNEL_PARTNER_SKILLS
 } from "./pal-helpers"
 
 import { DiagnosticsModal } from "@/components/common/diagnostics-modal"
@@ -392,6 +393,37 @@ export function PalDetails({
               </div>
             </div>
             )}
+
+            
+            {/* Custom Funnel Companion Properties */}
+            <div className="border-t border-border/40 pt-4 mt-2 flex flex-col gap-4">
+              <div className="flex items-center justify-between">
+                <span className="text-xs font-bold text-primary font-mono uppercase tracking-wider">
+                  Hovering Funnel Companion
+                </span>
+                <Checkbox 
+                  checked={!!pal.HasFunnel} 
+                  onCheckedChange={(c) => onUpdate({ HasFunnel: !!c })} 
+                />
+              </div>
+              
+              {!!pal.HasFunnel && (
+                <div className="grid grid-cols-2 gap-4">
+                  <FieldGroup label="Funnel Attack Projectile (Waza ID)">
+                    <SearchableSelect
+                      value={pal.FunnelWazaID || "Funnel_DreamDemon"}
+                      onChange={(val) => onUpdate({ FunnelWazaID: val })}
+                      options={[
+                        { value: "Funnel_DreamDemon", label: "Daedream Base (Funnel_DreamDemon)" },
+                        { value: "Funnel_RaijinDaughter", label: "Dazzi Base (Funnel_RaijinDaughter)" },
+                        ...Object.values(activeSkills).map(s => ({ value: s.id, label: `${s.id.replace(/_/g, " ")} (${s.element})` }))
+                      ]}
+                      placeholder="Search Attack Skills..."
+                    />
+                  </FieldGroup>
+                </div>
+              )}
+            </div>
 
             <div className="grid grid-cols-2 gap-4">
               <FieldGroup label="Active Player Stat Buff (While in Party)">

@@ -123,6 +123,11 @@ export function getPartnerWeaponConfig(skillId?: string): PartnerWeaponConfig | 
 
 // Add to palbaker-ui/components/pal-creator/pal-helpers.tsx
 
+export const FUNNEL_PARTNER_SKILLS = [
+  "PartnerSkill_DreamDemon", "DreamDemon",
+  "PartnerSkill_RaijinDaughter", "RaijinDaughter"
+]
+
 export const CUSTOMIZABLE_WEAPON_SKILLS = [
   "PartnerSkill_Kitsunebi", "Flamethrower",
   "PartnerSkill_Penguin", "Launcher",
