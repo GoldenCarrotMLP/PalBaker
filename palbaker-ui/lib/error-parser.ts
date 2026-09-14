@@ -16,6 +16,21 @@ export interface DiagnosticReport {
 export function parseBackendError(rawError: string): DiagnosticReport {
   let err = String(rawError).trim();
 
+  // 0. NO FILES FOUND TO PACK
+  if (
+    err.includes("No files found to pack") ||
+    err.includes("Cook process might have failed")
+  ) {
+    return {
+      category: "COOK_PACK",
+      title: "Packaging Failed",
+      friendlyMsg: "ERROR: No files found to pack. Cook process might have failed.\n\nUnreal Engine finished cooking, but no .uasset files were found in the cooked directory for this character or variant to pack into the .pak archive.",
+      remediations: [
+        { label: "Dismiss", actionKey: "close_modal", style: "primary" }
+      ]
+    };
+  }
+
   // 1. PHYSICAL MEMORY (RAM) LIMIT EXHAUSTIONS
   // Detects the signature of the low memory block immediately
   if (
@@ -207,11 +222,81 @@ export function parseBackendError(rawError: string): DiagnosticReport {
     };
   }
 
+  // 8a. PACKAGING - NO COOKED FILES FOUND
+  if (
+    err.includes("No files found to pack") ||
+    err.includes("Cook process might have failed")
+  ) {
+    return {
+      category: "COOK_PACK",
+      title: "No Cooked Files Found",
+      friendlyMsg: "ERROR: No files found to pack. Cook process might have failed.\n\nUnreal Engine finished cooking, but no compiled .uasset files were found in the cooked output directory to bundle into the .pak archive.",
+      remediations: [
+        { label: "Dismiss", actionKey: "close_modal", style: "primary" }
+      ]
+    };
+  }
+
+  // 8b. SPECIFIC UNREAL COMPILATION & ASSET FAILURES
+  if (
+    err.includes("[AssetLog]") ||
+    err.includes("LogBlueprint: Error") ||
+    (err.includes(".uasset") && err.includes("[Compiler]")) ||
+    err.includes("unknown Anim Sequence Base")
+  ) {
+    // Locate the line specifically mentioning the asset
+    const lines = err.split(/[\r\n]+/);
+    const errorLine = lines.find(l => 
+      (l.includes("[AssetLog]") || l.includes("LogBlueprint: Error") || l.includes("[Compiler]")) &&
+      (l.includes(".uasset") || l.includes(".umap"))
+    ) || lines.find(l => l.includes("[AssetLog]")) || err;
+
+    // Extract file path (Windows: F:\... or virtual: /Game/...)
+    const fileMatch = errorLine.match(/([a-zA-Z]:\\[^\s:]+\.(?:uasset|umap))/i) ||
+                      errorLine.match(/(\/Game\/[^\s:]+\.(?:uasset|umap))/i);
+    
+    const fullPath = fileMatch ? fileMatch[1].trim() : "";
+    const fileName = fullPath ? fullPath.split(/[\\/]/).pop() || "Asset" : "Broken Asset";
+
+    // Extract the compiler or error message after the file path
+    let reason = "";
+    if (fullPath && errorLine.includes(fullPath)) {
+      const afterFile = errorLine.split(fullPath)[1];
+      if (afterFile) {
+        reason = afterFile.replace(/^[:\s]+/, "").trim();
+      }
+    }
+    if (!reason) {
+      const compilerMatch = errorLine.match(/(\[Compiler\].*)/i);
+      if (compilerMatch) {
+        reason = compilerMatch[1].trim();
+      } else {
+        reason = errorLine.replace(/.*(?:Error:|\[AssetLog\])/i, "").trim();
+      }
+    }
+
+    let friendlyMsg = `Cook failed on: ${fileName}\n\n`;
+    if (reason) {
+      friendlyMsg += `Reason: ${reason}\n\n`;
+    }
+    if (fullPath) {
+      friendlyMsg += `File: ${fullPath}`;
+    }
+
+    return {
+      category: "COMPILER",
+      title: `Failed Asset: ${fileName}`,
+      friendlyMsg: friendlyMsg.trim(),
+      remediations: [
+        { label: "Dismiss", actionKey: "close_modal", style: "primary" }
+      ]
+    };
+  }
+  
   // 9. COOK & PACK SYSTEM
   if (
     err.includes("Cannot overwrite") ||
-    err.includes("Close the game") ||
-    err.includes("COOK FAILED")
+    err.includes("Close the game")
   ) {
     return {
       category: "COOK_PACK",
@@ -222,6 +307,17 @@ export function parseBackendError(rawError: string): DiagnosticReport {
         { label: "⚙️ Go to Settings", actionKey: "go_to_settings", style: "secondary" }
       ]
     };
+  }
+  
+  if (err.includes("COOK FAILED") || err.includes("Pipeline action cook failed") || err.includes("Pipeline action pack failed")) {
+     return {
+      category: "COOK_PACK",
+      title: "Cook Process Failed",
+      friendlyMsg: "The Unreal Cooker failed to process your assets! Review the red error lines in the terminal below to see exactly which file caused the crash.",
+      remediations: [
+        { label: "Dismiss", actionKey: "close_modal", style: "primary" }
+      ]
+     }
   }
 
   // GENERAL DEFAULT FALLBACK
