@@ -200,7 +200,7 @@ export interface CreatorPal {
   PartnerWeaponElement?: string
   PartnerWeaponEffectType?: string
   PartnerWeaponNiagara?: string
-
+  SaddleItem?: string
 
   // Legacy Spawners
   SpawnLocationID?: string
