@@ -142,6 +142,25 @@ export const mockPalTemplates = [
   "Anubis", "Chillet", "Furret", "IceDeer", "Yeti", "Lamball",
   "Foxparks", "Cattiva", "WeaselDragon", "BOSS_KingAlpaca", "BOSS_LegendDeer",
 ]
+export interface MapSpawnRule {
+  isBoss?: boolean
+  level: number
+  levelMax?: number
+  x: number
+  y: number
+  z: number
+  amountMin?: number
+  amountMax?: number
+  adds?: any[]
+}
+export interface WildSpawnerConfig {
+  SpawnLocationID: string
+  SpawnWeight: number 
+  SpawnMinLevel: number
+  SpawnMaxLevel: number
+  SpawnMinGroup: number
+  SpawnMaxGroup: number
+}
 
 export interface CreatorPal {
   CharacterID: string
@@ -204,6 +223,7 @@ export interface CreatorPal {
   SpawnMinGroup?: number
   SpawnMaxGroup?: number
   EnableSpawns?: boolean
+  WildSpawners?: WildSpawnerConfig[]
   BreedingCombos?: { parentA: string; parentB: string }[]
   CageSpawns?: string[]
   ItemDrops?: { itemId: string; rate: number; min: number; max: number }[]
@@ -218,7 +238,7 @@ export interface CreatorPal {
   PredatorHPMultiplier?: number
   PredatorAtkMultiplier?: number
   PredatorSpeedMultiplier?: number
-  FieldBossSpawns?: { level: number; x: number; y: number; z: number; adds: any[] }[]
+  FieldBossSpawns?: MapSpawnRule[]
   GenerateBountyToken?: boolean
   HasFunnel?: boolean
   FunnelWazaID?: string
