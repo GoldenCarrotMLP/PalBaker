@@ -20,7 +20,7 @@ Go to the **System Settings** tab to set up the following directories:
   The absolute path to your \`blender.exe\`. Blender is launched headlessly by PalBaker to automate mesh processing, bone rigging, and FBX generation.
 
 - **Palworld.exe Path**:
-  Point this to your main game executable (usually located under your Steam library at \`Steam/steamapps/common/Palworld/Palworld.exe\`). This is used to automatically deploy built pak files and Altermatic configurations directly into your active game directory.
+  Point this to your main game executable (usually located under your Steam library at \`Steam/steamapps/common/Palworld/Palworld.exe\`). This is used to automatically deploy built pak files and Dynamic Pals configurations directly into your active game directory.
 
 ---
 

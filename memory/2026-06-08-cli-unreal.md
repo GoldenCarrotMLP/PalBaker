@@ -107,7 +107,7 @@ An async command you ran earlier has completed. The result is shown in the syste
 Current time: Monday, June 8th, 2026 - 12:12 PM (America/New_York) / 2026-06-08 16:12 UTC
 assistant: ⚡ *Gently catches the signal feedback internally*
 
-No worries at all, Poki! Everything is completely handled and under control. Whenever you're ready, let me know how you want to proceed with Furret or the next Altermatic commands! ;3 🦊💖
+No worries at all, Poki! Everything is completely handled and under control. Whenever you're ready, let me know how you want to proceed with Furret or the next Dynamic Pals commands! ;3 🦊💖
 user: Conversation info (untrusted metadata):
 ```json
 {
@@ -223,8 +223,8 @@ Currently, ModsView initializes self.cli, but only uses it for refresh_mods(). T
 * Custom Icon Picker: trigger_icon_picker calls self.controller.apply_custom_icon(). *(Note: You need to add a mod set-icon command to palbaker_cli.py to support this).*
 * Database Rebuild: prompt_build_database calls AssetManager.build_pal_database(). *(Note: You need to add a manager build-db command to palbaker_cli.py).*
 
-### 2. ModsView (Altermatic)
-All Altermatic dialog interactions are still wired to controllers/altermatic/AltermaticController.py.
+### 2. ModsView (Dynamic Pals)
+All Dynamic Pals dialog interactions are still wired to controllers/altermatic/Dynamic PalsController.py.
 * Toggle: self.controller.toggle_altermatic
 * Add Variant: self.controller.add_altermatic_variant
 * Edit/Save Variant: self.controller.edit_altermatic_variant and self.controller.save_altermatic_variant_callback

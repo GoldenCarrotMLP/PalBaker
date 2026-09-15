@@ -78,7 +78,7 @@ pub fn run() {
             app.manage(app_state);
             Ok(())
         })
-        .invoke_handler(tauri::generate_handler![
+                .invoke_handler(tauri::generate_handler![
             commands::manager_list,
             commands::creator_list,
             commands::creator_add,
@@ -94,13 +94,13 @@ pub fn run() {
             commands::audio_set,
             commands::audio_clear,
             commands::audio_play,
-            commands::altermatic_toggle,
-            commands::altermatic_metadata,
-            commands::altermatic_add,
-            commands::altermatic_delete,
-            commands::altermatic_save,
-            commands::altermatic_open_blend,
-            commands::altermatic_sidecar,
+            commands::dynamic_pals_toggle,
+            commands::dynamic_pals_metadata,
+            commands::dynamic_pals_add,
+            commands::dynamic_pals_delete,
+            commands::dynamic_pals_save,
+            commands::dynamic_pals_open_blend,
+            commands::dynamic_pals_sidecar,
             commands::set_mod_icon,
             commands::save_mod_icon_bytes,
             commands::save_mod_audio_bytes,

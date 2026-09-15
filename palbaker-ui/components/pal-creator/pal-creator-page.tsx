@@ -58,7 +58,7 @@ export function PalCreatorPage() {
 
         const [data, caches] = await Promise.all([
           PalCreatorAPI.list(),
-          ModManagerAPI.getAltermaticCaches()
+          ModManagerAPI.getDynamicPalsCaches()
         ])
         setPals(data as unknown as CreatorPal[])
         

@@ -1,4 +1,4 @@
-// palbaker-ui/components/mod-manager/mod-card-expanded/altermatic-panel.tsx
+// palbaker-ui/components/mod-manager/mod-card-expanded/dynamic_pals-panel.tsx
 "use client"
 
 import { useState } from "react"
@@ -12,24 +12,30 @@ interface Props {
   enabled: boolean
   onToggle: (val: boolean) => void
   onOpenAdd: () => void
-  onOpenEdit: (variant: ModItem["altermatic_variants"][number], index: number) => void
+  onOpenEdit: (variant: ModItem["dynamic_pal_variants"][number], index: number) => void
   onNotify: (msg: string, type: "success" | "info" | "error" | "warning", title?: string) => void
   onRefresh: () => void
+  onUpdateMod: (modKey: string, patch: Partial<ModItem>) => void
 }
 
-export function AltermaticPanel({ mod, enabled, onToggle, onOpenAdd, onOpenEdit, onNotify, onRefresh }: Props) {
+export function DynamicPalsPanel({ mod, enabled, onToggle, onOpenAdd, onOpenEdit,onRefresh, onNotify, onUpdateMod }: Props) {
+
   const [refreshing, setRefreshing] = useState(false)
 
   const handleToggle = async (val: boolean) => {
+    onToggle(val)
+    onUpdateMod(mod.id || mod.name, { is_dynamic_pals_active: val })
+
     try {
-      await ModManagerAPI.altermaticToggle(mod.base_pal, mod.name, val)
-      onToggle(val)
-      onNotify(`Altermatic framework ${val ? "enabled" : "disabled"}.`, "success")
-      onRefresh()
+      await ModManagerAPI.dynamicPalsToggle(mod.base_pal, mod.name, val)
+      onNotify(`Dynamic Pals framework ${val ? "enabled" : "disabled"}.`, "success")
     } catch (err) {
-      onNotify(`Failed to toggle Altermatic: ${err}`, "error", "Operation Failed")
+      onToggle(!val)
+      onUpdateMod(mod.id || mod.name, { is_dynamic_pals_active: !val })
+      onNotify(`Failed to toggle Dynamic Pals: ${err}`, "error", "Operation Failed")
     }
   }
+
 
   const handleRefreshBlend = async () => {
     setRefreshing(true)
@@ -49,7 +55,7 @@ export function AltermaticPanel({ mod, enabled, onToggle, onOpenAdd, onOpenEdit,
     <div className="flex flex-col gap-2 min-w-[220px] shrink-0">
       <div className="flex items-center justify-between gap-3">
         <span className="text-muted-foreground text-xs font-semibold uppercase tracking-wider">
-          Altermatic Variants
+          Dynamic Pal Variants
         </span>
         <label className="flex items-center gap-1.5 cursor-pointer shrink-0">
           <span className="text-xs text-muted-foreground font-mono">ENABLE</span>
@@ -63,11 +69,11 @@ export function AltermaticPanel({ mod, enabled, onToggle, onOpenAdd, onOpenEdit,
 
       {enabled && (
         <div className="flex flex-col gap-2">
-          {(mod.altermatic_variants || []).length === 0 ? (
+          {(mod.dynamic_pal_variants || []).length === 0 ? (
             <p className="text-muted-foreground text-xs italic">No custom variants added yet.</p>
           ) : (
             <div className="flex flex-wrap gap-2">
-              {(mod.altermatic_variants || []).map((v, i) => (
+              {(mod.dynamic_pal_variants || []).map((v, i) => (
                 <VariantChip key={i} variant={v} modName={mod.name} onClick={() => onOpenEdit(v, i)} />
               ))}
             </div>

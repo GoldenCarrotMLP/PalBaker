@@ -2,7 +2,7 @@
 "use client"
 
 import { useState, useRef, useEffect } from "react"
-import { type ModItem, type AltermaticVariant } from "@/lib/mock-data"
+import { type ModItem, type DynamicPalVariant } from "@/lib/mock-data"
 import { Separator } from "@/components/ui/separator"
 import { ImagePlus, FileMinus } from "lucide-react"
 import { ModManagerAPI } from "@/lib/data-service"
@@ -10,19 +10,19 @@ import { convertFileSrc } from "@tauri-apps/api/core"
 import { useNotifications } from "./mod-card-expanded/use-notifications"
 import { NotificationToast } from "./mod-card-expanded/notification-toast"
 import { CriesPanel } from "./mod-card-expanded/cries-panel"
-import { AltermaticPanel } from "./mod-card-expanded/altermatic-panel"
+import { DynamicPalsPanel } from "./mod-card-expanded/dynamic-pals-panel"
 import { AddVariantModal } from "./mod-card-expanded/add-variant-modal"
 import { EditVariantModal } from "./mod-card-expanded/edit-variant-modal"
 import { SelectivePushPanel } from "./mod-card-expanded/selective-push-panel"
 import { BlacklistModal } from "./mod-card-expanded/blacklist-modal"
 
-
 interface Props {
   mod: ModItem
   onRefresh: () => void
+  onUpdateMod: (modKey: string, patch: Partial<ModItem>) => void
 }
 
-export function ModCardExpanded({ mod, onRefresh }: Props) {
+export function ModCardExpanded({ mod, onRefresh, onUpdateMod }: Props) {
   const { notifications, showNotification, dismissNotification } = useNotifications()
   const iconInputRef = useRef<HTMLInputElement>(null)
 
@@ -35,28 +35,28 @@ export function ModCardExpanded({ mod, onRefresh }: Props) {
     setPreserveMaterials(mod.preserve_materials !== false)
   }
 
-  const [altermaticEnabled, setAltermaticEnabled] = useState(mod.is_altermatic_active)
+  const [dynamicPalsEnabled, setDynamicPalsEnabled] = useState(mod.is_dynamic_pals_active)
   const [isAddModalOpen,    setIsAddModalOpen]     = useState(false)
   const [isBlacklistOpen,   setIsBlacklistOpen]    = useState(false)
-  const [editingVariant,    setEditingVariant]     = useState<AltermaticVariant | null>(null)
+  const [editingVariant,    setEditingVariant]     = useState<DynamicPalVariant | null>(null)
   const [editingIndex,      setEditingIndex]       = useState(-1)
-  const [altermaticMetadata, setAltermaticMetadata] = useState<Record<string, unknown> | null>(null)
+  const [dynamicPalsMetadata, setDynamicPalsMetadata] = useState<Record<string, unknown> | null>(null)
   const [traitsDb,          setTraitsDb]           = useState<Record<string, string>>({})
 
   useEffect(() => {
-    if (!altermaticEnabled || mod.is_variant) return
+    if (!dynamicPalsEnabled || mod.is_variant) return
     const load = async () => {
       try {
-        const meta = await ModManagerAPI.altermaticMetadata(mod.base_pal, mod.name)
-        const caches = await ModManagerAPI.getAltermaticCaches()
-        setAltermaticMetadata(meta as Record<string, unknown>)
+        const meta = await ModManagerAPI.dynamicPalsMetadata(mod.base_pal, mod.name)
+        const caches = await ModManagerAPI.getDynamicPalsCaches()
+        setDynamicPalsMetadata(meta as Record<string, unknown>)
         setTraitsDb(caches?.traits_db ?? caches?.passive_skills ?? {})
       } catch (err) {
-        console.error("Failed to load Altermatic metadata:", err)
+        console.error("Failed to load Dynamic Pals metadata:", err)
       }
     }
     load()
-  }, [altermaticEnabled, mod.base_pal, mod.name, mod.is_variant])
+  }, [dynamicPalsEnabled, mod.base_pal, mod.name, mod.is_variant])
 
   const handleIconChange = async (e: React.ChangeEvent<HTMLInputElement>) => {
     const file = e.target.files?.[0]
@@ -68,6 +68,7 @@ export function ModCardExpanded({ mod, onRefresh }: Props) {
         const bytes = Array.from(new Uint8Array(buffer))
         await ModManagerAPI.saveModIconBytes(mod.base_pal, mod.name, file.name, bytes)
         showNotification("Custom Pal Icon updated successfully!", "success")
+        // Silent background refresh to pick up new thumbnail without screen flicker
         onRefresh()
       }
       reader.readAsArrayBuffer(file)
@@ -77,8 +78,12 @@ export function ModCardExpanded({ mod, onRefresh }: Props) {
   }
 
   const handlePreserveToggle = async (val: boolean) => {
+    // 1. Instant local + parent in-memory update
+    setPreserveMaterials(val)
+    onUpdateMod(mod.id || mod.name, { preserve_materials: val })
+
+    // 2. Persist to backend without tearing down view
     try {
-      setPreserveMaterials(val)
       await ModManagerAPI.setModPreserveMaterials(mod.base_pal, mod.name, val)
       showNotification(
         val 
@@ -86,13 +91,15 @@ export function ModCardExpanded({ mod, onRefresh }: Props) {
           : "Material overwriting enabled. Baseline templates will be re-applied.",
         "success"
       )
-      onRefresh()
     } catch (err) {
+      // Rollback on failure
+      setPreserveMaterials(!val)
+      onUpdateMod(mod.id || mod.name, { preserve_materials: !val })
       showNotification(`Failed to toggle material preservation: ${err}`, "error", "Operation Failed")
     }
   }
 
-  const handleOpenEdit = (variant: AltermaticVariant, index: number) => {
+  const handleOpenEdit = (variant: DynamicPalVariant, index: number) => {
     setEditingVariant(variant)
     setEditingIndex(index)
   }
@@ -100,6 +107,7 @@ export function ModCardExpanded({ mod, onRefresh }: Props) {
   return (
     <div className="border-t border-border px-5 py-5 relative">
       <div className="flex gap-6 items-start">
+        {/* Left Column: Icon & Material Preservation Toggle */}
         <div className="flex flex-col gap-4 shrink-0 w-[160px]">
           <div className="flex flex-col gap-2">
             <span className="text-muted-foreground text-xs font-semibold uppercase tracking-wider">
@@ -165,22 +173,25 @@ export function ModCardExpanded({ mod, onRefresh }: Props) {
         </div>
 
         <Separator orientation="vertical" className="self-stretch opacity-50" />
+        
+        {/* Middle Column: Vocal Cries */}
         <CriesPanel mod={mod} onRefresh={onRefresh} onNotify={showNotification} />
 
         <Separator orientation="vertical" className="self-stretch opacity-50" />
 
-        {/* Right Column: Altermatic on top, Selective Push right below */}
+        {/* Right Column: Dynamic Pals Panel & Selective Push Panel */}
         <div className="flex flex-col gap-4 min-w-[240px] shrink-0">
           {!mod.is_variant && (
             <>
-              <AltermaticPanel
+              <DynamicPalsPanel
                 mod={mod}
-                enabled={altermaticEnabled}
-                onToggle={setAltermaticEnabled}
+                enabled={dynamicPalsEnabled}
+                onToggle={setDynamicPalsEnabled}
                 onOpenAdd={() => setIsAddModalOpen(true)}
                 onOpenEdit={handleOpenEdit}
                 onNotify={showNotification}
                 onRefresh={onRefresh}
+                onUpdateMod={onUpdateMod}
               />
               <Separator className="opacity-30" />
             </>
@@ -190,6 +201,7 @@ export function ModCardExpanded({ mod, onRefresh }: Props) {
             mod={mod}
             onRefresh={onRefresh}
             onNotify={showNotification}
+            onUpdateMod={onUpdateMod}
           />
         </div>
       </div>
@@ -208,20 +220,22 @@ export function ModCardExpanded({ mod, onRefresh }: Props) {
           basePal={mod.base_pal}
           modName={mod.name}
           localizedName={mod.localized_name}
-          blendFiles={(altermaticMetadata?.blend_files as string[]) ?? []}
+          blendFiles={(dynamicPalsMetadata?.blend_files as string[]) ?? []}
+          allBlendFiles={dynamicPalsMetadata?.all_blend_files as Record<string, string[]>} // <-- ADD THIS LINE!
           onClose={() => setIsAddModalOpen(false)}
           onCreated={onRefresh}
           onNotify={showNotification}
         />
       )}
 
+      {/* Edit Variant Modal */}
       {editingVariant && !mod.is_variant && (
         <EditVariantModal
           basePal={mod.base_pal}
           modName={mod.name}
           variant={editingVariant}
           variantIndex={editingIndex}
-          altermaticMetadata={altermaticMetadata}
+          dynamicPalsMetadata={dynamicPalsMetadata}
           traitsDb={traitsDb}
           onClose={() => { setEditingVariant(null); setEditingIndex(-1) }}
           onSaved={onRefresh}
@@ -229,6 +243,7 @@ export function ModCardExpanded({ mod, onRefresh }: Props) {
         />
       )}
 
+      {/* Blacklist Configuration Modal */}
       {isBlacklistOpen && (
         <BlacklistModal
           basePal={mod.base_pal}
