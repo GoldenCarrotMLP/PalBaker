@@ -20,7 +20,7 @@ interface Props {
   onNotify: (msg: string, type: "success" | "info" | "error" | "warning", title?: string) => void
 }
 
-const ACTIVE_MORPH_TARGETS = ["breast_size", "belly_fat", "waist_width", "height_scale"] as const
+
 
 export function EditVariantModal({
   basePal, modName, variant, variantIndex, dynamicPalsMetadata, traitsDb,
@@ -81,23 +81,45 @@ export function EditVariantModal({
 
   const [shapeKeys, setShapeKeys] = useState<any[]>(variant.ShapeKeys || [])
   const [slots, setSlots] = useState<string[]>([])
+  
+  // 2. ADD THIS NEW STATE:
+  const [availableMorphs, setAvailableMorphs] = useState<string[]>([])
+  
   const [traitSearch, setTraitSearch] = useState("")
 
+  // 3. UPDATE THE useEffect TO GRAB SHAPE KEYS ALONGSIDE MATERIALS:
   useEffect(() => {
-    const fetchSlots = async () => {
+    const fetchMetadata = async () => {
       try {
         const res = await ModManagerAPI.dynamicPalsSidecar(animTarget || basePal, modName, selectedSkeletonSource)
-        if (res?.status === "success" && res.data?.materials) {
-          setSlots(Object.keys(res.data.materials))
+        if (res?.status === "success" && res.data) {
+          // Set Material Slots
+          if (res.data.materials) {
+            setSlots(Object.keys(res.data.materials))
+          } else {
+            setSlots(["mi_body", "mi_eye"])
+          }
+          
+          // Set Dynamic Shape Keys from Blender
+          if (res.data.ShapeKeys && Array.isArray(res.data.ShapeKeys)) {
+            setAvailableMorphs(res.data.ShapeKeys.map((m: any) => m.Name || m.Target).filter(Boolean))
+          } else if (res.data.MorphTarget && Array.isArray(res.data.MorphTarget)) { // Backwards compat fallback
+            setAvailableMorphs(res.data.MorphTarget.map((m: any) => m.Target || m.Name).filter(Boolean))
+          } else {
+            setAvailableMorphs([])
+          }
         } else {
           setSlots(["mi_body", "mi_eye"])
+          setAvailableMorphs([])
         }
       } catch {
         setSlots(["mi_body", "mi_eye"])
+        setAvailableMorphs([])
       }
     }
-    fetchSlots()
+    fetchMetadata()
   }, [selectedSkeletonSource, modName, basePal, animTarget])
+
 
   const filteredTraits = useMemo(() => {
     const q = traitSearch.trim().toLowerCase()
@@ -770,44 +792,50 @@ export function EditVariantModal({
             <div className="border border-border rounded-lg p-4 bg-muted/10 flex flex-col gap-4">
               <span className="text-xs text-primary font-bold font-mono tracking-wider uppercase">5. Shape Keys & Morph Sliders</span>
               <div className="flex flex-col gap-4">
-                {ACTIVE_MORPH_TARGETS.map((morphName) => {
-                  const config = shapeKeys.find((m) => (m.Name || m.Target) === morphName)
-                  const mode = config ? (config.Set !== undefined ? "Static" : (config.Mode || "Free")) : "None"
-                  return (
-                    <div key={morphName} className="border border-border/50 rounded-md p-3 bg-background/40 flex flex-col gap-3">
-                      <div className="flex items-center justify-between">
-                        <span className="text-xs font-bold text-foreground font-mono">{morphName}</span>
-                        <div className="relative w-[150px]">
-                          <select value={mode} onChange={(e) => updateMorphMode(morphName, e.target.value as any)} className="flex h-7 w-full rounded border border-input bg-transparent px-2.5 text-xs appearance-none pr-6 cursor-pointer">
-                            <option value="None" className="bg-background">Ignore/Default</option>
-                            <option value="Static" className="bg-background">Static (Set Value)</option>
-                            <option value="Free" className="bg-background">Random (Free Mode)</option>
-                            <option value="Restrictive" className="bg-background">Random (Restrictive)</option>
-                          </select>
-                          <ChevronDown className="absolute right-2 top-2 size-3 text-muted-foreground pointer-events-none" />
+                
+                {/* 4. MAP OVER THE DYNAMIC ARRAY INSTEAD! */}
+                {availableMorphs.length === 0 ? (
+                  <span className="text-xs text-muted-foreground italic">No shape keys defined on the source skeleton file.</span>
+                ) : (
+                  availableMorphs.map((morphName) => {
+                    const config = shapeKeys.find((m) => (m.Name || m.Target) === morphName)
+                    const mode = config ? (config.Set !== undefined ? "Static" : (config.Mode || "Free")) : "None"
+                    return (
+                      <div key={morphName} className="border border-border/50 rounded-md p-3 bg-background/40 flex flex-col gap-3">
+                        <div className="flex items-center justify-between">
+                          <span className="text-xs font-bold text-foreground font-mono">{morphName}</span>
+                          <div className="relative w-[150px]">
+                            <select value={mode} onChange={(e) => updateMorphMode(morphName, e.target.value as any)} className="flex h-7 w-full rounded border border-input bg-transparent px-2.5 text-xs appearance-none pr-6 cursor-pointer">
+                              <option value="None" className="bg-background">Ignore/Default</option>
+                              <option value="Static" className="bg-background">Static (Set Value)</option>
+                              <option value="Free" className="bg-background">Random (Free Mode)</option>
+                              <option value="Restrictive" className="bg-background">Random (Restrictive)</option>
+                            </select>
+                            <ChevronDown className="absolute right-2 top-2 size-3 text-muted-foreground pointer-events-none" />
+                          </div>
                         </div>
+                        {mode === "Static" && (
+                          <div className="flex items-center gap-3">
+                            <span className="text-[10px] text-muted-foreground font-semibold uppercase shrink-0">Forced: {(config?.Set ?? 0.5).toFixed(2)}</span>
+                            <input type="range" min="0.0" max="1.0" step="0.05" value={config?.Set ?? 0.5} onChange={(e) => updateMorphValue(morphName, "Set", parseFloat(e.target.value))} className="flex-1 accent-primary h-1 bg-muted rounded-full cursor-pointer appearance-none" />
+                          </div>
+                        )}
+                        {(mode === "Free" || mode === "Restrictive") && (
+                          <div className="flex flex-col gap-2 pt-1 border-t border-border/20">
+                            <div className="flex items-center gap-3">
+                              <span className="text-[10px] text-muted-foreground font-semibold uppercase w-[80px] shrink-0">Min: {(config?.Min ?? 0.0).toFixed(2)}</span>
+                              <input type="range" min="0.0" max="1.0" step="0.05" value={config?.Min ?? 0.0} onChange={(e) => updateMorphValue(morphName, "Min", parseFloat(e.target.value))} className="flex-1 accent-primary h-1 bg-muted rounded-full cursor-pointer appearance-none" />
+                            </div>
+                            <div className="flex items-center gap-3">
+                              <span className="text-[10px] text-muted-foreground font-semibold uppercase w-[80px] shrink-0">Max: {(config?.Max ?? 1.0).toFixed(2)}</span>
+                              <input type="range" min="0.0" max="1.0" step="0.05" value={config?.Max ?? 1.0} onChange={(e) => updateMorphValue(morphName, "Max", parseFloat(e.target.value))} className="flex-1 accent-primary h-1 bg-muted rounded-full cursor-pointer appearance-none" />
+                            </div>
+                          </div>
+                        )}
                       </div>
-                      {mode === "Static" && (
-                        <div className="flex items-center gap-3">
-                          <span className="text-[10px] text-muted-foreground font-semibold uppercase shrink-0">Forced: {(config?.Set ?? 0.5).toFixed(2)}</span>
-                          <input type="range" min="0.0" max="1.0" step="0.05" value={config?.Set ?? 0.5} onChange={(e) => updateMorphValue(morphName, "Set", parseFloat(e.target.value))} className="flex-1 accent-primary h-1 bg-muted rounded-full cursor-pointer appearance-none" />
-                        </div>
-                      )}
-                      {(mode === "Free" || mode === "Restrictive") && (
-                        <div className="flex flex-col gap-2 pt-1 border-t border-border/20">
-                          <div className="flex items-center gap-3">
-                            <span className="text-[10px] text-muted-foreground font-semibold uppercase w-[80px] shrink-0">Min: {(config?.Min ?? 0.0).toFixed(2)}</span>
-                            <input type="range" min="0.0" max="1.0" step="0.05" value={config?.Min ?? 0.0} onChange={(e) => updateMorphValue(morphName, "Min", parseFloat(e.target.value))} className="flex-1 accent-primary h-1 bg-muted rounded-full cursor-pointer appearance-none" />
-                          </div>
-                          <div className="flex items-center gap-3">
-                            <span className="text-[10px] text-muted-foreground font-semibold uppercase w-[80px] shrink-0">Max: {(config?.Max ?? 1.0).toFixed(2)}</span>
-                            <input type="range" min="0.0" max="1.0" step="0.05" value={config?.Max ?? 1.0} onChange={(e) => updateMorphValue(morphName, "Max", parseFloat(e.target.value))} className="flex-1 accent-primary h-1 bg-muted rounded-full cursor-pointer appearance-none" />
-                          </div>
-                        </div>
-                      )}
-                    </div>
-                  )
-                })}
+                    )
+                  })
+                )}
               </div>
             </div>
           )}

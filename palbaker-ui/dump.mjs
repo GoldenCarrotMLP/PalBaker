@@ -1,55 +1,52 @@
-// dump-files.mjs
 import fs from "fs";
-import path from "path";
-import { execSync } from "child_process";
-import { isBinary } from "istextorbinary";
 
-const rootDir = process.cwd();
-const outFile = path.join(rootDir, "dump.txt");
+const out = fs.createWriteStream("spawners.json", { flags: "w" });
 
-function getTrackedFiles() {
-  const output = execSync("git ls-files", {
-    cwd: rootDir,
-    encoding: "utf8",
-  });
+// Start JSON array
+out.write("[\n");
 
-  return output
-    .split("\n")
-    .map(l => l.trim())
-    .filter(Boolean);
+let first = true;
+
+function writeSpawner(x, y) {
+    const obj = {
+        Type: "Sheet",
+        Location: { X: x, Y: y, Z: 0 },
+        Rotation: { Pitch: 0.0, Yaw: 0.0, Roll: 0.0 },
+        SpawnerName: `PalSchema_Custom_Spawn_${x}_${y}`,
+        SpawnGroupList: [
+            {
+                Weight: 50,
+                PalList: [
+                    {
+                        PalId: "DomeArmorDragon",
+                        Level: 1,
+                        Level_Max: 1,
+                        Num: 1,
+                        Num_Max: 1
+                    }
+                ]
+            }
+        ]
+    };
+
+    if (!first) out.write(",\n");
+    first = false;
+
+    out.write(JSON.stringify(obj));
 }
 
-function main() {
-  const files = getTrackedFiles();
+(async () => {
+    for (let x = -5_000_00; x <= 5_000_00; x += 50000) {
+        for (let y = -5_000_00; y <= 5_000_00; y += 50000) {
+            writeSpawner(x, y);
+        }
+        // allow event loop to breathe
+        await new Promise(r => setImmediate(r));
+    }
 
-  fs.writeFileSync(outFile, "=== Dump of Git‑tracked non‑binary files ===\n\n");
+    // End JSON array
+    out.write("\n]\n");
+    out.end();
 
-  for (const rel of files) {
-
-    // 🚫 Ignore anything inside the deps folder
-    let bool = rel.split("/").map( item => ["deps", "flet_docs_dump","node_modules", "package-lock","icons","Cargo", "pnpm-lock","Assets"].includes(item.split(".")[0])).some(Boolean);
-    
-    if (bool) continue;
-    console.log(rel)
-    const full = path.join(rootDir, rel);
-
-    // Skip anything that is not a real file (submodules, directories, etc.)
-    const stat = fs.statSync(full);
-    if (!stat.isFile()) continue;
-
-    const buffer = fs.readFileSync(full);
-
-    if (isBinary(null, buffer)) continue;
-
-    const content = buffer.toString("utf8");
-
-    fs.appendFileSync(outFile, rel + "\n");
-    fs.appendFileSync(outFile, "```\n");
-    fs.appendFileSync(outFile, content + "\n");
-    fs.appendFileSync(outFile, "```\n\n");
-  }
-
-  console.log(`Dump written to ${outFile}`);
-}
-
-main();
+    console.log("Finished writing spawners.json");
+})();
