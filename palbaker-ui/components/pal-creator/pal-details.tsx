@@ -1,7 +1,7 @@
 "use client"
 
 import { useState, useMemo } from "react"
-import { type CreatorPal, type ActiveSkill, type ItemDropConfig, type BreedingCombo, type AdvancedSpawnerRule, type FieldBossRule } from "@/lib/mock-data"
+import { type CreatorPal, type ActiveSkill } from "@/lib/mock-data"
 import { PalCreatorAPI } from "@/lib/data-service"
 import { Checkbox } from "@/components/ui/checkbox"
 import { Trash2, RefreshCw, Plus, MapPin, Award } from "lucide-react"
