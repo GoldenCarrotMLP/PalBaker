@@ -6,6 +6,7 @@ import { PalCreatorAPI } from "@/lib/data-service"
 import { Checkbox } from "@/components/ui/checkbox"
 import { Trash2, RefreshCw, Plus, MapPin, Award } from "lucide-react"
 import { Tabs, TabsList, TabsTrigger, TabsContent } from "@/components/ui/tabs"
+import { SpawnerMap } from "./spawner-map"
 import { PalLearnset } from "./pal-learnset"
 import { 
   FieldGroup, 
@@ -207,6 +208,41 @@ export function PalDetails({
     const next = (pal.FieldBossSpawns || []).filter((_, i) => i !== idx)
     onUpdate({ FieldBossSpawns: next })
   }
+
+  const activeWildSpawners = pal.WildSpawners ?? (
+    pal.SpawnLocationID ? [{
+      SpawnLocationID: pal.SpawnLocationID,
+      SpawnWeight: pal.SpawnWeight ?? 40,
+      SpawnMinLevel: pal.SpawnMinLevel ?? 2,
+      SpawnMaxLevel: pal.SpawnMaxLevel ?? 5,
+      SpawnMinGroup: pal.SpawnMinGroup ?? 1,
+      SpawnMaxGroup: pal.SpawnMaxGroup ?? 3
+    }] : []
+  )
+
+  const addWildSpawner = () => {
+    const next = [...activeWildSpawners, {
+      SpawnLocationID: "1_1_plain_begginer",
+      SpawnWeight: 40,
+      SpawnMinLevel: 2,
+      SpawnMaxLevel: 5,
+      SpawnMinGroup: 1,
+      SpawnMaxGroup: 3
+    }]
+    onUpdate({ WildSpawners: next })
+  }
+
+  const removeWildSpawner = (idx: number) => {
+    const next = activeWildSpawners.filter((_, i) => i !== idx)
+    onUpdate({ WildSpawners: next })
+  }
+
+  const updateWildSpawner = (idx: number, patch: Partial<typeof activeWildSpawners[0]>) => {
+    const next = [...activeWildSpawners]
+    next[idx] = { ...next[idx], ...patch }
+    onUpdate({ WildSpawners: next })
+  }
+
 
   return (
     <div className="border-t border-border bg-muted/30 p-5 flex flex-col gap-5">
@@ -510,30 +546,56 @@ export function PalDetails({
         {/* TAB 3: SPAWNING & ECOLOGY */}
         <TabsContent value="ecology" className="flex flex-col gap-5">
           <div className="border border-border/50 p-4 rounded bg-background/30 shadow-inner flex flex-col gap-4">
-            <SectionLabel>Primary Wild Spawner Injection</SectionLabel>
-            <div className="grid grid-cols-2 gap-4">
-              <FieldGroup label="Target Spawner Map Area">
-                <SearchableSelect value={pal.SpawnLocationID || ""} onChange={(val) => onUpdate({ SpawnLocationID: val })} options={spawnerOptions} />
-              </FieldGroup>
-              <FieldGroup label="Spawn Weight (1-100)">
-                <input type="number" min="1" max="100" value={pal.SpawnWeight ?? 40} onChange={(e) => onUpdate({ SpawnWeight: Number(e.target.value) })} className="input-field" />
-              </FieldGroup>
+            <div className="flex items-center justify-between">
+              <SectionLabel>Wild Spawner Injections</SectionLabel>
+              <button onClick={addWildSpawner} className="flex items-center gap-1.5 px-2 py-1 rounded border border-primary text-primary text-xs font-semibold hover:bg-primary/10 cursor-pointer">
+                <Plus className="size-3" /> Add Spawner
+              </button>
             </div>
-            <div className="grid grid-cols-2 gap-4">
-              <FieldGroup label="Level Range (Min - Max)">
-                <div className="flex gap-2">
-                  <input type="number" value={pal.SpawnMinLevel || 1} onChange={(e) => onUpdate({ SpawnMinLevel: Number(e.target.value) })} className="input-field flex-1" min={1} />
-                  <input type="number" value={pal.SpawnMaxLevel || 50} onChange={(e) => onUpdate({ SpawnMaxLevel: Number(e.target.value) })} className="input-field flex-1" min={1} />
-                </div>
-              </FieldGroup>
-              <FieldGroup label="Group Size (Min - Max)">
-                <div className="flex gap-2">
-                  <input type="number" value={pal.SpawnMinGroup || 1} onChange={(e) => onUpdate({ SpawnMinGroup: Number(e.target.value) })} className="input-field flex-1" min={1} />
-                  <input type="number" value={pal.SpawnMaxGroup || 1} onChange={(e) => onUpdate({ SpawnMaxGroup: Number(e.target.value) })} className="input-field flex-1" min={1} />
+
+            <div className="flex flex-col gap-3">
+              {activeWildSpawners.length === 0 ? (
+                <p className="text-muted-foreground text-xs italic">No wild spawners assigned. This Pal will not spawn naturally.</p>
+              ) : (
+                activeWildSpawners.map((spawner, idx) => (
+                  <div key={idx} className="bg-muted/40 p-3 rounded border border-border flex flex-col gap-4 relative">
+                    <button 
+                      onClick={() => removeWildSpawner(idx)} 
+                      className="absolute top-3 right-3 text-muted-foreground hover:text-status-error p-1 cursor-pointer transition-colors z-10"
+                    >
+                      <Trash2 className="size-4" />
+                    </button>
+                    
+                    <div className="grid grid-cols-2 gap-4 pr-8">
+                      <FieldGroup label="Target Spawner Map Area">
+                        <SearchableSelect 
+                          value={spawner.SpawnLocationID || ""} 
+                          onChange={(val) => updateWildSpawner(idx, { SpawnLocationID: val })} 
+                          options={spawnerOptions} 
+                        />
+                      </FieldGroup>
+                      <FieldGroup label="Spawn Weight (1-100)">
+                        <input type="number" min="1" max="100" value={spawner.SpawnWeight ?? 40} onChange={(e) => updateWildSpawner(idx, { SpawnWeight: Number(e.target.value) })} className="input-field" />
+                      </FieldGroup>
+                    </div>
+                    <div className="grid grid-cols-2 gap-4">
+                      <FieldGroup label="Level Range (Min - Max)">
+                        <div className="flex gap-2">
+                          <input type="number" value={spawner.SpawnMinLevel || 1} onChange={(e) => updateWildSpawner(idx, { SpawnMinLevel: Number(e.target.value) })} className="input-field flex-1" min={1} />
+                          <input type="number" value={spawner.SpawnMaxLevel || 50} onChange={(e) => updateWildSpawner(idx, { SpawnMaxLevel: Number(e.target.value) })} className="input-field flex-1" min={1} />
+                        </div>
+                      </FieldGroup>
+                      <FieldGroup label="Group Size (Min - Max)">
+                        <div className="flex gap-2">
+                          <input type="number" value={spawner.SpawnMinGroup || 1} onChange={(e) => updateWildSpawner(idx, { SpawnMinGroup: Number(e.target.value) })} className="input-field flex-1" min={1} />
+                          <input type="number" value={spawner.SpawnMaxGroup || 1} onChange={(e) => updateWildSpawner(idx, { SpawnMaxGroup: Number(e.target.value) })} className="input-field flex-1" min={1} />
                 </div>
               </FieldGroup>
             </div>
           </div>
+        )))}
+          </div>
+        </div>
 
           {/* Syndicate Cage Spawns */}
           <div className="border border-border/50 p-4 rounded bg-background/30 shadow-inner flex flex-col gap-3">
@@ -787,83 +849,18 @@ export function PalDetails({
             )}
           </div>
 
-          {/* Overworld Field Boss Map Pins */}
-          <div className="border border-border/50 p-4 rounded bg-background/30 shadow-inner flex flex-col gap-3">
-            <div className="flex items-center justify-between">
-              <div className="flex flex-col">
-                <SectionLabel>Fixed World Map Boss Coordinates</SectionLabel>
-                <span className="text-[11px] text-muted-foreground">Spawns a fixed Alpha Boss encounter on the overworld map at exact XYZ vectors.</span>
-              </div>
-              <button onClick={addFieldBossPin} className="flex items-center gap-1.5 px-2 py-1 rounded border border-primary text-primary text-xs font-semibold hover:bg-primary/10 cursor-pointer">
-                <Plus className="size-3" /> Add Boss Pin
-              </button>
+          {/* NEW INTERACTIVE OVERWORLD MAP */}
+          <div className="border border-border/50 p-4 rounded bg-background/30 shadow-inner flex flex-col gap-4">
+            <div className="flex flex-col">
+              <SectionLabel>Interactive World Map Boss Coordinates</SectionLabel>
+              <span className="text-[11px] text-muted-foreground mt-1">
+                Visually place fixed Alpha Boss encounters on the overworld map. Z-Axis collisions are auto-calculated from Palworld terrain data.
+              </span>
             </div>
-
-            <div className="flex flex-col gap-2 pt-1">
-              {(pal.FieldBossSpawns || []).length === 0 ? (
-                <p className="text-muted-foreground text-xs italic">No fixed map coordinates assigned. Boss will spawn through standard wild pools.</p>
-              ) : (
-                pal.FieldBossSpawns!.map((pin, idx) => (
-                  <div key={idx} className="grid grid-cols-[90px_1fr_1fr_1fr_32px] gap-2 items-center bg-muted/40 p-2.5 rounded border border-border">
-                    <div className="flex items-center gap-1">
-                      <span className="text-xs text-muted-foreground font-semibold">Lv:</span>
-                      <input 
-                        type="number" 
-                        value={pin.level} 
-                        onChange={(e) => {
-                          const next = [...pal.FieldBossSpawns!]
-                          next[idx].level = parseInt(e.target.value) || 50
-                          onUpdate({ FieldBossSpawns: next })
-                        }}
-                        className="input-field w-full text-center" 
-                      />
-                    </div>
-                    <div className="flex items-center gap-1">
-                      <span className="text-xs font-mono text-muted-foreground">X:</span>
-                      <input 
-                        type="number" 
-                        value={pin.x} 
-                        onChange={(e) => {
-                          const next = [...pal.FieldBossSpawns!]
-                          next[idx].x = parseFloat(e.target.value) || 0
-                          onUpdate({ FieldBossSpawns: next })
-                        }}
-                        className="input-field" 
-                      />
-                    </div>
-                    <div className="flex items-center gap-1">
-                      <span className="text-xs font-mono text-muted-foreground">Y:</span>
-                      <input 
-                        type="number" 
-                        value={pin.y} 
-                        onChange={(e) => {
-                          const next = [...pal.FieldBossSpawns!]
-                          next[idx].y = parseFloat(e.target.value) || 0
-                          onUpdate({ FieldBossSpawns: next })
-                        }}
-                        className="input-field" 
-                      />
-                    </div>
-                    <div className="flex items-center gap-1">
-                      <span className="text-xs font-mono text-muted-foreground">Z:</span>
-                      <input 
-                        type="number" 
-                        value={pin.z} 
-                        onChange={(e) => {
-                          const next = [...pal.FieldBossSpawns!]
-                          next[idx].z = parseFloat(e.target.value) || 0
-                          onUpdate({ FieldBossSpawns: next })
-                        }}
-                        className="input-field" 
-                      />
-                    </div>
-                    <button onClick={() => removeFieldBossPin(idx)} className="text-muted-foreground hover:text-status-error p-1 cursor-pointer justify-self-end">
-                      <Trash2 className="size-4" />
-                    </button>
-                  </div>
-                ))
-              )}
-            </div>
+            
+            {/* Mount the imported Map Component */}
+            <SpawnerMap pal={pal} onUpdate={onUpdate} />
+            
           </div>
         </TabsContent>
       </Tabs>
