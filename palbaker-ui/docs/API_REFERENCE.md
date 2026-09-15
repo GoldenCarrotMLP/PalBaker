@@ -238,7 +238,7 @@ interface ModItem {
   sound_metadata: Record<string, SoundEntry>  // Cry names → media info
   audio_overrides: Record<string, string>     // Cry name → override path
   is_altermatic_active: boolean
-  altermatic_variants: AltermaticVariant[]
+  altermatic_variants: Dynamic PalsVariant[]
 }
 ```
 

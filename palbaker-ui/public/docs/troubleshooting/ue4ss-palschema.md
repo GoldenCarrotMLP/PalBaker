@@ -1,6 +1,6 @@
 # UE4SS & PalSchema Integration
 
-To support advanced runtime modding features—like dynamic Altermatic variants or standalone custom Pals—your Palworld game directory must have UE4SS and the PalSchema mod correctly installed.
+To support advanced runtime modding features—like dynamic Dynamic Pals variants or standalone custom Pals—your Palworld game directory must have UE4SS and the PalSchema mod correctly installed.
 
 ## 1. Unreal Engine 4/5 Scripting System (UE4SS)
 UE4SS is a C++ scripting system and dll-injector that allows the game to load custom configurations, override blueprints, and hook memory functions.

@@ -20,11 +20,11 @@ Select a topic from the sidebar on the left to learn how to set up your environm
   - [Replacing Pal Cries (MP3/WAV/OGG)](/docs/audio/replacing-cries.md)
   - [Restoring Vanilla Audio](/docs/audio/restoring.md)
 
-- Altermatic (Dynamic Variants)
-  - [What is Altermatic?](/docs/altermatic/introduction.md)
-  - [Creating a Custom Variant](/docs/altermatic/creating-variants.md)
-  - [Material Overrides & Reskins](/docs/altermatic/materials.md)
-  - [Morph Targets & Sliders](/docs/altermatic/morphs.md)
+- Dynamic Pals (Format V2 Variants)
+  - [What is Dynamic Pals?](/docs/dynamic_pals/introduction.md)
+  - [Creating a Custom Variant](/docs/dynamic_pals/creating-variants.md)
+  - [Material Overrides & Reskins](/docs/dynamic_pals/materials.md)
+  - [Morph Targets & Sliders](/docs/dynamic_pals/morphs.md)
 
 - Pal Creator (Standalone Pals)
   - [Cloning & Instantiating Pals](/docs/pal-creator/cloning.md)

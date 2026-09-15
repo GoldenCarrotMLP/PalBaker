@@ -80,63 +80,66 @@ export const ModManagerAPI = {
     return { status: "success", message: `Mocked audio '${cryName}' played.` }
   },
 
-  async altermaticToggle(basePal: string, modName: string, enabled: boolean): Promise<any> {
+  async dynamicPalsToggle(basePal: string, modName: string, enabled: boolean): Promise<any> {
     if (USE_LIVE_DATA) {
-      try { return await invoke("altermatic_toggle", { basePal, modName, enabled }) } 
+      try { return await invoke("dynamic_pals_toggle", { basePal, modName, enabled }) } 
       catch (err) { handleBackendError(err) }
     }
-    return { status: "success", message: `Mocked Altermatic toggle saved.` }
+    return { status: "success", message: `Mocked Dynamic Pals toggle saved.` }
   },
 
-  async altermaticMetadata(basePal: string, modName: string): Promise<any> {
+  async dynamicPalsMetadata(basePal: string, modName: string): Promise<any> {
     if (USE_LIVE_DATA) {
-      try { return await invoke("altermatic_metadata", { basePal, modName }) } 
+      try { return await invoke("dynamic_pals_metadata", { basePal, modName }) } 
       catch (err) { handleBackendError(err) }
     }
     return { status: "success", has_base_blend: true, blend_files: ["base"], available_materials: [], category: "Monster" }
   },
 
-  async altermaticAdd(basePal: string, modName: string, label: string, custom: boolean, source: string): Promise<any> {
+  async dynamicPalsAdd(basePal: string, modName: string, label: string, custom: boolean, source: string, animTarget: string = ""): Promise<any> {
     if (USE_LIVE_DATA) {
-      try { return await invoke("altermatic_add", { basePal, modName, label, custom, source }) } 
+      try { 
+        return await invoke("dynamic_pals_add", { basePal, modName, label, custom, source, animTarget }) 
+      } 
       catch (err) { handleBackendError(err) }
     }
     return { status: "success", message: `Mocked variant '${label}' added.` }
+
   },
 
-  async altermaticDelete(basePal: string, modName: string, index: number): Promise<any> {
+  async dynamicPalsDelete(basePal: string, modName: string, index: number): Promise<any> {
     if (USE_LIVE_DATA) {
-      try { return await invoke("altermatic_delete", { basePal, modName, index }) } 
+      try { return await invoke("dynamic_pals_delete", { basePal, modName, index }) } 
       catch (err) { handleBackendError(err) }
     }
     return { status: "success", message: `Mocked variant deleted.` }
   },
 
-  async altermaticSave(index: number, data: any): Promise<any> {
+  async dynamicPalsSave(index: number, data: any): Promise<any> {
     if (USE_LIVE_DATA) {
-      try { return await invoke("altermatic_save", { index, data: JSON.stringify(data) }) } 
+      try { return await invoke("dynamic_pals_save", { index, data: JSON.stringify(data) }) } 
       catch (err) { handleBackendError(err) }
     }
     return { status: "success", message: `Mocked variant saved.` }
   },
 
-  async altermaticOpenBlend(basePal: string, modName: string, blendName: string, category: string): Promise<any> {
+  async dynamicPalsOpenBlend(basePal: string, modName: string, blend_name: string, category: string): Promise<any> {
     if (USE_LIVE_DATA) {
-      try { return await invoke("altermatic_open_blend", { basePal, modName, blendName, category }) } 
+      try { return await invoke("dynamic_pals_open_blend", { basePal, modName, blendName: blend_name, category }) } 
       catch (err) { handleBackendError(err) }
     }
-    return { status: "success", message: `Mocked open blend for ${blendName}.` }
+    return { status: "success", message: `Mocked open blend for ${blend_name}.` }
   },
 
-  async altermaticSidecar(basePal: string, modName: string, blendName: string): Promise<any> {
+  async dynamicPalsSidecar(basePal: string, modName: string, blend_name: string): Promise<any> {
     if (USE_LIVE_DATA) {
-      try { return await invoke("altermatic_sidecar", { basePal, modName, blendName }) } 
+      try { return await invoke("dynamic_pals_sidecar", { basePal, modName, blendName: blend_name }) } 
       catch (err) { handleBackendError(err) }
     }
     return { status: "success", data: { materials: {} } }
   },
 
-  async getAltermaticCaches(): Promise<any> {
+  async getDynamicPalsCaches(): Promise<any> {
     if (USE_LIVE_DATA) {
       try {
         const response = await invoke<any>("get_spawners")
@@ -178,7 +181,7 @@ export const ModManagerAPI = {
     return { status: "success", message: `Mocked set preserve materials.` }
   },
 
-  async saveModAudioBytes(basePal: string, modName: string, cryName: string, filename: string, bytes: number[]): Promise<any> {
+  async saveModAudioBytes(basePal: string, modName: string,  cryName: string, filename: string, bytes: number[]): Promise<any> {
     if (USE_LIVE_DATA) {
       try { return await invoke("save_mod_audio_bytes", { basePal, modName, cryName, filename, bytes }) } 
       catch (err) { handleBackendError(err) }

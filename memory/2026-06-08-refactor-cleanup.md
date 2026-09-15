@@ -52,7 +52,7 @@ I checked your new `feedback.txt` and completed every single refactoring step wi
   * Added `launch-unreal` and `enable-remote-exec` subparsers directly into `palbaker_cli.py` (under the `env` command), and updated `env status` to return `unreal_running` and `remote_exec_enabled` in real-time.
   * `ModsView._async_handle_action` now queries `await self.cli.env_status()` and issues fully asynchronous, out-of-process environment setups via the dispatcher without *any* UI-side thread blocking!
 
-* **Altermatic Disk Scanning Moved to CLI**:
+* **Dynamic Pals Disk Scanning Moved to CLI**:
   * Created a consolidated `altermatic metadata <mod_name>` subcommand on the CLI. It returns `blend_files`, `available_materials`, `category`, and checks if the base blend exists on disk.
   * Gutted direct helper imports (`get_blend_files_for_context`, etc.) in `_async_add_variant` and `_async_edit_variant`. They now query the metadata CLI endpoint asynchronously!
   * Replaced the direct synchronous startup load of `traits_db` with a fully asynchronous background task (`load_traits_db`) querying `get_skills_cache()`.

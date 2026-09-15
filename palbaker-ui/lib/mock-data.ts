@@ -1,5 +1,4 @@
 // palbaker-ui/lib/mock-data.ts
-// Mock data derived from palbaker-cli/cli_queries_dump.json and palbaker-cli/components/mods/mod_card.py
 
 export const mockConfig = {
   workspace:      "",
@@ -32,17 +31,58 @@ export interface SoundEntry {
   wem_relative_path: string
 }
 
-export interface AltermaticVariant {
+export interface SpecialMaterialEntry {
+  Index: string
+  MaterialAsset: string
+  RandomHue?: boolean
+  SlotName?: string
+}
+
+export interface ShapeKeyEntry {
+  Name: string
+  Mode?: "Free" | "Restrictive" | string
+  Min?: number
+  Max?: number
+  Set?: number
+}
+
+export interface DynamicPalVariant {
   label: string
   is_base: boolean
   SkeletonSource?: string
-  Gender: string        
-  IsRarePal: boolean
+  Gender?: string
   SkinName?: string
-  ReqTrait: string[]
-  PrefTrait: string[]
-  MatReplace: { Index: string; MatPath: string; SlotName?: string }[]
-  MorphTarget: { Target: string; Type: string; Set?: number; Min?: number; Max?: number; TypeVal?: string }[]
+  SetNickname?: string
+  AnimTarget?: string
+
+  // Range toggle activation flags
+  enableLevelRange?: boolean
+  enableTrustRange?: boolean
+  enableRankRange?: boolean
+  enableSizeRange?: boolean
+  enableSpawnWeight?: boolean
+
+  // Range values
+  MinLevel?: number
+  MaxLevel?: number
+  MinTrust?: number
+  MaxTrust?: number
+  MinRank?: number
+  MaxRank?: number
+  MinSizeMultiplier?: number
+  MaxSizeMultiplier?: number
+
+  // Variant flags & attributes
+  SpawnWeight?: number
+  LuckyStarReq?: boolean
+  IsWildPal?: boolean
+  ReqSwap?: string[]
+  PassiveSkills?: string[]
+  PrefTrait?: string[]
+  SkipTrait?: string[]
+  SpecialMaterial?: SpecialMaterialEntry[]
+  ShapeKeys?: ShapeKeyEntry[]
+  Extra?: string
 }
 
 export type ModBadge = [string, string]
@@ -68,8 +108,8 @@ export interface ModItem {
   badges: ModBadge[]
   sound_metadata: Partial<Record<string, SoundEntry>>
   audio_overrides: Partial<Record<string, string>>   
-  is_altermatic_active: boolean
-  altermatic_variants: AltermaticVariant[]
+  is_dynamic_pals_active: boolean
+  dynamic_pal_variants: DynamicPalVariant[]
   preserve_materials: boolean 
   push_materials?: boolean
   push_textures?: boolean
@@ -102,48 +142,6 @@ export const mockPalTemplates = [
   "Anubis", "Chillet", "Furret", "IceDeer", "Yeti", "Lamball",
   "Foxparks", "Cattiva", "WeaselDragon", "BOSS_KingAlpaca", "BOSS_LegendDeer",
 ]
-
-export interface WorkSuitability {
-  Kindling: boolean
-  Planting: boolean
-  Handiwork: boolean
-  Watering: boolean
-  Gathering: boolean
-  Lumbering: boolean
-  Mining: boolean
-  Medicine: boolean
-}
-
-export interface ItemDropConfig {
-  itemId: string
-  rate: number
-  min: number
-  max: number
-}
-
-export interface BreedingCombo {
-  parentA: string
-  parentB: string
-}
-
-export interface AdvancedSpawnerRule {
-  locationId: string
-  weight: number
-  minLevel: number
-  maxLevel: number
-  minGroup: number
-  maxGroup: number
-  time: "EPalOneDayTimeType::Undefined" | "EPalOneDayTimeType::Day" | "EPalOneDayTimeType::Night"
-  weather: "EPalWeatherConditionType::Undefined" | "EPalWeatherConditionType::Sunny" | "EPalWeatherConditionType::Rain"
-}
-
-export interface FieldBossRule {
-  level: number
-  x: number
-  y: number
-  z: number
-  adds: { palId: string; levelMin: number; levelMax: number; count: number }[]
-}
 
 export interface CreatorPal {
   CharacterID: string
@@ -195,14 +193,10 @@ export interface CreatorPal {
   PartnerSkill?: string
   PartnerSkillName?: string
   Learnset: LearnsetEntry[]
-  
- // Partner Weapon Overrides
   PartnerWeaponElement?: string
   PartnerWeaponEffectType?: string
   PartnerWeaponNiagara?: string
   SaddleItem?: string
-
-  // Legacy Spawners
   SpawnLocationID?: string
   SpawnWeight?: number 
   SpawnMinLevel?: number
@@ -210,21 +204,12 @@ export interface CreatorPal {
   SpawnMinGroup?: number
   SpawnMaxGroup?: number
   EnableSpawns?: boolean
-
-  // Advanced Ecology & Spawners
-  AdvancedSpawners?: AdvancedSpawnerRule[]
-  BreedingCombos?: BreedingCombo[]
-  CageSpawns?: string[] // e.g. ["Grass2", "Desert1", "Viking1"]
-
-  // Loot & Drops
-  ItemDrops?: ItemDropConfig[]
-
-  // Partner Skills & Buffs
+  BreedingCombos?: { parentA: string; parentB: string }[]
+  CageSpawns?: string[]
+  ItemDrops?: { itemId: string; rate: number; min: number; max: number }[]
   PartnerPlayerBuff?: "None" | "Attack" | "Defense" | "WorkSpeed"
-  PartnerCampBuff?: "None" | "Handcraft" | "Transport" | "Mining" | "Lumbering" | "Kindling" | "Watering" | "Gathering" | "Planting" | "Medicine" | "Electricity" | "Cooling" | "Farming"
+  PartnerCampBuff?: "None" | string
   PartnerDropItems?: string[]
-
-  // Variants (Boss / Predator)
   GenerateBoss?: boolean
   GeneratePredator?: boolean
   BossPrefix?: string
@@ -233,13 +218,10 @@ export interface CreatorPal {
   PredatorHPMultiplier?: number
   PredatorAtkMultiplier?: number
   PredatorSpeedMultiplier?: number
-  FieldBossSpawns?: FieldBossRule[]
+  FieldBossSpawns?: { level: number; x: number; y: number; z: number; adds: any[] }[]
   GenerateBountyToken?: boolean
-  
-  // Funnel Capabilities
   HasFunnel?: boolean
   FunnelWazaID?: string
-  
   EnablePaldeck?: boolean
   ZukanIndex?: number
   ZukanIndexSuffix?: string

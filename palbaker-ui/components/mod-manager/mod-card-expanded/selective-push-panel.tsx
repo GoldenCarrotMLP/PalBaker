@@ -1,3 +1,4 @@
+// palbaker-ui/components/mod-manager/mod-card-expanded/selective-push-panel.tsx
 "use client"
 
 import { useState } from "react"
@@ -7,26 +8,38 @@ import { Sparkles, Image, Workflow } from "lucide-react"
 
 interface Props {
   mod: ModItem
-  onRefresh: () => void
+  onRefresh?: () => void
   onNotify: (msg: string, type: "success" | "info" | "error" | "warning", title?: string) => void
+  onUpdateMod: (modKey: string, patch: Partial<ModItem>) => void
 }
 
-export function SelectivePushPanel({ mod, onRefresh, onNotify }: Props) {
+export function SelectivePushPanel({
+  mod,
+  onRefresh, // <-- Destructured here!
+  onNotify,
+  onUpdateMod,
+}: Props) {
   const [pushMaterials, setPushMaterials] = useState(mod.push_materials !== false)
   const [pushTextures, setPushTextures] = useState(mod.push_textures !== false)
   const [pushAnimBP, setPushAnimBP] = useState(mod.push_animbp !== false)
 
   const handleToggle = async (key: "materials" | "textures" | "animbp", val: boolean) => {
+    // 1. Instant local UI update
     if (key === "materials") setPushMaterials(val)
     if (key === "textures") setPushTextures(val)
     if (key === "animbp") setPushAnimBP(val)
 
+    const patchKey = `push_${key}` as keyof ModItem
+    onUpdateMod(mod.id || mod.name, { [patchKey]: val })
+
+    // 2. Persist in background
     try {
       await ModManagerAPI.setModPushSetting(mod.base_pal, mod.name, key, val)
       onNotify(`Push ${key} ${val ? "enabled" : "disabled"}.`, "info")
-      onRefresh()
     } catch (err) {
+      onUpdateMod(mod.id || mod.name, { [patchKey]: !val })
       onNotify(`Failed to update ${key} setting: ${err}`, "error", "Setting Error")
+      onRefresh?.()
     }
   }
 

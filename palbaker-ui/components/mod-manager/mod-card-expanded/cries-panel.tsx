@@ -1,12 +1,13 @@
 // palbaker-ui/components/mod-manager/mod-card-expanded/cries-panel.tsx
 "use client"
 
-import { useRef, useEffect } from "react"
+import { useState, useRef, useEffect } from "react"
 import { Play, Trash2, Upload } from "lucide-react"
 import { type ModItem } from "@/lib/mock-data"
 import { ModManagerAPI } from "@/lib/data-service"
 import { convertFileSrc } from "@tauri-apps/api/core"
 import { cn } from "@/lib/utils"
+import { ConfirmModal } from "@/components/common/confirm-modal"
 
 const CRY_SLOTS = ["Normal", "Joy", "Anger", "Sorrow", "Pain", "Death"] as const
 
@@ -17,6 +18,7 @@ interface Props {
 }
 
 export function CriesPanel({ mod, onRefresh, onNotify }: Props) {
+  const [slotToClear, setSlotToClear] = useState<string | null>(null)
   const audioInputRefs = useRef<Record<string, HTMLInputElement | null>>({})
   const activeAudioRef = useRef<HTMLAudioElement | null>(null)
   
@@ -49,8 +51,10 @@ export function CriesPanel({ mod, onRefresh, onNotify }: Props) {
     }
   }
 
-  const handleAudioClear = async (slot: string) => {
-    if (!window.confirm(`Clear the custom override for ${slot}?`)) return
+  const confirmClearAudio = async () => {
+    if (!slotToClear) return
+    const slot = slotToClear
+    setSlotToClear(null)
     try {
       await ModManagerAPI.audioClear(mod.base_pal, mod.name, slot)
       onNotify(`Cleared custom override for ${slot}.`, "success")
@@ -83,40 +87,53 @@ export function CriesPanel({ mod, onRefresh, onNotify }: Props) {
   }
 
   return (
-    <div className="flex flex-col gap-2 flex-1 min-w-0">
-      <span className="text-muted-foreground text-xs font-semibold uppercase tracking-wider">Cries Replacement</span>
-      {!hasSoundData ? (
-        <p className="text-muted-foreground text-xs italic">
-          {mod.has_fmodel ? "No mapped audio database found for this Pal." : "Audio replacement requires raw FModel files. Click 'Create .blend file' or 'Generate Sources' first."}
-        </p>
-      ) : (
-        <div className="grid grid-cols-2 gap-2">
-          {availableCries.map((slot) => {
-            const hasOverride = !!mod.audio_overrides[slot]
-            return (
-              <div key={slot} className={cn("flex items-center gap-2 rounded px-3 py-2 border", hasOverride ? "bg-primary/5 border-primary/30" : "bg-muted/50 border-border")}>
-                <input type="file" ref={(el) => { audioInputRefs.current[slot] = el }} onChange={(e) => handleAudioChange(slot, e)} accept="audio/wav, audio/mp3, audio/ogg" className="hidden" />
-                <button onClick={() => handleAudioPlay(slot)} className="shrink-0 size-6 rounded-full bg-primary/10 hover:bg-primary/20 flex items-center justify-center transition-colors cursor-pointer">
-                  <Play className="size-3 text-primary" />
-                </button>
-                <div className="flex-1 min-w-0">
-                  <div className="text-foreground text-xs font-semibold">{slot}</div>
-                  <div className={cn("text-[10px] truncate", hasOverride ? "text-status-warning" : "text-muted-foreground")}>{hasOverride ? "Custom Override" : "Original Game Sound"}</div>
+    <>
+      <div className="flex flex-col gap-2 flex-1 min-w-0">
+        <span className="text-muted-foreground text-xs font-semibold uppercase tracking-wider">Cries Replacement</span>
+        {!hasSoundData ? (
+          <p className="text-muted-foreground text-xs italic">
+            {mod.has_fmodel ? "No mapped audio database found for this Pal." : "Audio replacement requires raw FModel files. Click 'Create .blend file' or 'Generate Sources' first."}
+          </p>
+        ) : (
+          <div className="grid grid-cols-2 gap-2">
+            {availableCries.map((slot) => {
+              const hasOverride = !!mod.audio_overrides[slot]
+              return (
+                <div key={slot} className={cn("flex items-center gap-2 rounded px-3 py-2 border", hasOverride ? "bg-primary/5 border-primary/30" : "bg-muted/50 border-border")}>
+                  <input type="file" ref={(el) => { audioInputRefs.current[slot] = el }} onChange={(e) => handleAudioChange(slot, e)} accept="audio/wav, audio/mp3, audio/ogg" className="hidden" />
+                  <button onClick={() => handleAudioPlay(slot)} className="shrink-0 size-6 rounded-full bg-primary/10 hover:bg-primary/20 flex items-center justify-center transition-colors cursor-pointer">
+                    <Play className="size-3 text-primary" />
+                  </button>
+                  <div className="flex-1 min-w-0">
+                    <div className="text-foreground text-xs font-semibold">{slot}</div>
+                    <div className={cn("text-[10px] truncate", hasOverride ? "text-status-warning" : "text-muted-foreground")}>{hasOverride ? "Custom Override" : "Original Game Sound"}</div>
+                  </div>
+                  {hasOverride ? (
+                    <button onClick={() => setSlotToClear(slot)} className="shrink-0 cursor-pointer hover:opacity-80">
+                      <Trash2 className="size-3.5 text-status-error" />
+                    </button>
+                  ) : (
+                    <button onClick={() => audioInputRefs.current[slot]?.click()} className="shrink-0 text-muted-foreground hover:text-foreground transition-colors cursor-pointer">
+                      <Upload className="size-3.5" />
+                    </button>
+                  )}
                 </div>
-                {hasOverride ? (
-                  <button onClick={() => handleAudioClear(slot)} className="shrink-0 cursor-pointer">
-                    <Trash2 className="size-3.5 text-status-error" />
-                  </button>
-                ) : (
-                  <button onClick={() => audioInputRefs.current[slot]?.click()} className="shrink-0 text-muted-foreground hover:text-foreground transition-colors cursor-pointer">
-                    <Upload className="size-3.5" />
-                  </button>
-                )}
-              </div>
-            )
-          })}
-        </div>
+              )
+            })}
+          </div>
+        )}
+      </div>
+
+      {slotToClear && (
+        <ConfirmModal
+          title="Clear Audio Override"
+          message={`Are you sure you want to clear the custom audio override for ${slotToClear}?`}
+          confirmText="Clear Audio"
+          danger={true}
+          onConfirm={confirmClearAudio}
+          onCancel={() => setSlotToClear(null)}
+        />
       )}
-    </div>
+    </>
   )
 }

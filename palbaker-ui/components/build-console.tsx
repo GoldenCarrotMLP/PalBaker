@@ -1,7 +1,8 @@
+// palbaker-ui/components/build-console.tsx
 "use client"
 
-import { useState, useEffect } from "react"
-import { Terminal, ChevronUp, ChevronDown, Copy, Trash2 } from "lucide-react"
+import { useState, useEffect, useSyncExternalStore } from "react"
+import { ChevronUp, ChevronDown, Copy, Trash2 } from "lucide-react"
 import { cn } from "@/lib/utils"
 import { CONSOLE_LOGS, type LogEntry } from "@/lib/mock-data"
 import { BuildConsoleAPI, UnrealHealthAPI } from "@/lib/data-service"
@@ -13,14 +14,23 @@ const LEVEL_COLORS = {
   ERROR: "text-status-error",
   WARNING: "text-status-warning",
 }
-let logIdCounter = 0;
+let logIdCounter = 0
+
+// React 19 hydration guard: returns false on server/first render, true on client after hydration
+// Eliminates cascading re-renders and avoids synchronous setState in useEffect
+function useIsHydrated() {
+  return useSyncExternalStore(
+    () => () => {},
+    () => true,
+    () => false
+  )
+}
 
 export function BuildConsole() {
   const [expanded, setExpanded] = useState(false)
   const [ctxMenu, setCtxMenu] = useState<{ x: number; y: number } | null>(null)
   
-  // Hydration Mount Guard
-  const [mounted, setMounted] = useState(false)
+  const mounted = useIsHydrated()
   
   const [unrealStatus, setUnrealStatus] = useState<string>("READY")
   const [statusColorClass, setStatusColorClass] = useState<string>("text-status-success")
@@ -42,8 +52,6 @@ export function BuildConsole() {
   })
 
   useEffect(() => {
-    setMounted(true)
-    
     const checkHealth = async () => {
       try {
         const res = await UnrealHealthAPI.ping()
@@ -104,7 +112,6 @@ export function BuildConsole() {
     { label: "Clear console", icon: <Trash2 className="size-3.5" />, danger: true },
   ]
 
-  // Dynamic Parameter Decoupler: Forces default fallbacks during the hydration render pass
   const latestTime = mounted && logs[0] ? logs[0].time : "00:00:00"
   const latestMsg = mounted && logs[0] ? logs[0].msg : "Terminal Ready."
   const latestLevel = mounted && logs[0] ? logs[0].level : ("INFO" as const)

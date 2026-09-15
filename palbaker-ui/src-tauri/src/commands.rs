@@ -292,57 +292,66 @@ pub async fn audio_play(app: AppHandle, state: State<'_, AppState>, base_pal: St
 }
 
 #[tauri::command]
-pub async fn altermatic_toggle(app: AppHandle, state: State<'_, AppState>, base_pal: String, mod_name: String, enabled: bool) -> Result<Value, String> {
+pub async fn dynamic_pals_toggle(app: AppHandle, state: State<'_, AppState>, base_pal: String, mod_name: String, enabled: bool) -> Result<Value, String> {
     let status = if enabled { "on" } else { "off" };
-    let raw = run_cli(&app, &state, &["altermatic", "toggle", &base_pal, &mod_name, status])?;
+    let raw = run_cli(&app, &state, &["dynamic_pals", "toggle", &base_pal, &mod_name, status])?;
     let parsed: Value = parse_last_json_line(&raw).unwrap_or(serde_json::json!({ "status": "success", "message": raw }));
     Ok(parsed)
 }
 
 #[tauri::command]
-pub async fn altermatic_metadata(app: AppHandle, state: State<'_, AppState>, base_pal: String, mod_name: String) -> Result<Value, String> {
-    let raw = run_cli(&app, &state, &["altermatic", "metadata", &base_pal, &mod_name])?;
+pub async fn dynamic_pals_metadata(app: AppHandle, state: State<'_, AppState>, base_pal: String, mod_name: String) -> Result<Value, String> {
+    let raw = run_cli(&app, &state, &["dynamic_pals", "metadata", &base_pal, &mod_name])?;
     let parsed: Value = parse_last_json_line(&raw)?;
     Ok(parsed)
 }
 
 #[tauri::command]
-pub async fn altermatic_add(app: AppHandle, state: State<'_, AppState>, base_pal: String, mod_name: String, label: String, custom: bool, source: String) -> Result<Value, String> {
-    let mut args = vec!["altermatic", "add", &base_pal, &mod_name, &label];
+pub async fn dynamic_pals_add(app: AppHandle, state: State<'_, AppState>, base_pal: String, mod_name: String, label: String, custom: bool, source: String, anim_target: String) -> Result<Value, String> {
+    let mut args = vec!["dynamic_pals", "add", &base_pal, &mod_name, &label];
+    
     if custom { args.push("--custom"); }
+    
     args.push("--source");
     args.push(&source);
+    
+    // Pass the flag to Python if one was provided
+    if !anim_target.is_empty() {
+        args.push("--anim-target");
+        args.push(&anim_target);
+    }
+    
     let raw = run_cli(&app, &state, &args)?;
     let parsed: Value = parse_last_json_line(&raw).unwrap_or(serde_json::json!({ "status": "success", "message": raw }));
     Ok(parsed)
 }
 
 #[tauri::command]
-pub async fn altermatic_delete(app: AppHandle, state: State<'_, AppState>, base_pal: String, mod_name: String, index: i32) -> Result<Value, String> {
+pub async fn dynamic_pals_delete(app: AppHandle, state: State<'_, AppState>, base_pal: String, mod_name: String, index: i32) -> Result<Value, String> {
     let index_str = index.to_string();
-    let raw = run_cli(&app, &state, &["altermatic", "delete", &base_pal, &mod_name, &index_str])?;
+    let raw = run_cli(&app, &state, &["dynamic_pals", "delete", &base_pal, &mod_name, &index_str])?;
     let parsed: Value = parse_last_json_line(&raw).unwrap_or(serde_json::json!({ "status": "success", "message": raw }));
     Ok(parsed)
 }
 
 #[tauri::command]
-pub async fn altermatic_save(app: AppHandle, state: State<'_, AppState>, index: i32, data: String) -> Result<Value, String> {
+pub async fn dynamic_pals_save(app: AppHandle, state: State<'_, AppState>, index: i32, data: String) -> Result<Value, String> {
     let index_str = index.to_string();
-    let raw = run_cli(&app, &state, &["altermatic", "save", &index_str, "--data", &data])?;
+    let raw = run_cli(&app, &state, &["dynamic_pals", "save", &index_str, "--data", &data])?;
     let parsed: Value = parse_last_json_line(&raw).unwrap_or(serde_json::json!({ "status": "success", "message": raw }));
     Ok(parsed)
 }
 
 #[tauri::command]
-pub async fn altermatic_open_blend(app: AppHandle, state: State<'_, AppState>, base_pal: String, mod_name: String, blend_name: String, category: String) -> Result<Value, String> {
-    let raw = run_cli(&app, &state, &["altermatic", "open-blend", &base_pal, &mod_name, &blend_name, "--category", &category])?;
+pub async fn dynamic_pals_open_blend(app: AppHandle, state: State<'_, AppState>, base_pal: String, mod_name: String, blend_name: String, category: String) -> Result<Value, String> {
+    let raw = run_cli(&app, &state, &["dynamic_pals", "open-blend", &base_pal, &mod_name, &blend_name, "--category", &category])?;
     let parsed: Value = parse_last_json_line(&raw).unwrap_or(serde_json::json!({ "status": "success", "message": raw }));
     Ok(parsed)
 }
 
 #[tauri::command]
-pub async fn altermatic_sidecar(app: AppHandle, state: State<'_, AppState>, base_pal: String, mod_name: String, blend_name: String) -> Result<Value, String> {
-    let raw = run_cli(&app, &state, &["altermatic", "sidecar", &base_pal, &mod_name, &blend_name])?;
+pub async fn dynamic_pals_sidecar(app: AppHandle, state: State<'_, AppState>, base_pal: String, mod_name: String, blend_name: String) -> Result<Value, String> {
+    let raw = run_cli(&app, &state, &["dynamic_pals", "sidecar", &base_pal, &mod_name, &blend_name])?;
     let parsed: Value = parse_last_json_line(&raw)?;
     Ok(parsed)
 }

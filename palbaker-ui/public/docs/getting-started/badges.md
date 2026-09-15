@@ -27,4 +27,4 @@ PalBaker tracks the lifecycle of your mods in real-time by scanning your folders
   Your local 3D workspace (Blender files or texture maps) has been updated since your last push to Unreal Engine. It is recommended to trigger **Push & Cook & Pack** to sync these changes.
 
 - **ALTERMATIC (Teal)**:
-  Dynamic Altermatic variants are configured and active for this Pal. This indicates the Pal has custom dynamic skins, genders, or morphs enabled.
+  Dynamic Dynamic Pals variants are configured and active for this Pal. This indicates the Pal has custom dynamic skins, genders, or morphs enabled.

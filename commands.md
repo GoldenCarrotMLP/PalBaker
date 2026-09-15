@@ -8,7 +8,7 @@ This document serves as the definitive reference for the PalBaker Command Line I
 Scans workspaces, compiles index datastores, and manages the in-memory UI cache.
 
 *   **List Discovered Mods**
-    *   **Description:** Scans both vanilla FModel exports and active Altermatic working directories to return a structural JSON array of discovered mod configurations [utils/scanner.py].
+    *   **Description:** Scans both vanilla FModel exports and active Dynamic Pals working directories to return a structural JSON array of discovered mod configurations [utils/scanner.py].
     *   **Command:** `python palbaker_cli.py manager list [--show-unextracted]` [UI_detachment_plan.md]
     *   **Flags:**
         *   `--show-unextracted`: Includes vanilla game-archive characters that have not been physically extracted yet [manager.py].
@@ -98,51 +98,48 @@ Executes asset extractions, mesh import bakes, targeted cooks, and pak assemblie
 
 ---
 
-### 5. Altermatic Multi-Model Variants (`altermatic`)
-Creates dynamic gender meshes, material reskins, and spawn configs [UI_detachment_plan.md].
+### 5. Dynamic Pal Multi-Model Variants (`dynamic_pals`)
+Creates dynamic gender meshes, material reskins, and spawn configs.
 
-*   **Toggle Altermatic Engine**
-    *   **Description:** Enables or disables Altermatic variant swaps for the target Pal inside its local `_altermatic.json` manifest [utils/altermatic/manifest_manager.py].
-    *   **Command:** `python palbaker_cli.py altermatic toggle <mod_name> <on|off>` [ui_client/dispatcher.py]
-    *   **STDOUT Contract:** `{"status": "success", "message": "Altermatic Mod Mode enabled for <mod_name>."}` [utils/altermatic/__init__.py]
+*   **Toggle Dynamic Pals Framework**
+    *   **Description:** Enables or disables Dynamic Pal variant swaps for the target Pal inside its local `_dynamic_pals.json` manifest.
+    *   **Command:** `python palbaker_cli.py dynamic_pals toggle <mod_name> <on|off>`
+    *   **STDOUT Contract:** `{"status": "success", "message": "Successfully toggled Dynamic Pals on for <mod_name>."}`
 
 *   **List Variants**
-    *   **Description:** Returns all variants configured inside the Pal's local `_altermatic.json` manifest [utils/altermatic/manifest_manager.py].
-    *   **Command:** `python palbaker_cli.py altermatic list <mod_name>` [ui_client/dispatcher.py]
-    *   **STDOUT Contract:** `{"status": "success", "data": [ { "SkeletonSource": "base", "is_base": true, ... } ]}` [cli_queries_dump.json]
+    *   **Description:** Returns all variants configured inside the Pal's local `_dynamic_pals.json` manifest.
+    *   **Command:** `python palbaker_cli.py dynamic_pals list <mod_name>`
+    *   **STDOUT Contract:** `{"status": "success", "data": [ { "SkeletonSource": "base", "is_base": true, ... } ]}`
 
 *   **Add Variant**
-    *   **Description:** Stages a new variant, optionally cloning the target `.blend` skeleton to a new file [utils/altermatic/cloner.py].
-    *   **Command:** `python palbaker_cli.py altermatic add <mod_name> <label_name> [--custom] [--source <source_choice>]` [utils/altermatic/cloner.py]
-    *   **Flags:**
-        *   `--custom`: Clones and provisions a separate `.blend` workspace on disk [utils/altermatic/cloner.py].
-        *   `--source <choice>`: Source blend model template name (e.g. `base` or another variant) [utils/altermatic/cloner.py].
-    *   **STDOUT Contract:** `{"status": "success", "message": "Successfully generated variant: <label_name>"}` [utils/altermatic/cloner.py]
+    *   **Description:** Stages a new variant, optionally cloning the target `.blend` skeleton to a new file.
+    *   **Command:** `python palbaker_cli.py dynamic_pals add <mod_name> <label_name> [--custom] [--source <source_choice>]`
+    *   **STDOUT Contract:** `{"status": "success", "message": "Added variant '<label_name>' successfully."}`
 
 *   **Delete Variant**
-    *   **Description:** Removes a variant configuration from the manifest and deletes its custom `.blend` model [utils/altermatic/__init__.py].
-    *   **Command:** `python palbaker_cli.py altermatic delete <mod_name> <index_number>` [utils/altermatic/__init__.py]
-    *   **STDOUT Contract:** `{"status": "success", "message": "Successfully deleted Altermatic variant at index <index_number>"}` [ui_client/dispatcher.py]
+    *   **Description:** Removes a variant configuration from the manifest and deletes its custom `.blend` model.
+    *   **Command:** `python palbaker_cli.py dynamic_pals delete <mod_name> <index_number>`
+    *   **STDOUT Contract:** `{"status": "success", "message": "Deleted variant at index <index_number> successfully."}`
 
-*   **Save Variant Properties**
-    *   **Description:** Updates material overrides, gender constraints, lucky/rare attributes, passive traits, and shape keys for a variant [utils/altermatic/__init__.py].
-    *   **Command:** `python palbaker_cli.py altermatic save <index_number> --data "<json_string>"` [utils/altermatic/__init__.py]
-    *   **STDOUT Contract:** `{"status": "success", "message": "Successfully saved Altermatic variant structure."}` [ui_client/dispatcher.py]
+*   **Save Variant Properties (Format V2)**
+    *   **Description:** Updates material overrides, gender constraints, lucky/rare attributes, passive traits, and shape keys for a variant in V2 format.
+    *   **Command:** `python palbaker_cli.py dynamic_pals save <index_number> --data "<json_string>"`
+    *   **STDOUT Contract:** `{"status": "success", "message": "Successfully saved variant parameters."}`
 
 *   **Sync Sidecar Metadata**
-    *   **Description:** Scans the active Blender file to update material slots and blendshapes in your `_blend.json` sidecar on the spot [utils/altermatic_helper.py].
-    *   **Command:** `python palbaker_cli.py altermatic sidecar <mod_name> <blend_name>` [ui_client/dispatcher.py]
-    *   **STDOUT Contract:** `{"status": "success", "data": { "materials": {...}, "MorphTarget": [...] }}` [utils/altermatic_helper.py]
+    *   **Description:** Scans the active Blender file to update material slots and blendshapes in your `_blend.json` sidecar.
+    *   **Command:** `python palbaker_cli.py dynamic_pals sidecar <mod_name> <blend_name>`
+    *   **STDOUT Contract:** `{"status": "success", "data": { "materials": {...}, "ShapeKeys": [...] }}`
 
 *   **Get Mod Metadata**
-    *   **Description:** Returns all available materials, `.blend` files, and classification data for your Altermatic workspace [ui_client/dispatcher.py].
-    *   **Command:** `python palbaker_cli.py altermatic metadata <mod_name>` [ui_client/dispatcher.py]
-    *   **STDOUT Contract:** `{"status": "success", "blend_files": ["<mod_name>.blend"], "category": "Monster"}` [cli_queries_dump.json]
+    *   **Description:** Returns all available materials, `.blend` files, and classification data for your workspace.
+    *   **Command:** `python palbaker_cli.py dynamic_pals metadata <mod_name>`
+    *   **STDOUT Contract:** `{"status": "success", "blend_files": ["<mod_name>.blend"], "category": "Monster"}`
 
 *   **Open Blend File**
-    *   **Description:** Launches your configured Blender executable directly to edit the selected variant [utils/altermatic/__init__.py].
-    *   **Command:** `python palbaker_cli.py altermatic open-blend <mod_name> <blend_name|base> [--category <category>]` [utils/altermatic/__init__.py]
-    *   **STDOUT Contract:** `{"status": "success", "message": "Blender launched successfully."}` [ui_client/dispatcher.py]
+    *   **Description:** Launches your configured Blender executable directly to edit the selected variant.
+    *   **Command:** `python palbaker_cli.py dynamic_pals open-blend <mod_name> <blend_name|base> [--category <category>]`
+    *   **STDOUT Contract:** `{"status": "success", "message": "Blender launched successfully."}`
 
 ---
 

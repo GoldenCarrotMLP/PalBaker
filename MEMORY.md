@@ -16,8 +16,16 @@
 ## 🛠️ Key Architectural Alignments & Decisions
 
 ### 🏷️ Badge & Tag Schema
-* **Structure**: Badges/Tags are represented as `[string, string]` tuples: `[label: string, hexColor: string]` (e.g., `["UNEXTRACTED", "#E53935"]`).
-* **Implementation**: The frontend `ModBadge` is a strict alias: `export type ModBadge = [string, string]`. Avoid object shapes on the client.
+* **Structure**: Badges/Tags are represented as `[string, string]` tuples: `[label: string, hexColor: string]` (e.g., `["UNEXTRACTED", "#E53935"]`, `["DYNAMIC PALS", "#06B6D4"]`).
+* **Implementation**: The frontend `ModBadge` is a strict alias: `export type ModBadge = [string, string]`.
+
+### 🦎 Dynamic Pals (Format V2 Engine)
+* **The Rule**: All dynamic mesh swaps are compiled strictly into Format V2 JSON (`ModelPack` / `SkinList` mapping).
+* **The Practice**:
+  - Local workspace manifests are stored at `{CharacterID}_dynamic_pals.json`.
+  - Game deployment compiles to `Pal/Content/Paks/~Mods/SwapJSON/palbaker-{CharacterID}.json`.
+  - Replaces legacy arrays with keyed dictionaries: `SkinList -> CharacterID -> SkinLabel -> { SkinPath, LuckyStarReq, PassiveSkills, SpecialMaterial, ShapeKeys }`.
+
 
 ### 📂 File Explorer Actions & WSL Path Translation
 * **The Rule**: File/folder open actions must use the unified `system_open_path` routing inside `palbaker_cli.py`.

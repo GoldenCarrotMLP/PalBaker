@@ -1,24 +1,26 @@
+// palbaker-ui/components/mod-manager/mod-card-expanded/variant-chip.tsx
 "use client"
 
-import { type AltermaticVariant } from "@/lib/mock-data"
+import { type DynamicPalVariant } from "@/lib/mock-data"
 import { cn } from "@/lib/utils"
 
 interface Props {
-  variant: AltermaticVariant
+  variant: DynamicPalVariant
   modName: string
   onClick?: () => void
 }
 
-// Mirrors mod_details.py build_variants_list() badge logic
 export function VariantChip({ variant, modName, onClick }: Props) {
   const prefix = `${modName}_`
   const displayLabel = variant.label.startsWith(prefix)
     ? variant.label.slice(prefix.length)
     : variant.label
 
-  const traitsCount  = (variant.ReqTrait    || []).length + (variant.PrefTrait  || []).length
-  const matsCount    = (variant.MatReplace   || []).length
-  const morphsCount  = (variant.MorphTarget  || []).length
+  const traitsCount = (variant.PassiveSkills || []).length + (variant.PrefTrait || []).length
+  const skipCount   = (variant.SkipTrait || []).length
+  const matsCount   = (variant.SpecialMaterial || []).length
+  const morphsCount = (variant.ShapeKeys || []).length
+  const hasAnimTarget = !!variant.AnimTarget
 
   const chips: { text: string; cls: string }[] = []
 
@@ -27,17 +29,25 @@ export function VariantChip({ variant, modName, onClick }: Props) {
   } else {
     if (variant.Gender && variant.Gender !== "None")
       chips.push({ text: variant.Gender[0], cls: "bg-blue-900/60 text-blue-300" })
-    if (variant.IsRarePal)
+    if (variant.LuckyStarReq)
       chips.push({ text: "LUCKY", cls: "bg-amber-900/60 text-amber-300" })
+      
+    // NEW: Yellow AnimTarget Chip
+    if (hasAnimTarget)
+      chips.push({ text: "AnimTarget", cls: "bg-yellow-900/60 text-yellow-300" })
+      
     if (traitsCount > 0)
       chips.push({ text: `T:${traitsCount}`, cls: "bg-green-900/60 text-green-300" })
+    if (skipCount > 0)
+      chips.push({ text: `BLK:${skipCount}`, cls: "bg-red-900/60 text-red-300" })
     if (matsCount > 0)
       chips.push({ text: `M:${matsCount}`, cls: "bg-purple-900/60 text-purple-300" })
     if (morphsCount > 0)
-      chips.push({ text: `MPH:${morphsCount}`, cls: "bg-cyan-900/60 text-cyan-300" })
+      chips.push({ text: `SK:${morphsCount}`, cls: "bg-cyan-900/60 text-cyan-300" })
     if (chips.length === 0)
       chips.push({ text: "DEFAULT", cls: "bg-muted text-muted-foreground" })
   }
+
 
   return (
     <button
