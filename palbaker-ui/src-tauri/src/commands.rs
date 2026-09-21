@@ -307,6 +307,49 @@ pub async fn dynamic_pals_metadata(app: AppHandle, state: State<'_, AppState>, b
 }
 
 #[tauri::command]
+pub async fn set_mod_json_name(app: AppHandle, state: State<'_, AppState>, base_pal: String, mod_name: String, name: String) -> Result<Value, String> {
+    let raw = run_cli(&app, &state, &["dynamic-pals", "set-json-name", &base_pal, &mod_name, "--name", &name])?;
+    let parsed: Value = parse_last_json_line(&raw).unwrap_or(serde_json::json!({ "status": "success", "message": raw }));
+    Ok(parsed)
+}
+
+#[tauri::command]
+pub async fn toggle_animations(app: AppHandle, state: State<'_, AppState>, base_pal: String, mod_name: String, enabled: bool) -> Result<Value, String> {
+    let status = if enabled { "true" } else { "false" };
+    let raw = run_cli(&app, &state, &["mod", "toggle-anims", &base_pal, &mod_name, "--path", status])?;
+    let parsed: Value = parse_last_json_line(&raw).unwrap_or(serde_json::json!({ "status": "success", "message": raw }));
+    Ok(parsed)
+}
+
+#[tauri::command]
+pub async fn dump_animations(app: AppHandle, state: State<'_, AppState>, base_pal: String, mod_name: String) -> Result<Value, String> {
+    let raw = run_cli(&app, &state, &["mod", "dump-anims", &base_pal, &mod_name])?;
+    let parsed: Value = parse_last_json_line(&raw).unwrap_or(serde_json::json!({ "status": "success", "message": raw }));
+    Ok(parsed)
+}
+
+#[tauri::command]
+pub async fn push_animations(app: AppHandle, state: State<'_, AppState>, base_pal: String, mod_name: String) -> Result<Value, String> {
+    let raw = run_cli(&app, &state, &["mod", "push-anims", &base_pal, &mod_name])?;
+    let parsed: Value = parse_last_json_line(&raw).unwrap_or(serde_json::json!({ "status": "success", "message": raw }));
+    Ok(parsed)
+}
+
+#[tauri::command]
+pub async fn save_animations_sidecar(app: AppHandle, state: State<'_, AppState>, base_pal: String, mod_name: String, custom_anims_json: String) -> Result<Value, String> {
+    let raw = run_cli(&app, &state, &["mod", "save-anims", &base_pal, &mod_name, "--path", &custom_anims_json])?;
+    let parsed: Value = parse_last_json_line(&raw).unwrap_or(serde_json::json!({ "status": "success", "message": raw }));
+    Ok(parsed)
+}
+
+#[tauri::command]
+pub async fn save_animation_notifies(app: AppHandle, state: State<'_, AppState>, base_pal: String, mod_name: String, anim_key: String, notifies_json: String) -> Result<Value, String> {
+    let raw = run_cli(&app, &state, &["mod", "save-notifies", &base_pal, &mod_name, "--key", &anim_key, "--path", &notifies_json])?;
+    let parsed: Value = parse_last_json_line(&raw).unwrap_or(serde_json::json!({ "status": "success", "message": raw }));
+    Ok(parsed)
+}
+
+#[tauri::command]
 pub async fn dynamic_pals_add(app: AppHandle, state: State<'_, AppState>, base_pal: String, mod_name: String, label: String, custom: bool, source: String, anim_target: String) -> Result<Value, String> {
     let mut args = vec!["dynamic_pals", "add", &base_pal, &mod_name, &label];
     

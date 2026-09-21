@@ -84,7 +84,57 @@ export interface DynamicPalVariant {
   ShapeKeys?: ShapeKeyEntry[]
   Extra?: string
 }
+export interface AnimNotifyEntry {
+  Name: string
+  Time: number
+  NotifyPayload?: Record<string, any>
+}
 
+
+export interface RestProps {
+  weight: number
+  loop_min: number
+  loop_max: number
+  after_idle_time: number
+}
+
+export interface CustomAnimationEntry {
+  category: "LocomotionSequence" | "BlendSpace" | "BlendSpaceSample" | "GeneralMontage" | "ActionMontage" | "RandomRest" | "UniqueAttack"
+  enum_key: string
+  display_name: string
+  montage_asset?: string
+  sequence_asset?: string
+  action_bp?: string
+  nla_track_name?: string
+  in_nla: boolean
+  is_modified: boolean
+  notifies: AnimNotifyEntry[]
+  rest_props?: RestProps  
+}
+
+export interface BlendSpaceSample {
+  animation: string
+  clean_name: string
+  speed: number
+  rate_scale: number
+  in_nla: boolean
+}
+
+export interface BlendSpaceDef {
+  enum_key: string
+  asset_name: string
+  axis_name: string
+  max_speed: number
+  samples: BlendSpaceSample[]
+}
+
+export interface CustomAnimationsState {
+  is_active: boolean
+  source_skeleton_guid?: string
+  custom_skeleton_guid?: string
+  anims: Record<string, CustomAnimationEntry>
+  blend_spaces?: Record<string, BlendSpaceDef> // <-- Dedicated BlendSpaces dictionary
+}
 export type ModBadge = [string, string]
 
 export interface ModItem {
@@ -110,12 +160,14 @@ export interface ModItem {
   audio_overrides: Partial<Record<string, string>>   
   is_dynamic_pals_active: boolean
   dynamic_pal_variants: DynamicPalVariant[]
+  custom_json_name?: string 
   preserve_materials: boolean 
   push_materials?: boolean
   push_textures?: boolean
   push_animbp?: boolean
   physical_variants?: string[]
   active_vanilla_replacer?: string
+  custom_animations?: CustomAnimationsState
 }
 
 export const mockModList: ModItem[] = []
@@ -161,6 +213,70 @@ export interface WildSpawnerConfig {
   SpawnMinGroup: number
   SpawnMaxGroup: number
 }
+
+export interface WorkSuitabilityConfig {
+  Level: number
+  Animation: string
+  NotifyValidated?: boolean
+}
+
+export interface CreatorPalFeatures {
+  Riding?: {
+    Enabled: boolean
+    MarkerType?: string
+    RidePosition?: string
+    AttachSocket?: string
+    WithSpeedCollision?: boolean
+    WithMountedShooter?: boolean
+    RelativeRotation?: { Pitch: number; Yaw: number; Roll: number }
+    RelativeLocation?: { X: number; Y: number; Z: number }
+  }
+  Flight?: { Enabled: boolean }
+  CoopWeapon?: {
+    Enabled: boolean
+    Mode?: string
+    AttachSocket?: string
+    SkillMagnification?: number[]
+    AimBlurAngles?: number[]
+    Element?: string
+    Effect?: string
+    Niagara?: string
+  }
+  Funnel?: {
+    Enabled: boolean
+    Preset?: string
+    TargetingAction?: string
+    CustomWazaID?: string
+  }
+  Shield?: {
+    Enabled: boolean
+    Radius?: number
+    AttachSocket?: string
+    RelativeLocation?: { X: number; Y: number; Z: number }
+  }
+  CombatEvasion?: {
+    SideMoveStyle?: string
+    LeaveStyle?: string
+  }
+  CoopUtility?: {
+    SkillType?: string
+  }
+  VFX?: {
+    VarName: string
+    SystemPackage: string
+    SystemName: string
+    AttachSocket: string
+  }[]
+  LocomotionLeaning?: Record<string, { PitchIntensity: number; RollIntensity: number }>
+  Props?: {
+    VarName: string
+    AttachSocket: string
+    IsSkeletal: boolean
+  }[]
+  TimerPointLight?: { Enabled: boolean }
+}
+
+export type FeatureConfig = CreatorPalFeatures
 
 export interface CreatorPal {
   CharacterID: string
@@ -254,7 +370,8 @@ export interface CreatorPal {
   BaseShot?: number
   BaseDef?: number
   BaseWorkSpeed?: number
-  WorkSuitabilities?: Record<string, number>
+  WorkSuitabilities?: Record<string, WorkSuitabilityConfig>
+  Features?: CreatorPalFeatures
 }
 
 export type CreatorItem = CreatorPal

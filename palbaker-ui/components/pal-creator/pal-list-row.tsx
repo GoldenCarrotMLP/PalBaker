@@ -28,11 +28,15 @@ interface Props {
   onDelete: (id: string) => void
   templates: string[]
   palNames: Record<string, string>
+  rawTemplates?: Record<string, any>
+  rawLearnsets?: Record<string, any>
+  rawPartnerSkillParams?: Record<string, any>
 }
 
 export function PalListRow({ 
   pal, expanded, spawners, activeSkills, partnerSkills, items, cageFields, bossSpawnerPresets, 
-  onToggle, onUpdate, onOpenDialog, onSave, onDelete, templates, palNames 
+  onToggle, onUpdate, onOpenDialog, onSave, onDelete, templates, palNames,
+  rawTemplates, rawLearnsets, rawPartnerSkillParams
 }: Props) {
   const el1       = cleanElement(pal.ElementType1) || "Normal"
   const el2       = cleanElement(pal.ElementType2)
@@ -82,6 +86,9 @@ export function PalListRow({
           onDelete={onDelete}
           templates={templates}
           palNames={palNames}
+          rawTemplates={rawTemplates}
+          rawLearnsets={rawLearnsets}
+          rawPartnerSkillParams={rawPartnerSkillParams}
         />
       )}
     </div>

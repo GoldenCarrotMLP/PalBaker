@@ -18,14 +18,18 @@ export const viewport: Viewport = {
   themeColor: "#031427",
 }
 
+import { TaskQueueProvider } from "@/lib/task-queue-context"
+
 export default function RootLayout() {
   return (
     <html lang="en" className={`bg-background ${inter.variable} ${geistMono.variable} font-sans`}>
       <body className="antialiased">
         <NavProvider>
-          <TooltipProvider>
-            <AppShell />
-          </TooltipProvider>
+          <TaskQueueProvider>
+            <TooltipProvider>
+              <AppShell />
+            </TooltipProvider>
+          </TaskQueueProvider>
         </NavProvider>
       </body>
     </html>

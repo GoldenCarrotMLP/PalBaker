@@ -107,6 +107,56 @@ export const ModManagerAPI = {
 
   },
 
+  async toggleAnimations(basePal: string, modName: string, enabled: boolean): Promise<any> {
+    if (USE_LIVE_DATA) {
+      try { return await invoke("toggle_animations", { basePal, modName, enabled }) }
+      catch (err) { handleBackendError(err) }
+    }
+    return { status: "success", message: `Custom animations toggle saved.` }
+  },
+
+  async dumpAnimations(basePal: string, modName: string): Promise<any> {
+    if (USE_LIVE_DATA) {
+      try { return await invoke("dump_animations", { basePal, modName }) }
+      catch (err) { handleBackendError(err) }
+    }
+    return { status: "success", message: "Mocked animations dumped." }
+  },
+
+  async pushAnimations(basePal: string, modName: string): Promise<any> {
+    if (USE_LIVE_DATA) {
+      try { return await invoke("push_animations", { basePal, modName }) }
+      catch (err) { handleBackendError(err) }
+    }
+    return { status: "success", message: "Mocked animations pushed." }
+  },
+
+  async saveAnimationNotifies(basePal: string, modName: string, animKey: string, notifies: any[]): Promise<any> {
+    if (USE_LIVE_DATA) {
+      try { return await invoke("save_animation_notifies", { basePal, modName, animKey, notifiesJson: JSON.stringify(notifies) }) }
+      catch (err) { handleBackendError(err) }
+    }
+    return { status: "success", message: "Mocked notifies saved." }
+  },
+
+  async saveAnimationsSidecar(basePal: string, modName: string, customAnims: any): Promise<any> {
+    if (USE_LIVE_DATA) {
+      try { return await invoke("save_animations_sidecar", { basePal, modName, customAnimsJson: JSON.stringify(customAnims) }) }
+      catch (err) { handleBackendError(err) }
+    }
+    return { status: "success" }
+  },
+
+  async setModJsonName(basePal: string, modName: string, name: string): Promise<any> {
+    if (USE_LIVE_DATA) {
+      try { 
+        return await invoke("set_mod_json_name", { basePal, modName, name }) 
+      } 
+      catch (err) { handleBackendError(err) }
+    }
+    return { status: "success", message: `Updated JSON name to ${name}` }
+  },
+
   async dynamicPalsDelete(basePal: string, modName: string, index: number): Promise<any> {
     if (USE_LIVE_DATA) {
       try { return await invoke("dynamic_pals_delete", { basePal, modName, index }) } 

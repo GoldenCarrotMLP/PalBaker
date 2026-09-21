@@ -85,6 +85,7 @@ pub fn run() {
             commands::env_status,
             commands::env_launch_unreal,
             commands::env_restart_unreal,
+            commands::set_mod_json_name,
             commands::get_spawners,
             commands::creator_save,
             commands::creator_delete,
@@ -120,6 +121,11 @@ pub fn run() {
             commands::set_mod_push_setting,
             commands::set_vanilla_replacer,
             commands::set_mod_blacklist,
+            commands::toggle_animations,
+            commands::dump_animations,
+            commands::push_animations,
+            commands::save_animation_notifies,
+            commands::save_animations_sidecar,
         ])
         .run(tauri::generate_context!())
         .expect("error while running tauri application");

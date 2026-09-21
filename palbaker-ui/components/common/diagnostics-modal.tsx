@@ -20,7 +20,17 @@ export function DiagnosticsModal({ errorText, onClose }: Props) {
   const { setPage } = useNav()
 
   // 1. Resolve friendly diagnostic mapping variables natively using your parser
-  const report = parseBackendError(errorText)
+  let report = null
+  try {
+     const parsedTest = JSON.parse(errorText)
+     if (parsedTest && parsedTest.friendlyMsg) {
+         report = parsedTest
+     } else {
+         report = parseBackendError(errorText)
+     }
+  } catch (e) {
+     report = parseBackendError(errorText)
+  }
 
   useEffect(() => {
     async function checkHealth() {

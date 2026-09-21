@@ -14,12 +14,16 @@ import {
   SectionLabel, 
   WORK_SUITS, 
   WORK_SUITABILITY_MAP, 
+  WORK_SUIT_DEFAULTS,
   ELEMENT_OPTIONS,
   WEAPON_EFFECT_OPTIONS,
   NIAGARA_EFFECT_LIST,
   CUSTOMIZABLE_WEAPON_SKILLS,
-  FUNNEL_PARTNER_SKILLS
+  FUNNEL_PARTNER_SKILLS,
+  getTemplatePrefill
 } from "./pal-helpers"
+
+import { FeatureEditor } from "./feature-editor"
 
 import { DiagnosticsModal } from "@/components/common/diagnostics-modal"
 import { useNotifications } from "../mod-manager/mod-card-expanded/use-notifications"
@@ -47,13 +51,17 @@ interface Props {
   onDelete: (id: string) => void
   templates: string[]
   palNames: Record<string, string>
+  rawTemplates?: Record<string, any>
+  rawLearnsets?: Record<string, any>
+  rawPartnerSkillParams?: Record<string, any>
 }
 
 const DEFAULT_CAGE_FIELDS = ["Grass", "Desert", "Viking", "Snow", "Volcano", "Grass2", "Desert1", "Viking1"]
 
 export function PalDetails({ 
   pal, spawners, activeSkills, partnerSkills = {}, items = {}, cageFields = [], bossSpawnerPresets = {}, 
-  onUpdate, onOpenDialog, onSave, onDelete, templates, palNames 
+  onUpdate, onOpenDialog, onSave, onDelete, templates, palNames,
+  rawTemplates = {}, rawLearnsets = {}, rawPartnerSkillParams = {}
 }: Props) {
   const [diagnosticError, setDiagnosticError] = useState<string | null>(null)
   const { notifications, showNotification, dismissNotification } = useNotifications()
@@ -75,6 +83,23 @@ export function PalDetails({
       showNotification("Blueprints regenerated & retargeted successfully! 🦊✨", "success", "Blueprint Patched")
     } catch (err: any) {
       console.error("Blueprint refresh failed:", err)
+      
+      try {
+        const parsed = JSON.parse(err.message)
+        if (parsed && parsed.status === "validation_failed") {
+           // We have missing dependencies! Display them cleanly.
+           setDiagnosticError(JSON.stringify({
+              category: "COMPILER",
+              title: "Validation Failed: Missing Animations",
+              friendlyMsg: parsed.message + "\n\n" + parsed.missing_dependencies.map((d: any) => `• [${d.feature}] ${d.message}`).join("\n"),
+              remediations: [{ label: "Close", actionKey: "close_modal", style: "primary" }]
+           }))
+           return
+        }
+      } catch (e) {
+          // Normal error
+      }
+      
       setDiagnosticError(String(err.message || err))
     }
   }
@@ -250,6 +275,7 @@ export function PalDetails({
       <Tabs defaultValue="general" className="w-full">
         <TabsList className="w-full justify-start border-b border-border rounded-none pb-0 mb-4 bg-transparent gap-6 h-10 px-2 overflow-x-auto">
           <TabsTrigger value="general" className="rounded-none border-b-2 data-[state=active]:border-primary data-[state=inactive]:border-transparent bg-transparent pb-2 h-full text-xs uppercase tracking-wider font-bold">General & Stats</TabsTrigger>
+          <TabsTrigger value="features" className="rounded-none border-b-2 data-[state=active]:border-primary data-[state=inactive]:border-transparent bg-transparent pb-2 h-full text-xs uppercase tracking-wider font-bold">Abilities & Features</TabsTrigger>
           <TabsTrigger value="combat" className="rounded-none border-b-2 data-[state=active]:border-primary data-[state=inactive]:border-transparent bg-transparent pb-2 h-full text-xs uppercase tracking-wider font-bold">Combat & Skills</TabsTrigger>
           <TabsTrigger value="ecology" className="rounded-none border-b-2 data-[state=active]:border-primary data-[state=inactive]:border-transparent bg-transparent pb-2 h-full text-xs uppercase tracking-wider font-bold">Spawning & Ecology</TabsTrigger>
           <TabsTrigger value="loot" className="rounded-none border-b-2 data-[state=active]:border-primary data-[state=inactive]:border-transparent bg-transparent pb-2 h-full text-xs uppercase tracking-wider font-bold">Loot & Drops</TabsTrigger>
@@ -266,7 +292,33 @@ export function PalDetails({
               <input value={pal.Name} onChange={(e) => onUpdate({ Name: e.target.value })} className="input-field" />
             </FieldGroup>
             <FieldGroup label="PARENT TEMPLATE">
-              <SearchableSelect value={pal.TemplateID} onChange={(val) => onUpdate({ TemplateID: val })} options={parentTemplateOptions} placeholder="Select template..." />
+              <div className="flex gap-2 items-center">
+                <div className="flex-1 min-w-0">
+                  <SearchableSelect 
+                    value={pal.TemplateID} 
+                    onChange={(val) => {
+                      const prefill = getTemplatePrefill(val, rawTemplates, rawLearnsets, rawPartnerSkillParams)
+                      onUpdate({ TemplateID: val, ...prefill })
+                      showNotification(`Switched template to ${palNames[val] || val} and prefilled parameters! 🦊✨`, "info")
+                    }} 
+                    options={parentTemplateOptions} 
+                    placeholder="Select template..." 
+                  />
+                </div>
+                <button
+                  type="button"
+                  onClick={() => {
+                    const targetTmpl = pal.TemplateID || templates[0] || "Anubis"
+                    const prefill = getTemplatePrefill(targetTmpl, rawTemplates, rawLearnsets, rawPartnerSkillParams)
+                    onUpdate(prefill)
+                    showNotification(`Prefilled all parameters from ${palNames[targetTmpl] || targetTmpl}! 🦊✨`, "success")
+                  }}
+                  title="Reset and prefill all stats, combat properties, work suitabilities, and features from this template"
+                  className="px-2.5 py-1 h-9 rounded border border-primary/40 bg-primary/10 text-primary hover:bg-primary/20 text-xs font-semibold shrink-0 cursor-pointer transition-colors"
+                >
+                  Prefill All
+                </button>
+              </div>
             </FieldGroup>
             <FieldGroup label="PALDECK INDEX">
               <div className="flex gap-1.5">
@@ -310,14 +362,34 @@ export function PalDetails({
               <SectionLabel className="mb-4">Work Suitabilities</SectionLabel>
               <div className="grid grid-cols-2 gap-2">
                 {WORK_SUITS.map((key) => {
-                  const rawKey = WORK_SUITABILITY_MAP[key] as keyof CreatorPal
-                  const val = (pal[rawKey] as number | undefined) ?? pal.WorkSuitabilities?.[rawKey] ?? 0
+                  const rawKey = WORK_SUITABILITY_MAP[key]
+                  const legacyKey = `WorkSuitability_${rawKey}` as keyof CreatorPal
+                  const suitObj = pal.WorkSuitabilities?.[rawKey]
+                  const val = suitObj ? suitObj.Level : (pal[legacyKey] as number | undefined ?? 0)
+                  
                   return (
                     <label key={key} className="flex items-center gap-2 cursor-pointer select-none">
-                      <Checkbox checked={val > 0} onCheckedChange={(c) => onUpdate({ [rawKey]: c ? 1 : 0 })} className="data-[state=checked]:bg-primary/50 data-[state=checked]:border-primary" />
+                      <Checkbox checked={val > 0} onCheckedChange={(c) => {
+                          const nextSuits = { ...pal.WorkSuitabilities }
+                          if (c) {
+                              nextSuits[rawKey] = { Level: 1, Animation: WORK_SUIT_DEFAULTS[rawKey] || "CommonWork" }
+                          } else {
+                              delete nextSuits[rawKey]
+                          }
+                          onUpdate({ WorkSuitabilities: nextSuits, [legacyKey]: c ? 1 : 0 })
+                      }} className="data-[state=checked]:bg-primary/50 data-[state=checked]:border-primary" />
                       <span className="text-xs text-foreground">{key}</span>
                       {val > 0 && (
-                        <input type="number" min={1} max={5} value={val} onChange={(e) => onUpdate({ [rawKey]: parseInt(e.target.value) || 1 })} className="ml-auto w-10 h-5 text-xs text-center bg-muted border border-border rounded" />
+                        <input type="number" min={1} max={5} value={val} onChange={(e) => {
+                                const nextSuits = { ...pal.WorkSuitabilities }
+                                const newVal = parseInt(e.target.value) || 1
+                                if (nextSuits[rawKey]) {
+                                    nextSuits[rawKey] = { ...nextSuits[rawKey], Level: newVal }
+                                } else {
+                                    nextSuits[rawKey] = { Level: newVal, Animation: WORK_SUIT_DEFAULTS[rawKey] || "CommonWork" }
+                                }
+                                onUpdate({ WorkSuitabilities: nextSuits, [legacyKey]: newVal })
+                            }} className="ml-auto w-10 h-5 text-xs text-center bg-muted border border-border rounded" />
                       )}
                     </label>
                   )
@@ -348,6 +420,11 @@ export function PalDetails({
               </div>
             </div>
           </div>
+        </TabsContent>
+
+        {/* TAB X: ABILITIES & FEATURES */}
+        <TabsContent value="features" className="flex flex-col gap-5">
+           <FeatureEditor pal={pal} onUpdate={onUpdate} activeSkills={activeSkills} />
         </TabsContent>
 
         {/* TAB 2: COMBAT & SKILLS */}

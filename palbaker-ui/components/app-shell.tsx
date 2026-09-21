@@ -22,6 +22,7 @@ import {
   User,
 } from "lucide-react"
 import { Separator } from "@/components/ui/separator"
+import { ProcessQueueWidget } from "@/components/common/process-queue-widget"
 
 const NAV_ITEMS: { page: Page; label: string; icon: React.ElementType }[] = [
   { page: "mod-manager",     label: "Mod Manager",     icon: LayoutGrid },
@@ -208,6 +209,9 @@ export function AppShell() {
 
         <BuildConsole />
       </div>
+
+      {/* Floating Corner Process Queue Widget */}
+      <ProcessQueueWidget />
 
       {/* Background Update Dialog Trigger */}
       {updateAvailable && (

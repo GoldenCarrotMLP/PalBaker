@@ -366,19 +366,35 @@ export const NIAGARA_EFFECT_LIST: string[] = [
 export type WorkKey = typeof WORK_SUITS[number]
 
 export const WORK_SUITABILITY_MAP: Record<WorkKey, string> = {
-  "Kindling":  "WorkSuitability_EmitFlame",
-  "Watering":  "WorkSuitability_Watering",
-  "Planting":  "WorkSuitability_Seeding",
-  "Electricity": "WorkSuitability_GenerateElectricity",
-  "Handiwork": "WorkSuitability_Handcraft",
-  "Gathering": "WorkSuitability_Collection",
-  "Lumbering": "WorkSuitability_Deforest",
-  "Mining":    "WorkSuitability_Mining",
-  "Oil Extraction": "WorkSuitability_OilExtraction",
-  "Medicine":  "WorkSuitability_ProductMedicine",
-  "Cooling": "WorkSuitability_Cool",
-  "Transport": "WorkSuitability_Transport",
-  "Farming": "WorkSuitability_MonsterFarm",
+  "Kindling":  "EmitFlame",
+  "Watering":  "Watering",
+  "Planting":  "Seeding",
+  "Electricity": "GenerateElectricity",
+  "Handiwork": "Handcraft",
+  "Gathering": "Collection",
+  "Lumbering": "Deforest",
+  "Mining":    "Mining",
+  "Oil Extraction": "OilExtraction",
+  "Medicine":  "ProductMedicine",
+  "Cooling": "Cool",
+  "Transport": "Transport",
+  "Farming": "MonsterFarm",
+}
+
+export const WORK_SUIT_DEFAULTS: Record<string, string> = {
+  "EmitFlame": "Cooking",
+  "Watering": "WaterGun",
+  "Seeding": "Seeding",
+  "GenerateElectricity": "GenerateElectricity",
+  "Handcraft": "CommonWork",
+  "Collection": "CommonWork",
+  "Deforest": "Deforest",
+  "Mining": "Mining",
+  "OilExtraction": "CommonWork",
+  "ProductMedicine": "ProductMedicine",
+  "Cool": "Cool",
+  "Transport": "Transport",
+  "MonsterFarm": "CommonWork"
 }
 
 export const ELEMENT_OPTIONS: [string, string][] = [
@@ -450,4 +466,242 @@ export function StatSlider({
       </div>
     </div>
   )
+}
+
+const FLYING_TEMPLATES = new Set([
+  "JetDragon", "Horus", "Suzaku", "Suzaku_Water", "HadesBird",
+  "ThunderBird", "ThunderBird_Ice", "BirdDragon", "BirdDragon_Ice",
+  "Eagle", "FairyDragon", "FairyDragon_Water", "GhostDragon",
+  "BlackGriffon", "WhiteShieldDragon", "BlueSkyDragon", "CuteButterfly",
+  "DreamDemon"
+])
+
+const BIG_MOUNT_TEMPLATES = new Set([
+  "Grassmammoth", "Grassmammoth_Ice", "KingAlpaca", "KingAlpaca_Ice",
+  "ElecPanda", "GrassPanda", "GrassPanda_Electric", "Gorilla",
+  "Baphomet", "Baphomet_Dark", "AmaterasuWolf", "AmaterasuWolf_Dark",
+  "Deer", "IceDeer", "Boar", "ThunderDog", "ThunderDog_Ice",
+  "Garm", "Umihebi", "Umihebi_Fire", "SakuraSaurus", "SakuraSaurus_Water",
+  "Manticore", "Manticore_Dark", "FireKirin", "FireKirin_Dark",
+  "Kirin", "Kirin_Ice", "JetDragon", "BlueSkyDragon", "SaintCentaur",
+  "BlackCentaur", "FengyunDeeper", "RaijinDaughter"
+])
+
+const SIT_MOUNT_TEMPLATES = new Set([
+  "KingAlpaca", "KingAlpaca_Ice", "ElecPanda", "GrassPanda", "GrassPanda_Electric", "Gorilla"
+])
+
+const TRAMPLE_TEMPLATES = new Set([
+  "Boar", "Deer", "IceDeer", "KingAlpaca", "KingAlpaca_Ice",
+  "Grassmammoth", "Grassmammoth_Ice", "FeatherOstrich", "TropicalOstrich",
+  "NightBlueHorse", "NightBlueHorse_Neutral"
+])
+
+const MOUNTED_SHOOTER_TEMPLATES = new Set([
+  "Deer", "IceDeer", "Boar", "AmaterasuWolf", "AmaterasuWolf_Dark",
+  "Kirin", "Kirin_Ice", "FireKirin", "FireKirin_Dark",
+  "ThunderDog", "ThunderDog_Ice", "BlueThunderHorse", "Garm"
+])
+
+const WEAPON_PARTNER_TEMPLATES: Record<string, { Mode: string; Element: string; Effect: string; Niagara: string }> = {
+  Kitsunebi: { Mode: "Flamethrower", Element: "EPalElementType::Fire", Effect: "EPalAdditionalEffectType::Burn", Niagara: "Pal/Content/Pal/Effect/Skill/FlameThrower/NS_CommonSkill_Flamethrower" },
+  Kitsunebi_Ice: { Mode: "Flamethrower", Element: "EPalElementType::Ice", Effect: "EPalAdditionalEffectType::Freeze", Niagara: "Pal/Content/Pal/Effect/Skill/FrostBreath/NS_CommonSkill_FrostBreath" },
+  Penguin: { Mode: "Launcher", Element: "EPalElementType::Water", Effect: "EPalAdditionalEffectType::None", Niagara: "Pal/Content/Pal/Effect/Skill/BlastCanon/NS_CommonSkill_BlastCannon_Impact" },
+  Monkey: { Mode: "AssaultRifle", Element: "EPalElementType::Leaf", Effect: "EPalAdditionalEffectType::None", Niagara: "Pal/Content/Pal/Effect/Skill/SeedMachinegun/NS_CommonSkill_SeedMachinegun" },
+  Carbunclo: { Mode: "OnHeadSubmachineGun", Element: "EPalElementType::Leaf", Effect: "EPalAdditionalEffectType::None", Niagara: "Pal/Content/Pal/Effect/Skill/PowerShot/NS_CommonSkill_PowerShot" },
+  Grizzbolt: { Mode: "Minigun", Element: "EPalElementType::Electricity", Effect: "EPalAdditionalEffectType::Electrical", Niagara: "Pal/Content/Pal/Effect/Skill/Thunderbolt/NS_CommonSkill_Thunderbolt" },
+}
+
+const FUNNEL_TEMPLATES: Record<string, { Preset: string; TargetingAction: string; CustomWazaID: string }> = {
+  DreamDemon: { Preset: "DreamDemon", TargetingAction: "ShadowBall", CustomWazaID: "Funnel_DreamDemon" },
+  Daedream: { Preset: "DreamDemon", TargetingAction: "ShadowBall", CustomWazaID: "Funnel_DreamDemon" },
+  RaijinDaughter: { Preset: "Dazzi", TargetingAction: "Thunderbolt", CustomWazaID: "Funnel_RaijinDaughter" },
+  Dazzi: { Preset: "Dazzi", TargetingAction: "Thunderbolt", CustomWazaID: "Funnel_RaijinDaughter" },
+  FlowerRabbit: { Preset: "Flopie", TargetingAction: "SeedMachinegun", CustomWazaID: "None" },
+  Flopie: { Preset: "Flopie", TargetingAction: "SeedMachinegun", CustomWazaID: "None" },
+}
+
+const SHIELD_TEMPLATES: Record<string, { Radius: number; AttachSocket: string; RelativeLocation?: { X: number; Y: number; Z: number } }> = {
+  SheepBall: { Radius: 90.0, AttachSocket: "lowerarm_l", RelativeLocation: { X: 0.0, Y: 0.0, Z: 62.5 } },
+  Lamball: { Radius: 90.0, AttachSocket: "lowerarm_l", RelativeLocation: { X: 0.0, Y: 0.0, Z: 62.5 } },
+  SaintCentaur: { Radius: 140.0, AttachSocket: "lowerarm_l" },
+  Paladius: { Radius: 140.0, AttachSocket: "lowerarm_l" },
+}
+
+const EVASION_TEMPLATES: Record<string, { SideMoveStyle?: string; LeaveStyle?: string }> = {
+  Anubis: { SideMoveStyle: "Teleport", LeaveStyle: "BackStep" },
+  DarkScorpion: { SideMoveStyle: "RoundStep", LeaveStyle: "BackStep" },
+  AmaterasuWolf: { SideMoveStyle: "DashTurn", LeaveStyle: "TurnRun" },
+  AmaterasuWolf_Dark: { SideMoveStyle: "DashTurn", LeaveStyle: "TurnRun" },
+  Ronin: { SideMoveStyle: "SideStep", LeaveStyle: "BackStep" },
+}
+
+const UTILITY_TEMPLATES: Record<string, string> = {
+  LilyQueen: "HealLilyQueen",
+  LilyQueen_Dark: "HealLilyQueen",
+  Lyleen: "HealLilyQueen",
+  Lyleen_Noct: "HealLilyQueen",
+  FairyCat: "Heal",
+  Petallia: "Heal",
+  FeatherOstrich: "ReturnToCamp",
+  Mallow: "OpenTreasure"
+}
+
+const LIGHT_TEMPLATES = new Set([
+  "Kitsunebi", "Foxcicle", "DreamDemon", "Daedream", "RaijinDaughter",
+  "Dazzi", "Rayhound", "ThunderDog", "VolcanicMonster", "DarkScorpion"
+])
+
+export function getTemplatePrefill(
+  templateId: string,
+  templatesCache: Record<string, any>,
+  learnsetsCache?: Record<string, any>,
+  partnerSkillParamsCache?: Record<string, any>
+): Record<string, any> {
+  const base = templatesCache?.[templateId] || {}
+  const parentParams = partnerSkillParamsCache?.[templateId] || {}
+  const clonedLearnset = learnsetsCache?.[templateId] || []
+
+  // Resolve Partner Skill
+  let resolvedPartnerSkill = "None"
+  const activeSkillName = parentParams?.ActiveSkill?.SkillName
+  if (activeSkillName && activeSkillName !== "Unknown" && activeSkillName !== "None") {
+    resolvedPartnerSkill = activeSkillName
+  } else if (base.PartnerSkill && base.PartnerSkill !== "None") {
+    resolvedPartnerSkill = base.PartnerSkill
+  }
+
+  // Resolve Saddle
+  let resolvedSaddle = `SkillUnlock_${templateId}`
+  const restrictionItems = parentParams?.RestrictionItems
+  if (Array.isArray(restrictionItems) && restrictionItems.length > 0) {
+    const key = restrictionItems[0]?.Key
+    if (key && key !== "None") {
+      resolvedSaddle = key
+    }
+  }
+
+  // Resolve Work Suitabilities
+  const newSuits: Record<string, { Level: number; Animation: string }> = {}
+  const legacySuits: Record<string, number> = {}
+
+  Object.keys(base).forEach((k) => {
+    if (k.startsWith("WorkSuitability_")) {
+      const lvl = parseInt(base[k]) || 0
+      legacySuits[k] = lvl
+      if (lvl > 0) {
+        const shortKey = k.replace("WorkSuitability_", "")
+        newSuits[shortKey] = {
+          Level: lvl,
+          Animation: WORK_SUIT_DEFAULTS[shortKey] || "CommonWork"
+        }
+      }
+    }
+  })
+
+  // Infer Features
+  const features: any = {
+    Riding: { Enabled: false },
+    Flight: { Enabled: false },
+    CoopWeapon: { Enabled: false },
+    Funnel: { Enabled: false },
+    Shield: { Enabled: false },
+    CombatEvasion: { SideMoveStyle: "None", LeaveStyle: "None" },
+    CoopUtility: { SkillType: "None" },
+    VFX: [],
+    LocomotionLeaning: {},
+    TimerPointLight: { Enabled: false }
+  }
+
+  // Riding
+  const isWeaponOrFunnel = (templateId in WEAPON_PARTNER_TEMPLATES || templateId in FUNNEL_TEMPLATES)
+  const isRideable = (
+    !isWeaponOrFunnel && (
+      BIG_MOUNT_TEMPLATES.has(templateId) ||
+      SIT_MOUNT_TEMPLATES.has(templateId) ||
+      resolvedPartnerSkill.includes("Ride") ||
+      resolvedSaddle.includes("Saddle")
+    )
+  )
+  if (isRideable) {
+    const markerType = SIT_MOUNT_TEMPLATES.has(templateId) ? "Sit" : (BIG_MOUNT_TEMPLATES.has(templateId) || base.Size === "EPalSizeType::L" || base.Size === "EPalSizeType::XL" ? "BiggerHorse" : "Saddle")
+    const ridePos = markerType === "Sit" ? "Sit" : (markerType === "BiggerHorse" ? "BiggerHorseRide" : "HorseRide")
+    features.Riding = {
+      Enabled: true,
+      MarkerType: markerType,
+      RidePosition: ridePos,
+      AttachSocket: "PlayerRideMarker",
+      WithSpeedCollision: TRAMPLE_TEMPLATES.has(templateId),
+      WithMountedShooter: MOUNTED_SHOOTER_TEMPLATES.has(templateId),
+      RelativeRotation: { Pitch: 90.0, Yaw: 0.0, Roll: 0.0 },
+      RelativeLocation: { X: 0.0, Y: 0.0, Z: 10.0 }
+    }
+  }
+
+  // Flight
+  if (FLYING_TEMPLATES.has(templateId)) {
+    features.Flight = { Enabled: true }
+  }
+
+  // Weapon
+  if (templateId in WEAPON_PARTNER_TEMPLATES) {
+    features.CoopWeapon = { Enabled: true, ...WEAPON_PARTNER_TEMPLATES[templateId] }
+  }
+
+  // Funnel
+  if (templateId in FUNNEL_TEMPLATES) {
+    features.Funnel = { Enabled: true, ...FUNNEL_TEMPLATES[templateId] }
+  }
+
+  // Shield
+  if (templateId in SHIELD_TEMPLATES) {
+    features.Shield = { Enabled: true, ...SHIELD_TEMPLATES[templateId] }
+  }
+
+  // Evasion
+  if (templateId in EVASION_TEMPLATES) {
+    features.CombatEvasion = { ...EVASION_TEMPLATES[templateId] }
+  }
+
+  // Utility
+  if (templateId in UTILITY_TEMPLATES) {
+    features.CoopUtility = { SkillType: UTILITY_TEMPLATES[templateId] }
+  }
+
+  // Light
+  if (LIGHT_TEMPLATES.has(templateId)) {
+    features.TimerPointLight = { Enabled: true }
+  }
+
+  return {
+    ElementType1: base.ElementType1 || "EPalElementType::Normal",
+    ElementType2: base.ElementType2 || "EPalElementType::None",
+    Hp: base.Hp ?? 100,
+    MeleeAttack: base.MeleeAttack ?? 100,
+    ShotAttack: base.ShotAttack ?? 100,
+    Defense: base.Defense ?? 100,
+    Support: base.Support ?? 100,
+    CraftSpeed: base.CraftSpeed ?? 100,
+    Size: base.Size ?? "EPalSizeType::M",
+    Rarity: base.Rarity ?? 1,
+    Price: base.Price ?? 1000,
+    WalkSpeed: base.WalkSpeed ?? 100,
+    RunSpeed: base.RunSpeed ?? 500,
+    RideSprintSpeed: base.RideSprintSpeed ?? 700,
+    TransportSpeed: base.TransportSpeed ?? 200,
+    FoodAmount: base.FoodAmount ?? 1,
+    Stamina: base.Stamina ?? 100,
+    MaleProbability: base.MaleProbability ?? 50,
+    CombiRank: base.CombiRank ?? 100,
+    CaptureRateCorrect: base.CaptureRateCorrect ?? 1.0,
+    MeshCapsuleHalfHeight: base.MeshCapsuleHalfHeight ?? 110.0,
+    MeshCapsuleRadius: base.MeshCapsuleRadius ?? 50.0,
+    MeshRelativeLocation: base.MeshRelativeLocation ?? { X: 0, Y: 0, Z: -110 },
+    WorkSuitabilities: newSuits,
+    PartnerSkill: resolvedPartnerSkill,
+    SaddleItem: resolvedSaddle,
+    Learnset: clonedLearnset.length > 0 ? clonedLearnset : undefined,
+    Features: features,
+    ...legacySuits
+  }
 }

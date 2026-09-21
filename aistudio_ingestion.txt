@@ -1,0 +1,34 @@
+## Target File: `utils/blueprint_patcher/feature_manager/components.py`
+
+content:
+```python
+        # 1. Register in LoadedProperties (matches native UE5 schema)
+        loaded_props = self.class_export.setdefault("LoadedProperties", [])
+        if not any(isinstance(p, dict) and p.get("Name") == var_name for p in loaded_props):
+            loaded_props.append({
+                "$type": "UAssetAPI.FieldTypes.FObjectProperty, UAssetAPI",
+                "PropertyClass": comp_class_idx,
+                "ArrayDim": "TArray",
+                "ElementSize": 8,
+                "PropertyFlags": "CPF_BlueprintVisible, CPF_InstancedReference, CPF_NonTransactional",
+                "RepIndex": 0,
+                "RepNotifyFunc": "None",
+                "BlueprintReplicationCondition": "COND_None",
+                "RawValue": None,
+                "SerializedType": "ObjectProperty",
+                "Name": var_name,
+                "Flags": "RF_Public, RF_LoadCompleted",
+                "MetaDataMap": None
+            })
+
+        # Update Class EDL Dependencies to prevent null pointer render crashes
+        class_deps = self.class_export.setdefault("CreateBeforeSerializationDependencies", [])
+        if comp_class_idx not in class_deps:
+            class_deps.append(comp_class_idx)
+
+        serialization_before_create = [comp_class_idx]
+        if template_idx < 0:
+            serialization_before_create.append(template_idx)
+```
+
+---

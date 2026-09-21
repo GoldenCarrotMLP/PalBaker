@@ -13,6 +13,7 @@ import {
   CornerDownRight 
 } from "lucide-react"
 import { useNav } from "@/lib/nav-context"
+
 import { ModManagerAPI, SystemSettingsAPI, UnrealHealthAPI } from "@/lib/data-service"
 import { type ModItem } from "@/lib/mock-data"
 import { ModCard } from "@/components/mod-manager/mod-card"
@@ -23,6 +24,7 @@ import { DiagnosticsModal } from "@/components/common/diagnostics-modal"
 
 import { UnrealClosedModal } from "@/components/common/unreal-wizards/UnrealClosedModal"
 import { RemoteExecDisabledModal } from "@/components/common/unreal-wizards/RemoteExecDisabledModal"
+import { useTaskQueue, getChannelForAction, getActionFriendlyLabel } from "@/lib/task-queue-context"
 
 type CategoryTab = "pals" | "npcs" | "player"
 type Tag = "unextracted" | "raw" | "source" | "ue_assets" | "dynamic_pals" | "src_changed" | "modified" | "variant"
@@ -289,9 +291,19 @@ export function ModManagerPage() {
     }
   }
 
+  const { addTask, isTaskActiveForMod } = useTaskQueue()
+  const clickThrottleRef = useRef<Set<string>>(new Set())
+
   async function handleAction(mod: ModItem, action: string) {
+    // Immediate 800ms debounce to prevent rapid double-clicks from passing before state updates
+    if (clickThrottleRef.current.has(mod.name)) {
+      return
+    }
+    clickThrottleRef.current.add(mod.name)
+    setTimeout(() => clickThrottleRef.current.delete(mod.name), 800)
     const isNavigation = ["open_source", "open_ue", "open_pak", "browse_unreal"].includes(action)
     
+    // 1. Instant Explorer and Content Browser actions run immediately
     if (isNavigation) {
       try {
         const res = await ModManagerAPI.runAction(mod.base_pal, mod.name, action)
@@ -310,24 +322,37 @@ export function ModManagerPage() {
       return
     }
 
-    try {
-      setIsBackgroundRefreshing(true)
-      const res = await ModManagerAPI.runAction(mod.base_pal, mod.name, action)
-      showNotification(res.message || "Action executed successfully!", "success", "Pipeline Success")
-      await loadMods()
-    } catch (err) {
-      console.error("Action failed:", err)
-      const errMsg = err instanceof Error ? err.message : String(err)
-      if (errMsg === "UNREAL_CLOSED") {
-        setActiveUnrealWizard("unreal_closed")
-      } else if (errMsg === "REMOTE_EXEC_DISABLED") {
-        setActiveUnrealWizard("remote_exec_disabled")
-      } else {
-        setDiagnosticError(errMsg)
-      }
-    } finally {
-      setIsBackgroundRefreshing(false)
+    // 2. Prevent duplicate task submissions if this mod is already queued or running
+    if (isTaskActiveForMod(mod.name)) {
+      showNotification(`A task for '${mod.name}' is already running or in the queue!`, "warning")
+      return
     }
+
+    // 3. Dispatch long-running compile, import, and cook operations to the queue
+    addTask({
+      name: mod.name,
+      basePal: mod.base_pal,
+      actionKey: action,
+      actionLabel: getActionFriendlyLabel(action),
+      channel: getChannelForAction(action),
+      run: async () => {
+        return await ModManagerAPI.runAction(mod.base_pal, mod.name, action)
+      },
+      onSuccess: (res) => {
+        showNotification(res?.message || `${getActionFriendlyLabel(action)} finished for ${mod.name}! ;3`, "success")
+        handleBackgroundRefresh()
+      },
+      onError: (errMsg) => {
+        console.error("Task failed:", errMsg)
+        if (errMsg === "UNREAL_CLOSED") {
+          setActiveUnrealWizard("unreal_closed")
+        } else if (errMsg === "REMOTE_EXEC_DISABLED") {
+          setActiveUnrealWizard("remote_exec_disabled")
+        } else {
+          setDiagnosticError(errMsg)
+        }
+      }
+    })
   }
 
   // Group mods into Parent -> Variants hierarchy

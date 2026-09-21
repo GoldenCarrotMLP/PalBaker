@@ -13,6 +13,12 @@ export function handleBackendError(err: unknown): never {
   if (err && typeof err === "object") {
     const errObj = err as Record<string, unknown>;
     errorCode = typeof errObj.error_code === "string" ? errObj.error_code : null;
+    
+    if (errObj.status === "validation_failed") {
+      // Stringify the full validation object so the UI can catch it
+      throw new Error(JSON.stringify(errObj))
+    }
+
     cleanMessage = typeof errObj.message === "string" 
       ? errObj.message 
       : (typeof errObj.error === "string" ? errObj.error : JSON.stringify(err));

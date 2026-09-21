@@ -36,6 +36,9 @@ export function PalCreatorPage() {
   const [items, setItems] = useState<Record<string, any>>({})
   const [cageFields, setCageFields] = useState<string[]>([])
   const [bossSpawnerPresets, setBossSpawnerPresets] = useState<Record<string, any>>({})
+  const [rawTemplates, setRawTemplates] = useState<Record<string, any>>({})
+  const [rawLearnsets, setRawLearnsets] = useState<Record<string, any>>({})
+  const [rawPartnerSkillParams, setRawPartnerSkillParams] = useState<Record<string, any>>({})
 
   useEffect(() => {
     async function loadPalsAndCaches() {
@@ -69,8 +72,11 @@ export function PalCreatorPage() {
           if (caches.items) setItems(caches.items)
           if (caches.cage_pals?.field_names) setCageFields(caches.cage_pals.field_names)
           if (caches.boss_spawners) setBossSpawnerPresets(caches.boss_spawners)
+          if (caches.learnsets) setRawLearnsets(caches.learnsets)
+          if (caches.partner_skill_params) setRawPartnerSkillParams(caches.partner_skill_params)
           
           if (caches.templates) {
+            setRawTemplates(caches.templates)
             const validTemplates = Object.keys(caches.templates)
               .filter(t => t && t !== "None")
               .sort((a, b) => {
@@ -189,6 +195,9 @@ export function PalCreatorPage() {
                 onDelete={() => { setDeleteTarget(pal.CharacterID) }}
                 templates={templates}
                 palNames={palNames}
+                rawTemplates={rawTemplates}
+                rawLearnsets={rawLearnsets}
+                rawPartnerSkillParams={rawPartnerSkillParams}
               />
             ))}
           </div>
