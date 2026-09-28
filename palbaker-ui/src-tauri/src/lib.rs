@@ -121,6 +121,7 @@ pub fn run() {
             commands::set_mod_push_setting,
             commands::set_vanilla_replacer,
             commands::set_mod_blacklist,
+            commands::set_variant_pack_setting,
             commands::toggle_animations,
             commands::dump_animations,
             commands::push_animations,

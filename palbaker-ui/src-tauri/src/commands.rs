@@ -454,6 +454,14 @@ pub async fn set_mod_blacklist(app: AppHandle, state: State<'_, AppState>, base_
 }
 
 #[tauri::command]
+pub async fn set_variant_pack_setting(app: AppHandle, state: State<'_, AppState>, base_pal: String, mod_name: String, enabled: bool) -> Result<Value, String> {
+    let status = if enabled { "true" } else { "false" };
+    let raw = run_cli(&app, &state, &["mod", "set-variant-pack", &base_pal, &mod_name, "--path", status])?;
+    let parsed: Value = parse_last_json_line(&raw).unwrap_or(serde_json::json!({ "status": "success", "message": raw }));
+    Ok(parsed)
+}
+
+#[tauri::command]
 pub async fn get_config(app: AppHandle, state: State<'_, AppState>) -> Result<Value, String> {
     let raw = run_cli(&app, &state, &["config", "get"])?;
     let parsed: Value = parse_last_json_line(&raw)?;

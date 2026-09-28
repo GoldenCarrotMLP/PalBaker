@@ -38,12 +38,16 @@ export const PalCreatorAPI = {
   async save(pal: CreatorItem): Promise<CreatorItem> {
     if (USE_LIVE_DATA) {
       try {
-        const response = await invoke<{ status: string; data: CreatorItem }>("creator_save", {
+        const response = await invoke<{ status: string; data: CreatorItem; missing_dependencies?: any[] }>("creator_save", {
           id: pal.CharacterID,
           data: JSON.stringify(pal)
         });
         if (response && response.status === "error") throw response;
-        return response.data;
+        const result = response.data || pal;
+        if (response.missing_dependencies) {
+          result.missing_dependencies = response.missing_dependencies;
+        }
+        return result;
       } catch (err) { handleBackendError(err) }
     }
     return pal;

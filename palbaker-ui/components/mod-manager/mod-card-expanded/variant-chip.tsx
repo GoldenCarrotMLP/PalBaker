@@ -52,9 +52,10 @@ export function VariantChip({ variant, modName, onClick }: Props) {
   return (
     <button
       onClick={onClick}
+      title={displayLabel}
       className="flex flex-col gap-1 bg-muted/50 border border-border rounded px-3 py-2 text-left hover:border-primary/50 transition-colors min-w-[64px] cursor-pointer"
     >
-      <span className="text-primary text-xs font-semibold truncate max-w-[120px]">{displayLabel}</span>
+      <span className="text-primary text-xs font-semibold truncate max-w-[120px]" title={displayLabel}>{displayLabel}</span>
       <div className="flex flex-wrap gap-1">
         {chips.map((c, i) => (
           <span key={i} className={cn("text-[9px] font-bold px-1 py-0.5 rounded", c.cls)}>

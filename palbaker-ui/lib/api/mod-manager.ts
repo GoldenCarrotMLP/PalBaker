@@ -14,6 +14,16 @@ export const ModManagerAPI = {
     return { status: "success", message: `Mocked blacklist updated.` }
   },
 
+  async setVariantPackSetting(basePal: string, modName: string, enabled: boolean): Promise<any> {
+    if (USE_LIVE_DATA) {
+      try { 
+        return await invoke("set_variant_pack_setting", { basePal, modName, enabled });
+      } 
+      catch (err) { handleBackendError(err) }
+    }
+    return { status: "success", message: `Mocked set variant pack setting.` }
+  },
+
   async setVanillaReplacer(basePal: string, variantName: string): Promise<any> {
     if (USE_LIVE_DATA) {
       try { 

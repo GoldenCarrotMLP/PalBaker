@@ -188,7 +188,7 @@ export function ModCardExpanded({ mod, onRefresh, onUpdateMod }: Props) {
         <Separator orientation="vertical" className="self-stretch opacity-50" />
 
         {/* Right Column */}
-        <div className="flex flex-col gap-4 min-w-[280px] shrink-0">
+        <div className="flex flex-col gap-4 flex-1 min-w-[280px] max-w-[50%]">
           {!mod.is_variant && (
             <>
               <DynamicPalsPanel mod={mod} enabled={dynamicPalsEnabled} onToggle={setDynamicPalsEnabled} onOpenAdd={() => setIsAddModalOpen(true)} onOpenEdit={handleOpenEdit} onNotify={showNotification} onRefresh={onRefresh} onUpdateMod={onUpdateMod} />

@@ -4,7 +4,7 @@
 import { useState } from "react"
 import { type ModItem } from "@/lib/mock-data"
 import { ModManagerAPI } from "@/lib/data-service"
-import { Sparkles, Image, Workflow } from "lucide-react"
+import { Sparkles, Image, Workflow, RefreshCw, Loader2 } from "lucide-react"
 
 interface Props {
   mod: ModItem
@@ -15,13 +15,28 @@ interface Props {
 
 export function SelectivePushPanel({
   mod,
-  onRefresh, // <-- Destructured here!
+  onRefresh,
   onNotify,
   onUpdateMod,
 }: Props) {
   const [pushMaterials, setPushMaterials] = useState(mod.push_materials !== false)
   const [pushTextures, setPushTextures] = useState(mod.push_textures !== false)
   const [pushAnimBP, setPushAnimBP] = useState(mod.push_animbp !== false)
+  const [syncing, setSyncing] = useState(false)
+
+  const handleSyncLayout = async () => {
+    setSyncing(true)
+    onNotify(`Scanning ${mod.name}.blend to synchronize material slots and shape keys...`, "info")
+    try {
+      const res = await ModManagerAPI.runAction(mod.base_pal, mod.name, "refresh_blend")
+      onNotify(res.message || "Layout sidecar synchronized successfully! ;3", "success")
+      onRefresh?.()
+    } catch (err: any) {
+      onNotify(`Failed to sync layout: ${err.message || err}`, "error", "Sync Failed")
+    } finally {
+      setSyncing(false)
+    }
+  }
 
   const handleToggle = async (key: "materials" | "textures" | "animbp", val: boolean) => {
     // 1. Instant local UI update
@@ -44,10 +59,21 @@ export function SelectivePushPanel({
   }
 
   return (
-    <div className="flex flex-col gap-2.5">
-      <span className="text-muted-foreground text-xs font-semibold uppercase tracking-wider">
-        Selective Push
-      </span>
+   <div className="flex flex-col gap-2.5">
+      <div className="flex items-center justify-between">
+        <span className="text-muted-foreground text-xs font-semibold uppercase tracking-wider">
+          Selective Push
+        </span>
+        <button
+          onClick={handleSyncLayout}
+          disabled={syncing || !mod.has_blend}
+          className="flex items-center gap-1.5 px-2 py-0.5 rounded border border-border bg-muted/40 hover:bg-muted/80 text-[10px] font-mono text-muted-foreground hover:text-foreground transition-colors cursor-pointer disabled:opacity-40"
+          title="Scan Blender workspace and sync material slots, shape keys, and bone layouts to companion sidecar"
+        >
+          {syncing ? <Loader2 className="size-3 animate-spin text-primary" /> : <RefreshCw className="size-3" />}
+          <span>{syncing ? "SYNCING..." : "SYNC LAYOUT"}</span>
+        </button>
+      </div>
 
       <div className="grid grid-cols-3 gap-2">
         {/* Materials */}

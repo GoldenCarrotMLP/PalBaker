@@ -85,7 +85,8 @@ Executes asset extractions, mesh import bakes, targeted cooks, and pak assemblie
             *   `pack`           : Packages cooked assets into `_P.pak` (excluding skeletons) [build_mod.py].
             *   `full`           : Runs `push` $\rightarrow$ `cook` $\rightarrow$ `pack` in sequence [build_mod.py].
             *   `decompile`      : Reverse-engineers cooked `.uassets` back to `.blend` [utils/plugins/decompiler.py].
-            *   `set-icon`       : Copies and stages a custom icon PNG into the workspace [utils/cli/mod_handlers.py].
+             *   `set-icon`       : Copies and stages a custom icon PNG into the workspace [utils/cli/mod_handlers.py].
+            *   `set-variant-pack`: Toggles whether a variant is included or skipped in packaging (.palbaker_state.json).
             *   `browse-ue`      : Highlights the folder inside Unreal Editor [palbaker_cli.py].
             *   `ping`           : Handshakes Unreal Editor to verify remote execution [palbaker_cli.py].
             *   `cancel-pipeline`: Forces any running `UnrealEditor-Cmd.exe` or `UnrealPak.exe` processes to close [utils/cli/mod_handlers.py].

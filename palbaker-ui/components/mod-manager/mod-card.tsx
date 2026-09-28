@@ -130,6 +130,19 @@ export function ModCard({
   const [ctxMenu, setCtxMenu] = useState<{ x: number; y: number } | null>(null)
   const primary = getPrimaryButton(mod)
 
+  const includeInPak = mod.include_in_pak !== false
+
+  const handleToggleIncludeInPak = async (val: boolean) => {
+    onUpdateMod(mod.id || mod.name, { include_in_pak: val })
+    try {
+      await ModManagerAPI.setVariantPackSetting(mod.base_pal, mod.name, val)
+    } catch (err) {
+      console.error(err)
+      onUpdateMod(mod.id || mod.name, { include_in_pak: !val })
+      onRefresh()
+    }
+  }
+
   const handleReplacerChange = async (e: React.ChangeEvent<HTMLSelectElement>) => {
     const val = e.target.value
     onUpdateMod(mod.id || mod.name, { active_vanilla_replacer: val })
@@ -197,7 +210,7 @@ export function ModCard({
           <ModCardIcon mod={mod} />
 
           <div className="flex-1 min-w-0">
-            <div className="font-semibold text-foreground text-sm leading-snug truncate">
+            <div className="font-semibold text-foreground text-sm leading-snug truncate" title={displayTitle}>
               {displayTitle}
             </div>
             <div className="flex items-center gap-2 mt-0.5 flex-wrap">
@@ -266,6 +279,25 @@ export function ModCard({
             </div>
           )}
 
+          {/* Include in PAK Checkbox for Sub-Variants */}
+          {mod.is_variant && (
+            <label
+              className="flex items-center gap-1.5 px-2.5 py-1 rounded bg-muted/40 border border-border text-xs cursor-pointer select-none shrink-0 hover:bg-muted/70 transition-colors mr-1"
+              title={includeInPak ? "Included in .pak compile" : "Excluded from .pak compile (.palbaker_state.json)"}
+              onClick={(e) => e.stopPropagation()}
+            >
+              <input
+                type="checkbox"
+                checked={includeInPak}
+                onChange={(e) => handleToggleIncludeInPak(e.target.checked)}
+                className="size-3.5 rounded border-border accent-primary cursor-pointer"
+              />
+              <span className={cn("text-[10px] font-mono font-bold uppercase tracking-wider", includeInPak ? "text-primary" : "text-muted-foreground line-through")}>
+                {includeInPak ? "PAK" : "SKIP"}
+              </span>
+            </label>
+          )}
+
           {/* Card Expand Details Arrow */}
           <button
             onClick={onToggle}
@@ -305,8 +337,9 @@ export function ModCard({
                   <div className="px-3 py-1.5 text-[10px] font-semibold text-muted-foreground uppercase tracking-widest">
                     Pipeline Actions
                   </div>
-                  {[
+                 {[
                     { label: "True Recursive Cook & Pack", action: "recursive_cook", disabled: !mod.has_ue },
+                    { label: "Sync Layout Sidecar", action: "refresh_blend", disabled: !mod.has_blend },
                     { label: "Create / Rebuild .blend file", action: "create_blend", disabled: !mod.has_psk },
                     { 
                       label: mod.preserve_materials === false ? "Push to Unreal (Overwrite)" : "Push to Unreal (Preserve)", 

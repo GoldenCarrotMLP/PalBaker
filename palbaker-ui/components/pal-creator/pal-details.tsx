@@ -70,7 +70,30 @@ export function PalDetails({
     try {
       const saved = await PalCreatorAPI.save(pal)
       onSave(pal.CharacterID, saved)
-      showNotification("Pal saved successfully! 🦊💖", "success", "Pal Saved")
+
+      const missing = saved.missing_dependencies || []
+      const blocking = missing.filter((d: any) => d.missing_type !== "notice")
+      const notices = missing.filter((d: any) => d.missing_type === "notice")
+
+      if (blocking.length > 0) {
+        showNotification(
+          `Pal saved, but ${blocking.length} feature issue(s) detected! Check report.`,
+          "warning",
+          "Verification Warning"
+        )
+        setDiagnosticError(JSON.stringify({
+          category: "CREATOR",
+          title: "Feature Verification Report",
+          friendlyMsg: `Pal '${pal.Name || pal.CharacterID}' saved successfully, but feature verification found issues:\n\n` +
+            blocking.map((d: any) => `• [${d.feature}] ${d.message}`).join("\n\n") +
+            (notices.length > 0 ? "\n\nNotices:\n" + notices.map((d: any) => `ℹ️ ${d.message}`).join("\n") : ""),
+          remediations: [{ label: "Review Features", actionKey: "close_modal", style: "primary" }]
+        }))
+      } else if (notices.length > 0) {
+        showNotification(notices[0].message, "info", "Feature Notice")
+      } else {
+        showNotification("Pal saved successfully! All features verified. 🦊💖", "success", "Pal Saved")
+      }
     } catch (err: any) {
       console.error("Save failed:", err)
       setDiagnosticError(String(err.message || err))

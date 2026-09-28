@@ -151,6 +151,7 @@ export interface ModItem {
   has_blend: boolean
   has_psk?: boolean
   has_ue: boolean
+  has_skeleton_ue?: boolean
   source_modified: boolean
   ue_modified?: boolean
   has_icon: boolean
@@ -168,6 +169,8 @@ export interface ModItem {
   physical_variants?: string[]
   active_vanilla_replacer?: string
   custom_animations?: CustomAnimationsState
+  include_in_pak?: boolean
+  skipped_variants?: string[]
 }
 
 export const mockModList: ModItem[] = []
@@ -221,6 +224,7 @@ export interface WorkSuitabilityConfig {
 }
 
 export interface CreatorPalFeatures {
+  CustomFeaturesEnabled?: boolean
   Riding?: {
     Enabled: boolean
     MarkerType?: string
@@ -372,6 +376,15 @@ export interface CreatorPal {
   BaseWorkSpeed?: number
   WorkSuitabilities?: Record<string, WorkSuitabilityConfig>
   Features?: CreatorPalFeatures
+  all_bones?: string[]
+  missing_dependencies?: {
+    feature: string
+    missing_type: string
+    target_socket?: string
+    target_anim?: string
+    missing_value?: string
+    message: string
+  }[]
 }
 
 export type CreatorItem = CreatorPal
