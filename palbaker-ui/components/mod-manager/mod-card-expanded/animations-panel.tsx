@@ -101,7 +101,7 @@ export function AnimationsPanel({ mod, onRefresh, onNotify, onUpdateMod }: Props
     updated.anims = { ...updated.anims, [montageKey]: newEntry }
     if (onUpdateMod) onUpdateMod(mod.id || mod.name, { custom_animations: updated })
     try {
-      await ModManagerAPI.saveAnimationsSidecar(mod.base_pal, mod.name, updated)
+      await ModManagerAPI.editAnimation(mod.base_pal, mod.name, montageKey, newEntry)
       onNotify(`Assigned '${slot.shortName}' to '${sequenceName}'! ;3`, "success")
     } catch (err: any) {
       onNotify(`Failed to assign slot: ${err.message || err}`, "error")
@@ -163,7 +163,8 @@ export function AnimationsPanel({ mod, onRefresh, onNotify, onUpdateMod }: Props
     )
 
     return ALL_ENGINE_ANIM_SLOTS.filter((slot) => {
-      if (slot.category === "BlendSpace") return false // BlendSpaces handled in their own dashboard
+      if (slot.category === "BlendSpace") return false
+      if (slot.shortName.toLowerCase() === "hit" || slot.primaryNlaTrack.toLowerCase() === "hit") return false
       
       const isMapped = existingKeys.has(slot.shortName.toLowerCase()) || 
                        existingKeys.has(slot.enumKey.toLowerCase()) ||
@@ -239,28 +240,32 @@ export function AnimationsPanel({ mod, onRefresh, onNotify, onUpdateMod }: Props
     const updated = { ...customAnims }
     updated.anims[key].rest_props = { ...updated.anims[key].rest_props!, [field]: value }
     if (onUpdateMod) onUpdateMod(mod.id || mod.name, { custom_animations: updated })
-    await ModManagerAPI.saveAnimationsSidecar(mod.base_pal, mod.name, updated)
+    await ModManagerAPI.editAnimation(mod.base_pal, mod.name, key, {
+      op: "set_rest",
+      rest_props: updated.anims[key].rest_props
+    })
   }
 
   const handleAddRest = async () => {
     if (!customAnims) return
     const nextIdx = restList.length + 1
-    const newKey = `Rest_${nextIdx}_AM_${mod.name}_Rest0${nextIdx}`
+    const newKey = `AS_${mod.name}_Rest0${nextIdx}`
     const updated = { ...customAnims }
-    updated.anims[newKey] = {
-      category: "RandomRest",
-      enum_key: `Rest_${nextIdx}`,
+    const newEntry = {
+      category: "RandomRest" as const,
+      enum_key: `Rest_Rest0${nextIdx}`,
       display_name: `Idle/Rest: Rest0${nextIdx}`,
       montage_asset: `AM_${mod.name}_Rest0${nextIdx}`,
-      sequence_asset: `AS_${mod.name}_Rest0${nextIdx}`,
+      sequence_asset: newKey,
       nla_track_name: `Rest0${nextIdx}`,
       in_nla: false,
       is_modified: false,
       notifies: [],
       rest_props: { weight: 1.0, loop_min: 1, loop_max: 1, after_idle_time: 2.0 }
     }
+    updated.anims[newKey] = newEntry
     if (onUpdateMod) onUpdateMod(mod.id || mod.name, { custom_animations: updated })
-    await ModManagerAPI.saveAnimationsSidecar(mod.base_pal, mod.name, updated)
+    await ModManagerAPI.editAnimation(mod.base_pal, mod.name, newKey, newEntry)
   }
 
   const handleDeleteRest = async (key: string) => {
@@ -268,11 +273,41 @@ export function AnimationsPanel({ mod, onRefresh, onNotify, onUpdateMod }: Props
     const updated = { ...customAnims }
     delete updated.anims[key]
     if (onUpdateMod) onUpdateMod(mod.id || mod.name, { custom_animations: updated })
-    await ModManagerAPI.saveAnimationsSidecar(mod.base_pal, mod.name, updated)
+    await ModManagerAPI.editAnimation(mod.base_pal, mod.name, key, { op: "delete_anim" })
   }
 
   return (
     <div className="flex flex-col gap-4 w-full">
+      {isActive && Array.isArray(mod.missing_anims_in_ue) && mod.missing_anims_in_ue.length > 0 && (
+          <div className="p-3 rounded-lg border border-amber-500/50 bg-amber-500/10 text-amber-200 text-xs flex flex-col gap-2">
+            <div className="flex items-center justify-between">
+              <div className="flex items-center gap-2 font-bold text-amber-300">
+                <span className="text-base">⚠️</span>
+                <span>
+                  Missing Animation Sequences in Unreal ({mod.missing_anims_in_ue.length})
+                </span>
+              </div>
+              <span className="text-[10px] font-mono opacity-80 underline">
+                Push animations before cooking!
+              </span>
+            </div>
+
+            <p className="text-[11px] text-amber-200/90 leading-tight">
+              The following sequence clips are defined in the sidecar or required by montages, but are missing from your Unreal project:
+            </p>
+
+            <div className="flex flex-wrap gap-1.5 max-h-24 overflow-y-auto pr-1">
+              {mod.missing_anims_in_ue.map((track) => (
+                <span
+                  key={track}
+                  className="px-2 py-0.5 rounded text-[10px] font-mono font-bold bg-amber-900/60 text-amber-200 border border-amber-700/60"
+                >
+                  {track}
+                </span>
+              ))}
+            </div>
+          </div>
+        )}
       {/* Header Controls with Toggle Switch */}
       <div className="flex items-center justify-between bg-muted/20 p-3 rounded-lg border border-border">
         <div className="flex items-center gap-4">
@@ -294,7 +329,7 @@ export function AnimationsPanel({ mod, onRefresh, onNotify, onUpdateMod }: Props
             </div>
           </label>
         </div>
-        
+
         {isActive && (
           <div className="flex items-center gap-2">
             <button
@@ -305,7 +340,7 @@ export function AnimationsPanel({ mod, onRefresh, onNotify, onUpdateMod }: Props
               {dumping ? <Loader2 className="size-3.5 animate-spin" /> : <DownloadCloud className="size-3.5" />} Dump & Map Data
             </button>
 
-            {mod.has_skeleton_ue || mod.has_ue ? (
+            {mod.has_skeleton_ue && mod.has_ue ? (
               <button
                 onClick={handlePushAnims}
                 disabled={dumping || pushing}
@@ -367,6 +402,7 @@ export function AnimationsPanel({ mod, onRefresh, onNotify, onUpdateMod }: Props
 
           {/* Right Side: Tab Content */}
           <div className="flex flex-col min-w-0">
+            
             {/* Rests Tab */}
             {activeSection === "rests" && (
               <div className="flex flex-col gap-3">
@@ -383,8 +419,17 @@ export function AnimationsPanel({ mod, onRefresh, onNotify, onUpdateMod }: Props
                 </div>
 
                 <div className="flex flex-col gap-2 max-h-[400px] overflow-y-auto pr-2">
-                  {restList.map(([key, anim]) => (
-                    <div key={key} className="bg-muted/30 border border-border/50 rounded-lg p-3 flex flex-col gap-3">
+                  {restList.map(([key, anim]) => {
+                    const isMissingSeq = (mod.missing_anims_in_ue || []).includes(anim.nla_track_name || "")
+                    
+                    return (
+                    <div 
+                      key={key} 
+                      className={cn(
+                        "border rounded-lg p-3 flex flex-col gap-3 transition-colors", 
+                        isMissingSeq ? "bg-status-warning/10 border-status-warning/50" : "bg-muted/30 border-border/50"
+                      )}
+                    >
                       <div className="flex items-center justify-between border-b border-border/40 pb-2">
                         <div className="flex items-center gap-2">
                           <span title={anim.in_nla ? "Present in Blender NLA Track" : "Missing in NLA Track"} className="flex items-center">
@@ -394,7 +439,14 @@ export function AnimationsPanel({ mod, onRefresh, onNotify, onUpdateMod }: Props
                               <XCircle className="size-3.5 text-muted-foreground" />
                             )}
                           </span>
-                          <span className="font-bold text-sm text-foreground">{anim.display_name}</span>
+                          <span className={cn("font-bold text-sm", isMissingSeq ? "text-status-warning" : "text-foreground")}>
+                            {anim.display_name}
+                          </span>
+                          {isMissingSeq && (
+                            <span title="Sequence missing in Unreal! Push animations.">
+                              <AlertTriangle className="size-3.5 text-status-warning" />
+                            </span>
+                          )}
                           <span className="text-[10px] bg-muted px-1.5 py-0.5 rounded text-muted-foreground font-mono">
                             NLA Track: {anim.nla_track_name}
                           </span>
@@ -459,7 +511,7 @@ export function AnimationsPanel({ mod, onRefresh, onNotify, onUpdateMod }: Props
                         </div>
                       </div>
                     </div>
-                  ))}
+                  )})}
                 </div>
               </div>
             )}
@@ -469,6 +521,8 @@ export function AnimationsPanel({ mod, onRefresh, onNotify, onUpdateMod }: Props
               <div className="grid grid-cols-2 gap-2 max-h-[400px] overflow-y-auto pr-2">
                 {montagesOnlyList.map(([key, anim]) => {
                   const check = validateMontageNotifies(anim.nla_track_name || key, anim.notifies || [])
+                  const isMissingSeq = (mod.missing_anims_in_ue || []).includes(anim.nla_track_name || "")
+                  
                   return (
                     <div
                       key={key}
@@ -476,6 +530,8 @@ export function AnimationsPanel({ mod, onRefresh, onNotify, onUpdateMod }: Props
                         "flex items-center justify-between gap-2 py-2 px-3 border rounded-lg transition-colors text-xs",
                         !check.isValid
                           ? "border-status-error/40 bg-status-error/5 hover:bg-status-error/10"
+                          : isMissingSeq
+                          ? "border-status-warning/50 bg-status-warning/10 hover:bg-status-warning/20"
                           : "border-border/40 bg-muted/20 hover:bg-muted/40"
                       )}
                     >
@@ -486,7 +542,14 @@ export function AnimationsPanel({ mod, onRefresh, onNotify, onUpdateMod }: Props
                           ) : (
                             <XCircle className="size-3.5 text-muted-foreground shrink-0" />
                           )}
-                          <span className="font-bold text-foreground truncate">{anim.display_name}</span>
+                          <span className={cn("font-bold truncate", isMissingSeq ? "text-status-warning" : "text-foreground")}>
+                            {anim.display_name}
+                          </span>
+                          {isMissingSeq && (
+                            <span title="Sequence missing in Unreal! Push animations.">
+                              <AlertTriangle className="size-3.5 text-status-warning shrink-0" />
+                            </span>
+                          )}
                         </div>
                         <span className="text-[10px] text-muted-foreground font-mono truncate pl-5">
                           NLA: {anim.nla_track_name}
@@ -534,8 +597,10 @@ export function AnimationsPanel({ mod, onRefresh, onNotify, onUpdateMod }: Props
                     <div className="grid grid-cols-2 gap-2">
                       {bs.samples.map((s, idx) => {
                         const isCopied = copiedTrack === s.clean_name
+                        const isMissingSeq = (mod.missing_anims_in_ue || []).includes(s.clean_name || "")
+                        
                         return (
-                          <div key={idx} className="flex items-center justify-between bg-background border border-border/50 px-3 py-2 rounded-md text-xs">
+                          <div key={idx} className={cn("flex items-center justify-between border px-3 py-2 rounded-md text-xs transition-colors", isMissingSeq ? "bg-status-warning/10 border-status-warning/50" : "bg-background border-border/50")}>
                             <div className="flex items-center gap-2 truncate">
                               {s.in_nla ? (
                                 <CheckCircle2 className="size-3.5 text-status-success shrink-0" />
@@ -543,7 +608,14 @@ export function AnimationsPanel({ mod, onRefresh, onNotify, onUpdateMod }: Props
                                 <XCircle className="size-3.5 text-muted-foreground shrink-0" />
                               )}
                               <span className="font-mono text-primary font-bold w-12 shrink-0">{s.speed} u/s</span>
-                              <span className="font-semibold text-foreground truncate">{s.clean_name}</span>
+                              <span className={cn("font-semibold truncate", isMissingSeq ? "text-status-warning" : "text-foreground")}>
+                                {s.clean_name}
+                              </span>
+                              {isMissingSeq && (
+                                <span title="Sequence missing in Unreal! Push animations.">
+                                  <AlertTriangle className="size-3 text-status-warning shrink-0" />
+                                </span>
+                              )}
                             </div>
                             <button
                               onClick={() => handleCopyTrackName(s.clean_name)}
@@ -656,7 +728,7 @@ export function AnimationsPanel({ mod, onRefresh, onNotify, onUpdateMod }: Props
             const updated = { ...customAnims }
             updated.anims[selectedAnimKey] = { ...updated.anims[selectedAnimKey], ...patch }
             if (onUpdateMod) onUpdateMod(mod.id || mod.name, { custom_animations: updated })
-            await ModManagerAPI.saveAnimationsSidecar(mod.base_pal, mod.name, updated)
+            await ModManagerAPI.editAnimation(mod.base_pal, mod.name, selectedAnimKey, patch)
           }}
         />
       )}

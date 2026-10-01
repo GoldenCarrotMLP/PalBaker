@@ -336,15 +336,31 @@ pub async fn push_animations(app: AppHandle, state: State<'_, AppState>, base_pa
 }
 
 #[tauri::command]
-pub async fn save_animations_sidecar(app: AppHandle, state: State<'_, AppState>, base_pal: String, mod_name: String, custom_anims_json: String) -> Result<Value, String> {
-    let raw = run_cli(&app, &state, &["mod", "save-anims", &base_pal, &mod_name, "--path", &custom_anims_json])?;
+pub async fn edit_animation(app: AppHandle, state: State<'_, AppState>, base_pal: String, mod_name: String, anim_key: String, data: String) -> Result<Value, String> {
+    let raw = run_cli(&app, &state, &["mod", "edit-anim", &base_pal, &mod_name, "--key", &anim_key, "--data", &data])?;
     let parsed: Value = parse_last_json_line(&raw).unwrap_or(serde_json::json!({ "status": "success", "message": raw }));
     Ok(parsed)
 }
 
 #[tauri::command]
 pub async fn save_animation_notifies(app: AppHandle, state: State<'_, AppState>, base_pal: String, mod_name: String, anim_key: String, notifies_json: String) -> Result<Value, String> {
-    let raw = run_cli(&app, &state, &["mod", "save-notifies", &base_pal, &mod_name, "--key", &anim_key, "--path", &notifies_json])?;
+    // Routes through edit-anim with targeted payload
+    let raw = run_cli(&app, &state, &["mod", "edit-anim", &base_pal, &mod_name, "--key", &anim_key, "--data", &notifies_json])?;
+    let parsed: Value = parse_last_json_line(&raw).unwrap_or(serde_json::json!({ "status": "success", "message": raw }));
+    Ok(parsed)
+}
+
+#[tauri::command]
+pub async fn save_animations_sidecar(app: AppHandle, state: State<'_, AppState>, base_pal: String, mod_name: String, custom_anims_json: String) -> Result<Value, String> {
+    // Writes the payload to a temp file if called to prevent Windows cmd-line length limits
+    let temp_dir = std::env::temp_dir();
+    let temp_file = temp_dir.join(format!("palbaker_anim_{}_{}.json", base_pal, mod_name));
+    let _ = std::fs::write(&temp_file, &custom_anims_json);
+    let path_str = temp_file.to_string_lossy().to_string();
+
+    let raw = run_cli(&app, &state, &["mod", "save-anims", &base_pal, &mod_name, "--path", &path_str])?;
+    let _ = std::fs::remove_file(temp_file);
+
     let parsed: Value = parse_last_json_line(&raw).unwrap_or(serde_json::json!({ "status": "success", "message": raw }));
     Ok(parsed)
 }
@@ -551,3 +567,4 @@ pub async fn env_extract_icons(app: AppHandle, state: State<'_, AppState>) -> Re
     let parsed: Value = parse_last_json_line(&raw).unwrap_or(serde_json::json!({ "status": "success", "message": raw }));
     Ok(parsed)
 }
+

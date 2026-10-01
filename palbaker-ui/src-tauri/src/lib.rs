@@ -127,6 +127,7 @@ pub fn run() {
             commands::push_animations,
             commands::save_animation_notifies,
             commands::save_animations_sidecar,
+            commands::edit_animation,
         ])
         .run(tauri::generate_context!())
         .expect("error while running tauri application");

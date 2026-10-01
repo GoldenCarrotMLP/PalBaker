@@ -141,12 +141,24 @@ export const ModManagerAPI = {
     return { status: "success", message: "Mocked animations pushed." }
   },
 
-  async saveAnimationNotifies(basePal: string, modName: string, animKey: string, notifies: any[]): Promise<any> {
+  async editAnimation(basePal: string, modName: string, animKey: string, payload: any): Promise<any> {
     if (USE_LIVE_DATA) {
-      try { return await invoke("save_animation_notifies", { basePal, modName, animKey, notifiesJson: JSON.stringify(notifies) }) }
-      catch (err) { handleBackendError(err) }
+      try {
+        return await invoke("edit_animation", {
+          basePal,
+          modName,
+          animKey,
+          data: typeof payload === "string" ? payload : JSON.stringify(payload)
+        })
+      } catch (err) {
+        handleBackendError(err)
+      }
     }
-    return { status: "success", message: "Mocked notifies saved." }
+    return { status: "success", message: `Mocked animation '${animKey}' updated.` }
+  },
+
+  async saveAnimationNotifies(basePal: string, modName: string, animKey: string, notifies: any[]): Promise<any> {
+    return this.editAnimation(basePal, modName, animKey, { notifies })
   },
 
   async saveAnimationsSidecar(basePal: string, modName: string, customAnims: any): Promise<any> {
@@ -156,6 +168,7 @@ export const ModManagerAPI = {
     }
     return { status: "success" }
   },
+  
 
   async setModJsonName(basePal: string, modName: string, name: string): Promise<any> {
     if (USE_LIVE_DATA) {

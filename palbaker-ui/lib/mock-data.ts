@@ -143,6 +143,7 @@ export interface ModItem {
   base_pal: string
   category: string
   is_variant: boolean
+  missing_anims_in_ue: string[]
   localized_name: string
   pak_status: PakStatus
   modified: string
