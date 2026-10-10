@@ -4,6 +4,32 @@ import { USE_LIVE_DATA, IS_DEV, handleBackendError } from "./core"
 import { mockCreatorList, mockSpawnerCache, type CreatorItem } from "../mock-data"
 
 export const PalCreatorAPI = {
+  async autofillWazaStage(wazaId: string, track: string, palId: string): Promise<any> {
+    if (USE_LIVE_DATA) {
+      try {
+        const response = await invoke<{ status: string; data: any }>("creator_autofill_waza", { wazaId, track, palId });
+        return response.data || null;
+      } catch (err) { handleBackendError(err) }
+    }
+    return null;
+  },
+
+  async getWazaDeps(wazaId: string, palId?: string): Promise<{ deps: any[]; available_sequences: string[] }> {
+    if (USE_LIVE_DATA) {
+      try {
+        const response = await invoke<{ status: string; data: any }>("creator_waza_deps", { wazaId, palId });
+        if (Array.isArray(response.data)) {
+          return { deps: response.data, available_sequences: [] };
+        }
+        return {
+          deps: response.data?.deps || [],
+          available_sequences: response.data?.available_sequences || []
+        };
+      } catch (err) { handleBackendError(err) }
+    }
+    return { deps: [], available_sequences: [] };
+  },
+
   async list(): Promise<CreatorItem[]> {
     if (USE_LIVE_DATA) {
       try {

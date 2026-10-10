@@ -87,9 +87,21 @@ export interface DynamicPalVariant {
 export interface AnimNotifyEntry {
   Name: string
   Time: number
+  Duration?: number
+  Track?: number
+  Source?: "sequence" | "montage" | string
+  EventName?: string
+  EyeType?: string
+  AudioEvent?: string
+  NiagaraSystem?: string
+  WazaID?: string
+  AttachBone?: string
+  SphereRadius?: number
+  CapsuleRadius?: number
+  CapsuleHalfHeight?: number
+  BlowVelocity?: number[]
   NotifyPayload?: Record<string, any>
 }
-
 
 export interface RestProps {
   weight: number
@@ -108,8 +120,12 @@ export interface CustomAnimationEntry {
   nla_track_name?: string
   in_nla: boolean
   is_modified: boolean
-  notifies: AnimNotifyEntry[]
-  rest_props?: RestProps  
+  notifies?: AnimNotifyEntry[]
+  sequence_notifies?: AnimNotifyEntry[]
+  montage_notifies?: AnimNotifyEntry[]
+  enable_root_motion?: boolean
+  rest_props?: RestProps
+  duration?: number // <-- Added to persist sequence duration in sidecar
 }
 
 export interface BlendSpaceSample {

@@ -61,6 +61,36 @@ export function AnimationsPanel({ mod, onRefresh, onNotify, onUpdateMod }: Props
     [animsList]
   )
 
+  // --- PROACTIVE OUT-OF-BOUNDS DETECTION ---
+  const oobAnimations = useMemo(() => {
+    const list: Array<{ name: string; key: string; duration: number; maxNotifyTime: number; count: number }> = []
+    animsList.forEach(([key, anim]) => {
+      // ROOT FIX: Resolve linked sequence properties
+      const seqAssetKey = anim.sequence_asset
+      const seqEntry = seqAssetKey ? (customAnims?.anims?.[seqAssetKey] || Object.values(customAnims?.anims || {}).find((a) => a.sequence_asset === seqAssetKey)) : null
+      
+      const dur = (typeof seqEntry?.duration === "number" && seqEntry.duration > 0) ? seqEntry.duration : (typeof anim.duration === "number" && anim.duration > 0 ? anim.duration : 0)
+      
+      if (dur > 0) {
+        const seqNotifies = seqEntry?.sequence_notifies ?? anim.sequence_notifies ?? []
+        const montNotifies = anim.montage_notifies ?? []
+        const all = [...seqNotifies, ...montNotifies, ...(anim.notifies || [])]
+        const oob = all.filter((n) => Number(n.Time) > dur + 0.0001)
+        if (oob.length > 0) {
+          const maxT = Math.max(...oob.map((n) => Number(n.Time)))
+          list.push({
+            name: anim.display_name || anim.nla_track_name || key,
+            key,
+            duration: dur,
+            maxNotifyTime: maxT,
+            count: oob.length
+          })
+        }
+      }
+    })
+    return list
+  }, [animsList])
+
   // Collect all known sequences across mapped animations and blendspaces
   const availableSequences = useMemo(() => {
     const seqs = new Set<string>()
@@ -94,7 +124,8 @@ export function AnimationsPanel({ mod, onRefresh, onNotify, onUpdateMod }: Props
       nla_track_name: cleanTrack,
       in_nla: true,
       is_modified: true,
-      notifies: []
+      sequence_notifies: [],
+      montage_notifies: []
     }
 
     const updated = { ...customAnims }
@@ -164,6 +195,7 @@ export function AnimationsPanel({ mod, onRefresh, onNotify, onUpdateMod }: Props
 
     return ALL_ENGINE_ANIM_SLOTS.filter((slot) => {
       if (slot.category === "BlendSpace") return false
+      if (slot.category === "UniqueAttack") return false
       if (slot.shortName.toLowerCase() === "hit" || slot.primaryNlaTrack.toLowerCase() === "hit") return false
       
       const isMapped = existingKeys.has(slot.shortName.toLowerCase()) || 
@@ -278,36 +310,6 @@ export function AnimationsPanel({ mod, onRefresh, onNotify, onUpdateMod }: Props
 
   return (
     <div className="flex flex-col gap-4 w-full">
-      {isActive && Array.isArray(mod.missing_anims_in_ue) && mod.missing_anims_in_ue.length > 0 && (
-          <div className="p-3 rounded-lg border border-amber-500/50 bg-amber-500/10 text-amber-200 text-xs flex flex-col gap-2">
-            <div className="flex items-center justify-between">
-              <div className="flex items-center gap-2 font-bold text-amber-300">
-                <span className="text-base">⚠️</span>
-                <span>
-                  Missing Animation Sequences in Unreal ({mod.missing_anims_in_ue.length})
-                </span>
-              </div>
-              <span className="text-[10px] font-mono opacity-80 underline">
-                Push animations before cooking!
-              </span>
-            </div>
-
-            <p className="text-[11px] text-amber-200/90 leading-tight">
-              The following sequence clips are defined in the sidecar or required by montages, but are missing from your Unreal project:
-            </p>
-
-            <div className="flex flex-wrap gap-1.5 max-h-24 overflow-y-auto pr-1">
-              {mod.missing_anims_in_ue.map((track) => (
-                <span
-                  key={track}
-                  className="px-2 py-0.5 rounded text-[10px] font-mono font-bold bg-amber-900/60 text-amber-200 border border-amber-700/60"
-                >
-                  {track}
-                </span>
-              ))}
-            </div>
-          </div>
-        )}
       {/* Header Controls with Toggle Switch */}
       <div className="flex items-center justify-between bg-muted/20 p-3 rounded-lg border border-border">
         <div className="flex items-center gap-4">
@@ -448,7 +450,11 @@ export function AnimationsPanel({ mod, onRefresh, onNotify, onUpdateMod }: Props
                             </span>
                           )}
                           <span className="text-[10px] bg-muted px-1.5 py-0.5 rounded text-muted-foreground font-mono">
-                            NLA Track: {anim.nla_track_name}
+                            NLA: {anim.nla_track_name}
+                            {anim.sequence_asset && anim.nla_track_name && !anim.sequence_asset.toLowerCase().includes(anim.nla_track_name.toLowerCase()) && (
+                              <span className="text-primary/80 ml-1 font-bold">🔗 {anim.sequence_asset.replace(new RegExp(`^AS_${mod.name}_`, "i"), "")}</span>
+                            )}
+                            {(typeof anim.duration === "number" && anim.duration > 0) ? ` (${anim.duration.toFixed(3)}s)` : ""}
                           </span>
                         </div>
                         <div className="flex items-center gap-2">
@@ -520,16 +526,55 @@ export function AnimationsPanel({ mod, onRefresh, onNotify, onUpdateMod }: Props
             {activeSection === "mapped" && (
               <div className="grid grid-cols-2 gap-2 max-h-[400px] overflow-y-auto pr-2">
                 {montagesOnlyList.map(([key, anim]) => {
-                  const check = validateMontageNotifies(anim.nla_track_name || key, anim.notifies || [])
-                  const isMissingSeq = (mod.missing_anims_in_ue || []).includes(anim.nla_track_name || "")
+                  // 1. Look up the true underlying sequence
+                  const seqAssetKey = anim.sequence_asset
+                  const seqEntry = seqAssetKey 
+                    ? (customAnims?.anims?.[seqAssetKey] || Object.values(customAnims?.anims || {}).find((a) => a.sequence_asset === seqAssetKey))
+                    : null
+
+                  // 2. ROOT FIX: Pull sequence properties from the Sequence entry, not the Montage entry!
+                  const seqNotifies = seqEntry?.sequence_notifies ?? anim.sequence_notifies ?? (anim.notifies?.filter((n) => n.Source === "sequence") || [])
+                  const montNotifies = anim.montage_notifies ?? (anim.notifies?.filter((n) => n.Source === "montage") || [])
+                  const allNotifies = [...seqNotifies, ...montNotifies]
                   
+                  const check = validateMontageNotifies(anim.nla_track_name || key, allNotifies)
+                  const isMissingSeq = (mod.missing_anims_in_ue || []).includes(anim.nla_track_name || "")
+
+                  // 3. Detect if montage reuses a different underlying sequence (e.g. Architecture -> Commonwork)
+                  const isReusedSeq = Boolean(
+                    seqAssetKey && 
+                    anim.nla_track_name && 
+                    !seqAssetKey.toLowerCase().endsWith(`_${anim.nla_track_name.toLowerCase()}`)
+                  )
+                  const cleanSeqName = isReusedSeq && seqAssetKey ? seqAssetKey.replace(new RegExp(`^AS_${mod.name}_`, "i"), "") : anim.nla_track_name
+
+                  // 4. ROOT FIX: Duration belongs to the Sequence, not the Montage.
+                  const maxNotifyTime = allNotifies.length > 0 ? Math.max(...allNotifies.map((n) => Number(n.Time || 0))) : 0
+                  const resolvedDur = (typeof seqEntry?.duration === "number" && seqEntry.duration > 0)
+                    ? seqEntry.duration
+                    : (typeof anim.duration === "number" && anim.duration > 0)
+                    ? anim.duration
+                    : 0
+
+                  // Recognize animation if in NLA, sequence is in NLA, duration is positive, or sequence asset is known
+                  const isRecognized = Boolean(
+                    anim.in_nla ||
+                    seqEntry?.in_nla ||
+                    resolvedDur > 0 ||
+                    (seqAssetKey && availableSequences.some((s) => s.toLowerCase() === seqAssetKey.toLowerCase() || s.toLowerCase().includes((anim.nla_track_name || "").toLowerCase())))
+                  )
+
+                  const oobNotifies = resolvedDur > 0 ? allNotifies.filter((n) => Number(n.Time) > resolvedDur + 0.0001) : []
+                  const isOOB = resolvedDur > 0 && oobNotifies.length > 0
+                  const isMissingDuration = resolvedDur === 0 && maxNotifyTime > 0
+
                   return (
                     <div
                       key={key}
                       className={cn(
                         "flex items-center justify-between gap-2 py-2 px-3 border rounded-lg transition-colors text-xs",
-                        !check.isValid
-                          ? "border-status-error/40 bg-status-error/5 hover:bg-status-error/10"
+                        isOOB
+                          ? "border-status-error/60 bg-status-error/10 hover:bg-status-error/15"
                           : isMissingSeq
                           ? "border-status-warning/50 bg-status-warning/10 hover:bg-status-warning/20"
                           : "border-border/40 bg-muted/20 hover:bg-muted/40"
@@ -537,22 +582,41 @@ export function AnimationsPanel({ mod, onRefresh, onNotify, onUpdateMod }: Props
                     >
                       <div className="flex flex-col min-w-0">
                         <div className="flex items-center gap-1.5 truncate">
-                          {anim.in_nla ? (
+                          {isRecognized ? (
                             <CheckCircle2 className="size-3.5 text-status-success shrink-0" />
                           ) : (
                             <XCircle className="size-3.5 text-muted-foreground shrink-0" />
                           )}
-                          <span className={cn("font-bold truncate", isMissingSeq ? "text-status-warning" : "text-foreground")}>
+                          <span className={cn("font-bold truncate", isOOB ? "text-status-error" : isMissingSeq ? "text-status-warning" : "text-foreground")}>
                             {anim.display_name}
                           </span>
-                          {isMissingSeq && (
-                            <span title="Sequence missing in Unreal! Push animations.">
-                              <AlertTriangle className="size-3.5 text-status-warning shrink-0" />
+                          {isOOB && (
+                            <span 
+                              className="px-1.5 py-0.2 rounded text-[9px] font-bold bg-status-error text-white uppercase font-mono shrink-0"
+                              title={`Timeline is ${resolvedDur.toFixed(3)}s, but notify is at ${maxNotifyTime.toFixed(3)}s!`}
+                            >
+                              OOB ({resolvedDur.toFixed(2)}s &lt; {maxNotifyTime.toFixed(2)}s)
+                            </span>
+                          )}
+                          {isMissingDuration && (
+                            <span 
+                              className="px-1.5 py-0.2 rounded text-[9px] font-bold bg-status-warning/90 text-white uppercase font-mono shrink-0"
+                              title={`No duration recorded from Blender. Notifies require at least ${maxNotifyTime.toFixed(3)}s.`}
+                            >
+                              No Duration (Needs {maxNotifyTime.toFixed(2)}s)
                             </span>
                           )}
                         </div>
                         <span className="text-[10px] text-muted-foreground font-mono truncate pl-5">
-                          NLA: {anim.nla_track_name}
+                          {isReusedSeq ? (
+                            <>
+                              Uses: <strong className="text-primary/90 font-bold">{cleanSeqName}</strong> {resolvedDur > 0 ? `(${resolvedDur.toFixed(3)}s)` : ""}
+                            </>
+                          ) : (
+                            <>
+                              NLA: {anim.nla_track_name} {resolvedDur > 0 ? `(${resolvedDur.toFixed(3)}s)` : ""}
+                            </>
+                          )}
                         </span>
                       </div>
                       <div className="flex items-center gap-1.5 shrink-0">
@@ -564,14 +628,17 @@ export function AnimationsPanel({ mod, onRefresh, onNotify, onUpdateMod }: Props
                         <button
                           onClick={() => setSelectedAnimKey(key)}
                           className={cn(
-                            "flex items-center gap-1.5 px-2.5 py-1.5 rounded-md border transition-colors cursor-pointer",
+                            "flex items-center gap-1 px-2 py-1 rounded-md border transition-colors cursor-pointer text-[10px] font-mono",
                             !check.isValid
                               ? "border-status-error/50 text-status-error hover:bg-status-error/20"
-                              : "border-border hover:border-primary text-muted-foreground hover:text-foreground"
+                              : "border-border hover:border-primary text-muted-foreground hover:text-foreground bg-muted/20"
                           )}
+                          title="Configure Sequence (AS_) and Montage (AM_) Notifies"
                         >
-                          <Bell className={cn("size-3.5", !check.isValid ? "text-status-error" : "text-primary")} />
-                          <span>{anim.notifies?.length || 0}</span>
+                          <Bell className={cn("size-3", !check.isValid ? "text-status-error" : "text-primary")} />
+                          <span className="text-cyan-400 font-bold" title="AnimSequence Notifies (AS_)">AS:{seqNotifies.length}</span>
+                          <span className="opacity-40">|</span>
+                          <span className="text-purple-400 font-bold" title="AnimMontage Notifies (AM_)">AM:{montNotifies.length}</span>
                         </button>
                       </div>
                     </div>

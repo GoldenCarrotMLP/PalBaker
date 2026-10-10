@@ -1,12 +1,14 @@
 #!/usr/bin/env python3
 """
-AI Studio / Gemini Tool Runner & Search-Replace Orchestrator
-------------------------------------------------------------
+AI Studio / Gemini Tool Runner & Search-Replace Orchestrator (Tab-Sensitive)
+--------------------------------------------------------------------------
 Processes raw AI Studio / Gemini outputs with full atomic safety.
 Supports:
- - Search-and-replace & whole file writes
+ - Strict Python tab and indentation sensitivity
+ - Multi-tier matching (Exact -> Trailing Whitespace -> Indentation for non-Python)
+ - Tab vs Space mismatch detection for Python code
+ - Closest-match locator with visible whitespace & unified diffs on failure
  - Terminal command execution with confirmation prompts
- - Recursive unwrapping of nested 'queries' payloads
  - Smart Path Healing (finds files across subdirectories)
 """
 
@@ -63,7 +65,6 @@ def extract_json_blocks(raw_text: str) -> List[Dict[str, Any]]:
                 _extract_recursive(b)
 
         elif isinstance(data, dict):
-            # Check for file patch OR terminal command
             is_file_tool = any(k in data for k in ("filepath", "path", "file", "filename"))
             is_cmd_tool = any(k in data for k in ("command", "cmd", "bash", "shell"))
 
@@ -84,7 +85,7 @@ def extract_json_blocks(raw_text: str) -> List[Dict[str, Any]]:
 
 
 def find_file_on_disk(base_dir: str, filepath: str) -> Optional[str]:
-    """Resolves file path with auto-healing if Gemini omitted root folders."""
+    """Resolves file path with auto-healing if root folders were omitted."""
     direct = os.path.normpath(os.path.join(base_dir, filepath))
     if os.path.exists(direct) and os.path.isfile(direct):
         return direct
@@ -114,6 +115,223 @@ def normalize_newlines(text: str) -> Tuple[str, str]:
     return text, "\n"
 
 
+def is_python_file(filepath: str) -> bool:
+    """Returns True if the target file is Python code where indentation is structural syntax."""
+    if not filepath:
+        return False
+    return filepath.lower().endswith((".py", ".pyw"))
+
+
+def render_visible_whitespace(line: str) -> str:
+    """Replaces tab characters with a visible symbol for console diagnostics."""
+    return line.replace("\t", "⇥   ")
+
+
+def detect_line_indentation_style(lines: List[str]) -> Tuple[bool, bool]:
+    """Returns (has_tabs, has_spaces) for leading indentation."""
+    has_tabs = False
+    has_spaces = False
+    for l in lines:
+        leading = l[:len(l) - len(l.lstrip())]
+        if "\t" in leading:
+            has_tabs = True
+        if " " in leading:
+            has_spaces = True
+    return has_tabs, has_spaces
+
+
+def find_closest_match_diagnostics(c_lines: List[str], s_lines: List[str], is_py: bool = False) -> Tuple[int, int, float, str, str, str]:
+    """
+    Finds the candidate region in c_lines that most closely resembles s_lines.
+    Returns: (start_line_1idx, end_line_1idx, similarity_ratio, surrounding_code, diff_text, indent_hint)
+    """
+    if not c_lines or not s_lines:
+        return 1, 1, 0.0, "", "", ""
+
+    s_clean = [l.strip() for l in s_lines]
+    c_clean = [l.strip() for l in c_lines]
+
+    target_window = max(1, len(s_lines))
+    best_start = 0
+    best_end = min(len(c_lines), target_window)
+    best_ratio = 0.0
+
+    # 1. Anchor scan: look for starting lines that closely match
+    anchor = s_clean[0] if s_clean else ""
+    candidate_starts = []
+    if anchor:
+        for idx, line in enumerate(c_clean):
+            if line == anchor or anchor in line or difflib.SequenceMatcher(None, line, anchor).ratio() > 0.7:
+                candidate_starts.append(idx)
+
+    # 2. Score candidate anchors or sample windows
+    test_starts = candidate_starts if candidate_starts else range(max(1, len(c_lines) - target_window + 1))
+    for start in test_starts:
+        end = min(len(c_lines), start + target_window)
+        ratio = difflib.SequenceMatcher(None, s_clean, c_clean[start:end]).ratio()
+        if ratio > best_ratio:
+            best_ratio = ratio
+            best_start = start
+            best_end = end
+
+    # 3. Detect tab vs space differences in Python candidate region
+    indent_hint = ""
+    candidate_file_lines = c_lines[best_start:best_end]
+    if is_py:
+        file_has_tabs, file_has_spaces = detect_line_indentation_style(candidate_file_lines)
+        search_has_tabs, search_has_spaces = detect_line_indentation_style(s_lines)
+
+        if file_has_tabs and not search_has_tabs:
+            indent_hint = "⚠️ TAB MISMATCH: File on disk uses TAB characters ('\\t'), but search block uses SPACES."
+        elif not file_has_tabs and search_has_tabs:
+            indent_hint = "⚠️ TAB MISMATCH: File on disk uses SPACES, but search block uses TAB characters ('\\t')."
+        elif file_has_tabs and file_has_spaces:
+            indent_hint = "⚠️ MIXED INDENTATION: File on disk has mixed tabs and spaces."
+
+    # 4. Build surrounding context preview with visible tabs
+    ctx_start = max(0, best_start - 3)
+    ctx_end = min(len(c_lines), best_end + 3)
+
+    context_lines = []
+    for l_idx in range(ctx_start, ctx_end):
+        marker = ">>>" if best_start <= l_idx < best_end else "   "
+        rendered_line = render_visible_whitespace(c_lines[l_idx]) if is_py else c_lines[l_idx]
+        context_lines.append(f"{marker} {l_idx + 1:4d} | {rendered_line}")
+    surrounding_code = "\n".join(context_lines)
+
+    # 5. Generate unified diff
+    disp_file_lines = [render_visible_whitespace(l) for l in candidate_file_lines] if is_py else candidate_file_lines
+    disp_search_lines = [render_visible_whitespace(l) for l in s_lines] if is_py else s_lines
+
+    diff_generator = difflib.unified_diff(
+        disp_file_lines,
+        disp_search_lines,
+        fromfile=f"file_on_disk (lines {best_start + 1}–{best_end})",
+        tofile="search_block",
+        lineterm=""
+    )
+    diff_text = "\n".join(diff_generator)
+
+    return best_start + 1, best_end, best_ratio, surrounding_code, diff_text, indent_hint
+
+
+def apply_flexible_search_replace(
+    content: str,
+    search_str: str,
+    replace_str: str,
+    filepath: str = ""
+) -> Tuple[Optional[str], Optional[str], Optional[Dict[str, Any]]]:
+    """
+    Tiered search-and-replace:
+      Tier 1: Exact string match
+      Tier 2: Trailing whitespace tolerance (.rstrip per line, keeps all leading tabs/spaces 100% intact)
+      Tier 3: Indentation-tolerant line slice (NON-PYTHON ONLY! Preserves tab strictness for Python files)
+    """
+    is_py = is_python_file(filepath)
+
+    # --- Tier 1: Exact Match ---
+    count = content.count(search_str)
+    if count == 1:
+        return content.replace(search_str, replace_str, 1), "exact", None
+    elif count > 1:
+        return None, None, {
+            "reason": f"Ambiguous exact match: found {count} occurrences."
+        }
+
+    c_lines = content.splitlines()
+    s_lines = search_str.splitlines()
+    r_lines = replace_str.splitlines()
+    s_len = len(s_lines)
+
+    # --- Tier 2: Trailing-Whitespace-Tolerant Match ---
+    # .rstrip() ONLY strips invisible spaces at the end of lines; leading tabs/spaces are untouched!
+    c_lines_rstrip = [l.rstrip() for l in c_lines]
+    s_lines_rstrip = [l.rstrip() for l in s_lines]
+
+    matches_t2 = []
+    for i in range(len(c_lines_rstrip) - s_len + 1):
+        if c_lines_rstrip[i : i + s_len] == s_lines_rstrip:
+            matches_t2.append(i)
+
+    if len(matches_t2) == 1:
+        start = matches_t2[0]
+        new_lines = c_lines[:start] + r_lines + c_lines[start + s_len:]
+        new_content = "\n".join(new_lines)
+        if content.endswith("\n") and not new_content.endswith("\n"):
+            new_content += "\n"
+        return new_content, "trailing_whitespace_tolerant", None
+    elif len(matches_t2) > 1:
+        return None, None, {
+            "reason": f"Ambiguous match (Tier 2 trailing-whitespace): found {len(matches_t2)} occurrences."
+        }
+
+    # --- Tier 3: Indentation-Tolerant Match (STRICTLY SKIPPED FOR PYTHON FILES) ---
+    if not is_py:
+        c_lines_strip = [l.strip() for l in c_lines]
+        s_lines_strip = [l.strip() for l in s_lines]
+
+        matches_t3 = []
+        for i in range(len(c_lines_strip) - s_len + 1):
+            if c_lines_strip[i : i + s_len] == s_lines_strip:
+                matches_t3.append(i)
+
+        if len(matches_t3) == 1:
+            start = matches_t3[0]
+            matched_slice = c_lines[start : start + s_len]
+
+            # Calculate indentation delta
+            indent_delta = 0
+            for fl, sl in zip(matched_slice, s_lines):
+                if fl.strip() and sl.strip():
+                    f_indent = len(fl) - len(fl.lstrip())
+                    s_indent = len(sl) - len(sl.lstrip())
+                    indent_delta = f_indent - s_indent
+                    break
+
+            # Adapt replacement indentation
+            adjusted_r_lines = []
+            for rl in r_lines:
+                if rl.strip():
+                    if indent_delta > 0:
+                        adjusted_r_lines.append((" " * indent_delta) + rl)
+                    elif indent_delta < 0:
+                        trim = min(abs(indent_delta), len(rl) - len(rl.lstrip()))
+                        adjusted_r_lines.append(rl[trim:])
+                    else:
+                        adjusted_r_lines.append(rl)
+                else:
+                    adjusted_r_lines.append("")
+
+            new_lines = c_lines[:start] + adjusted_r_lines + c_lines[start + s_len:]
+            new_content = "\n".join(new_lines)
+            if content.endswith("\n") and not new_content.endswith("\n"):
+                new_content += "\n"
+            return new_content, "indentation_tolerant", None
+        elif len(matches_t3) > 1:
+            return None, None, {
+                "reason": f"Ambiguous match (Tier 3 indentation-tolerant): found {len(matches_t3)} occurrences."
+            }
+
+    # --- Failure Diagnostics & Diagnostics Visualizer ---
+    l_start, l_end, ratio, surrounding, diff, indent_hint = find_closest_match_diagnostics(c_lines, s_lines, is_py)
+    preview = s_lines[0].strip()[:80] if s_lines else "(empty)"
+
+    reason_msg = f"Search block not found. Starts with: '{preview}'"
+    if is_py and indent_hint:
+        reason_msg += f"\n     ↳ {indent_hint}"
+
+    return None, None, {
+        "reason": reason_msg,
+        "closest_line_start": l_start,
+        "closest_line_end": l_end,
+        "similarity": ratio,
+        "surrounding_code": surrounding,
+        "diff": diff,
+        "indent_hint": indent_hint,
+        "is_python": is_py
+    }
+
+
 def run_terminal_command(cmd_str: str, base_dir: str = ".", auto_approve: bool = False) -> Dict[str, Any]:
     """Executes system commands strictly in base_dir, preserving local paths and forcing UTF-8 mode."""
     print("\n" + "=" * 70)
@@ -133,7 +351,6 @@ def run_terminal_command(cmd_str: str, base_dir: str = ".", auto_approve: bool =
     abs_base = os.path.abspath(base_dir)
     print(f"\n[*] Executing in: {abs_base} ...")
 
-    # Set UTF-8 environment so Windows never defaults to cp1252
     env = os.environ.copy()
     env["PYTHONUTF8"] = "1"
     env["PYTHONIOENCODING"] = "utf-8"
@@ -145,8 +362,7 @@ def run_terminal_command(cmd_str: str, base_dir: str = ".", auto_approve: bool =
         temp_script = os.path.join(abs_base, "._gemini_exec_temp.py")
         with open(temp_script, "w", encoding="utf-8") as f:
             f.write(raw_code)
-        # -X utf8 forces Python to default to UTF-8 encoding across all open() calls
-        exec_cmd = f'python -X utf8 "._gemini_exec_temp.py"'
+        exec_cmd = 'python -X utf8 "._gemini_exec_temp.py"'
 
     try:
         proc = subprocess.run(
@@ -157,7 +373,7 @@ def run_terminal_command(cmd_str: str, base_dir: str = ".", auto_approve: bool =
             cwd=abs_base,
             env=env,
             encoding="utf-8",
-            errors="replace"  # Prevents crash if stdout contains odd binary bytes
+            errors="replace"
         )
         output = proc.stdout.strip()
         errors = proc.stderr.strip()
@@ -190,11 +406,10 @@ def execute_patches(
     dry_run: bool = False,
     auto_approve_cmd: bool = False
 ) -> Dict[str, Any]:
-    """Executes all tool operations (edits and commands)."""
+    """Executes all tool operations with multi-tier matching and detailed diff diagnostics."""
     file_patches = [p for p in patches if any(k in p for k in ("filepath", "path", "file", "filename"))]
     cmd_patches = [p for p in patches if any(k in p for k in ("command", "cmd", "bash", "shell"))]
 
-    # Handle commands
     if cmd_patches:
         cmd_results = []
         for p in cmd_patches:
@@ -209,7 +424,6 @@ def execute_patches(
             "modified_files": []
         }
 
-    # Handle file modifications
     file_buffers: Dict[str, str] = {}
     file_line_endings: Dict[str, str] = {}
     file_original_content: Dict[str, Optional[str]] = {}
@@ -220,8 +434,6 @@ def execute_patches(
         patch_id = i
         raw_filepath = patch.get("filepath") or patch.get("path") or patch.get("file")
         search_str = patch.get("search") or patch.get("find") or patch.get("old_str")
-        
-        # Support 'content' as 'replace' if 'search' is present
         replace_str = (
             patch.get("replace") or 
             patch.get("replacement") or 
@@ -287,24 +499,17 @@ def execute_patches(
             norm_replace, _ = normalize_newlines(replace_str)
             current_content = file_buffers[resolved_path]
 
-            count = current_content.count(norm_search)
-            if count == 0:
-                search_head = norm_search.strip().splitlines()
-                preview = search_head[0][:80] if search_head else "(empty)"
-                errors.append({
-                    "patch_index": patch_id,
-                    "filepath": raw_filepath,
-                    "reason": f"Search block not found. Starts with: '{preview}'"
-                })
-            elif count > 1:
-                errors.append({
-                    "patch_index": patch_id,
-                    "filepath": raw_filepath,
-                    "reason": f"Ambiguous match: found {count} occurrences."
-                })
+            new_content, match_mode, err_data = apply_flexible_search_replace(
+                current_content, norm_search, norm_replace, filepath=raw_filepath
+            )
+
+            if err_data:
+                err_data["patch_index"] = patch_id
+                err_data["filepath"] = raw_filepath
+                errors.append(err_data)
             else:
-                file_buffers[resolved_path] = current_content.replace(norm_search, norm_replace, 1)
-                file_ops_count[resolved_path] += 1
+                file_buffers[resolved_path] = new_content
+                file_ops_count[resolved_path] = file_ops_count.get(resolved_path, 0) + 1
 
     if errors:
         return {
@@ -413,6 +618,40 @@ def main():
         print(json.dumps(result, indent=2))
     elif result.get("type") != "command_execution":
         print(f"\n[{result['status'].upper()}] {result['message']}")
+
+        # Reveal failure diagnostics, surrounding code, and diffs
+        if result.get("errors"):
+            print("\n" + "=" * 70)
+            print(" ❌ TRANSACTION FAILED: PATCH ERRORS & SURROUNDING CODE")
+            print("=" * 70)
+            for err in result["errors"]:
+                p_idx = err.get("patch_index", "?")
+                fp = err.get("filepath", "unknown")
+                reason = err.get("reason", "unknown error")
+                is_py = err.get("is_python", False)
+
+                print(f"\n[Patch #{p_idx}] {fp}")
+                print(f"  Reason: {reason}")
+
+                if err.get("surrounding_code"):
+                    l_start = err.get("closest_line_start", "?")
+                    l_end = err.get("closest_line_end", "?")
+                    sim = int(err.get("similarity", 0) * 100)
+                    ws_label = " (⇥ = TAB)" if is_py else ""
+                    print(f"\n  🔍 Closest code area in file (lines {l_start}–{l_end}, ~{sim}% match){ws_label}:")
+                    print("  " + "-" * 66)
+                    for cl in err["surrounding_code"].splitlines():
+                        print(f"  {cl}")
+                    print("  " + "-" * 66)
+
+                if err.get("diff"):
+                    print(f"\n  📋 Difference (File on Disk vs Search Block):")
+                    print("  " + "-" * 66)
+                    for dl in err["diff"].splitlines()[:30]:
+                        print(f"  {dl}")
+                    print("  " + "-" * 66)
+            print("\n" + "=" * 70 + "\n")
+
         for f in result.get("modified_files", []):
             print(f"  ✓ [{f['operation']}] {f['filepath']} (+{f['lines_added']} / -{f['lines_removed']})")
 

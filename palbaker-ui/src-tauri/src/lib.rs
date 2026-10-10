@@ -81,6 +81,8 @@ pub fn run() {
                 .invoke_handler(tauri::generate_handler![
             commands::manager_list,
             commands::creator_list,
+            commands::creator_waza_deps,
+            commands::creator_autofill_waza,
             commands::creator_add,
             commands::env_status,
             commands::env_launch_unreal,

@@ -173,6 +173,27 @@ pub async fn manager_list(app: AppHandle, state: State<'_, AppState>) -> Result<
 }
 
 #[tauri::command]
+pub async fn creator_waza_deps(app: AppHandle, state: State<'_, AppState>, waza_id: String, pal_id: Option<String>) -> Result<Value, String> {
+    let pal_str = pal_id.unwrap_or_default();
+    let mut args = vec!["creator", "get-waza-deps", &waza_id];
+    if !pal_str.is_empty() {
+        args.push("--pal");
+        args.push(&pal_str);
+    }
+    let raw = run_cli(&app, &state, &args)?;
+    let parsed: Value = parse_last_json_line(&raw).unwrap_or(serde_json::json!({ "status": "success", "data": {}, "message": raw }));
+    Ok(parsed)
+}
+
+#[tauri::command]
+pub async fn creator_autofill_waza(app: AppHandle, state: State<'_, AppState>, waza_id: String, track: String, pal_id: String) -> Result<Value, String> {
+    let args = vec!["creator", "autofill-waza", &waza_id, "--track", &track, "--pal", &pal_id];
+    let raw = run_cli(&app, &state, &args)?;
+    let parsed: Value = parse_last_json_line(&raw).unwrap_or(serde_json::json!({ "status": "success", "data": {}, "message": raw }));
+    Ok(parsed)
+}
+
+#[tauri::command]
 pub async fn creator_list(app: AppHandle, state: State<'_, AppState>) -> Result<Value, String> {
     let raw = run_cli(&app, &state, &["creator", "list"])?;
     let parsed: Value = parse_last_json_line(&raw)?;
