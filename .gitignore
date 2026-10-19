@@ -64,3 +64,7 @@ dump.txt
 /palbaker-cli/build/
 /palbaker-cli/dist/
 .env
+
+# Personal assistant notes (local only)
+/USER.md
+/MEMORY.md

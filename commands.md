@@ -193,9 +193,14 @@ Handles compiler diagnostics, auto-fixes, and UE4SS/PalSchema integrations [UI_d
             *   `uninstall`       : Cleans all UE4SS files from the game folder [utils/ue4ss_helper.py].
     *   **STDOUT Contract:** `{"status": "success", "message": "UE4SS management completed!"}` [views/settings_view.py]
 
+*   **Install/Uninstall PalBaker C++ Editor Plugin**
+    *   **Description:** Compiles `PalBakerEditorUtils` (when its source changed) and installs it into your Unreal project. Unreal Editor must be closed [utils/plugin_manager.py].
+    *   **Command:** `python palbaker_cli.py env install-plugin --action <install|uninstall>` [utils/cli/env_handlers.py]
+    *   **STDOUT Contract:** `{"status": "success", "message": "C++ Plugin compiled and installed successfully."}` [utils/cli/env_handlers.py]
+
 *   **Install/Uninstall PalSchema Mod**
     *   **Description:** Installs the PalSchema mod, updates `mods.txt` to enable dependencies, and configures UE4SS loading parameters [utils/palschema_helper.py].
-    *   **Command:** `python palbaker_cli.py env install-plugin --action <install|uninstall>` [utils/cli/env_handlers.py]
+    *   **Command:** `python palbaker_cli.py env palschema-install --action <install|uninstall>` [utils/cli/env_handlers.py]
     *   **STDOUT Contract:** `{"status": "success", "message": "PalSchema installation completed successfully!"}` [utils/palschema_helper.py]
 
 *   **Fetch Integration Status**
