@@ -15,9 +15,13 @@ try {
   console.warn("⚠️ Failed to read git commit count. Defaulting to 2400.");
 }
 
+// Commits dropped by the 2026-10 history rewrite (personal files removed). Added back so versions never go
+// below already-published releases (v0.1.63), which would break update ordering.
+const HISTORY_REWRITE_OFFSET = 3;
+
 // If running inside the pre-commit hook, we increment by 1 because the upcoming commit hasn't landed yet
 const isPreCommit = process.argv.includes('--pre-commit');
-const targetCount = isPreCommit ? commitCount + 1 : commitCount;
+const targetCount = (isPreCommit ? commitCount + 1 : commitCount) + HISTORY_REWRITE_OFFSET;
 
 // Apply your exact mathematical semver formatting
 const major = Math.floor(targetCount / 1000);
