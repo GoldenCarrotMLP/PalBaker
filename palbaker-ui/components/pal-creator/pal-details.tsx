@@ -345,7 +345,7 @@ export function PalDetails({
             </FieldGroup>
             <FieldGroup label="PALDECK INDEX">
               <div className="flex gap-1.5">
-                <input type="number" value={pal.ZukanIndex || -1} onChange={(e) => onUpdate({ ZukanIndex: Number(e.target.value) })} className="input-field flex-1" />
+                <input type="number" value={pal.ZukanIndex ?? -1} onChange={(e) => onUpdate({ ZukanIndex: Number(e.target.value) })} className="input-field flex-1" />
                 <input value={pal.ZukanIndexSuffix || ""} onChange={(e) => onUpdate({ ZukanIndexSuffix: e.target.value })} className="input-field w-14 text-center font-bold" placeholder="Sfx" maxLength={2} />
               </div>
             </FieldGroup>

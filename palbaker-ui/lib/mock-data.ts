@@ -126,6 +126,7 @@ export interface CustomAnimationEntry {
   enable_root_motion?: boolean
   rest_props?: RestProps
   duration?: number // <-- Added to persist sequence duration in sidecar
+  frame_count?: number
 }
 
 export interface BlendSpaceSample {
