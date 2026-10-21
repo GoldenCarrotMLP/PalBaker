@@ -562,6 +562,13 @@ pub async fn env_enable_remote_exec(app: AppHandle, state: State<'_, AppState>) 
 }
 
 #[tauri::command]
+pub async fn env_close_game(app: AppHandle, state: State<'_, AppState>) -> Result<Value, String> {
+    let raw = run_cli(&app, &state, &["env", "close-game"])?;
+    let parsed: Value = parse_last_json_line(&raw).unwrap_or(serde_json::json!({ "status": "success", "message": raw }));
+    Ok(parsed)
+}
+
+#[tauri::command]
 pub async fn env_autodetect(app: AppHandle, state: State<'_, AppState>) -> Result<Value, String> {
     let raw = run_cli(&app, &state, &["env", "autodetect"])?;
     let parsed: Value = parse_last_json_line(&raw)?;

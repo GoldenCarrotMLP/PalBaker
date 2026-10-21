@@ -21,6 +21,7 @@ import { cn } from "@/lib/utils"
 import { useNotifications } from "./mod-card-expanded/use-notifications"
 import { NotificationToast } from "./mod-card-expanded/notification-toast"
 import { DiagnosticsModal } from "@/components/common/diagnostics-modal"
+import type { LogDiagnosis } from "@/lib/error-parser"
 
 import { UnrealClosedModal } from "@/components/common/unreal-wizards/UnrealClosedModal"
 import { RemoteExecDisabledModal } from "@/components/common/unreal-wizards/RemoteExecDisabledModal"
@@ -340,6 +341,11 @@ export function ModManagerPage() {
       },
       onSuccess: (res) => {
         showNotification(res?.message || `${getActionFriendlyLabel(action)} finished for ${mod.name}! ;3`, "success")
+        // Known problem signatures the log analyzer spotted even though the run succeeded
+        const diagnostics: LogDiagnosis[] = Array.isArray(res?.diagnostics) ? res.diagnostics : []
+        for (const d of diagnostics) {
+          showNotification(`${d.solution}${d.assets?.length ? ` (${d.assets.join(", ")})` : ""}`, "warning", d.title)
+        }
         handleBackgroundRefresh()
       },
       onError: (errMsg) => {

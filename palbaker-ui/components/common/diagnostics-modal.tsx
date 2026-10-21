@@ -2,9 +2,18 @@
 
 import { useState, useEffect } from "react"
 import { UnrealHealthAPI, SystemSettingsAPI } from "@/lib/data-service"
-import { AlertTriangle, Terminal, X, ChevronDown, ChevronUp, Loader2, RefreshCw } from "lucide-react"
+import { AlertTriangle, Terminal, X, ChevronDown, ChevronUp, Loader2, RefreshCw, Copy, Check } from "lucide-react"
 import { useNav } from "@/lib/nav-context"
-import { parseBackendError } from "@/lib/error-parser"
+import { parseBackendError, type DiagnosticReport } from "@/lib/error-parser"
+
+type Remediation = DiagnosticReport["remediations"][number]
+
+const REMEDIATION_STYLES: Record<Remediation["style"], string> = {
+  primary: "bg-primary/10 hover:bg-primary/20 border-primary/30 text-primary",
+  secondary: "bg-muted hover:bg-muted/80 border-border text-foreground",
+  warning: "bg-status-warning/10 hover:bg-status-warning/20 border-status-warning/30 text-status-warning",
+  danger: "bg-status-error/10 hover:bg-status-error/20 border-status-error/30 text-status-error",
+}
 
 interface Props {
   errorText: string
@@ -17,6 +26,8 @@ export function DiagnosticsModal({ errorText, onClose }: Props) {
   const [config, setConfig] = useState<any>(null)
   const [loadingHealth, setLoadingHealth] = useState(true)
   const [actionLoading, setActionLoading] = useState(false)
+  const [copiedFolder, setCopiedFolder] = useState(false)
+  const [remediationResult, setRemediationResult] = useState<{ ok: boolean; text: string } | null>(null)
   const { setPage } = useNav()
 
   // 1. Resolve friendly diagnostic mapping variables natively using your parser
@@ -124,7 +135,57 @@ export function DiagnosticsModal({ errorText, onClose }: Props) {
 
   const isMissingPlugin = errorText.includes("missing or outdated in your Unreal project") || errorText.includes("PalBaker C++ Editor Helper Plugin")
   const isMissingAssets = errorText.includes("missing crucial master materials")
-  const isConnectionError = !isMissingPlugin && !isMissingAssets && !errorText.includes("Low Physical Memory") && !errorText.includes("free RAM is available")
+  // Editor launch/restart buttons only help when the editor is the problem (or the cause is unknown)
+  const isConnectionError = !isMissingPlugin && !isMissingAssets && (report.category === "UNREAL_CONNECTIVITY" || report.category === "GENERAL_ERROR")
+
+  // The editor buttons above already cover launch/remote-exec, and Settings is always offered below
+  const HANDLED_ELSEWHERE: Remediation["actionKey"][] = ["launch_unreal", "enable_remote_exec", "go_to_settings"]
+  const extraRemediations = (report.remediations as Remediation[] ?? []).filter(r => !HANDLED_ELSEWHERE.includes(r.actionKey))
+
+  const runRemediation = async (actionKey: Remediation["actionKey"]) => {
+    if (actionKey === "close_modal") {
+      onClose()
+      return
+    }
+    setActionLoading(true)
+    setRemediationResult(null)
+    try {
+      if (actionKey === "close_game") {
+        const res = await SystemSettingsAPI.closeGame()
+        setRemediationResult({ ok: true, text: `${res?.message || "Palworld closed."} You can run the action again now.` })
+      } else if (actionKey === "autodetect_paths") {
+        const results = await SystemSettingsAPI.autodetect()
+        const found: string[] = []
+        if (results?.ue_root) { await SystemSettingsAPI.setConfig("ue_root", results.ue_root); found.push("Unreal Engine") }
+        if (results?.palworld_exe) { await SystemSettingsAPI.setConfig("palworld_exe", results.palworld_exe); found.push("Palworld") }
+        if (results?.blender_versions?.length > 0) { await SystemSettingsAPI.setConfig("blender", results.blender_versions[0]); found.push("Blender") }
+        setRemediationResult(found.length > 0
+          ? { ok: true, text: `Detected and saved: ${found.join(", ")}. Check the rest in Settings, then try again.` }
+          : { ok: false, text: "Nothing could be detected automatically. Set the paths by hand in Settings." })
+      } else if (actionKey === "rebuild_db") {
+        await SystemSettingsAPI.buildDb()
+        setRemediationResult({ ok: true, text: "Database rebuilt from the game files. Try the action again." })
+      } else if (actionKey === "open_vs_installer") {
+        const { openUrl } = await import("@tauri-apps/plugin-opener")
+        await openUrl("https://visualstudio.microsoft.com/visual-cpp-build-tools/")
+      }
+    } catch (e) {
+      setRemediationResult({ ok: false, text: e instanceof Error ? e.message : String(e) })
+    } finally {
+      setActionLoading(false)
+    }
+  }
+
+  const handleCopyFolder = async () => {
+    if (!report.folder) return
+    try {
+      await navigator.clipboard.writeText(report.folder)
+      setCopiedFolder(true)
+      setTimeout(() => setCopiedFolder(false), 1500)
+    } catch (e) {
+      console.error(e)
+    }
+  }
 
   return (
     <div className="fixed inset-0 z-[100] flex items-center justify-center bg-black/60 backdrop-blur-sm p-4 animate-fade-in">
@@ -143,9 +204,31 @@ export function DiagnosticsModal({ errorText, onClose }: Props) {
 
         {/* Body */}
         <div className="p-5 flex flex-col gap-4">
-          <p className="text-sm text-foreground leading-relaxed font-medium">
+          <p className="text-sm text-foreground leading-relaxed font-medium whitespace-pre-line break-words max-h-80 overflow-y-auto">
             {report.friendlyMsg}
           </p>
+
+          {report.detail && (
+            <div className="flex flex-col gap-1">
+              <span className="text-[10px] font-bold text-muted-foreground uppercase tracking-widest">PalBaker reported</span>
+              <div className="bg-muted/30 border border-border rounded-md px-3 py-2 text-xs font-mono text-foreground whitespace-pre-wrap break-words max-h-32 overflow-y-auto select-text">
+                {report.detail}
+              </div>
+            </div>
+          )}
+
+          {report.folder && (
+            <div className="flex items-start gap-2 bg-muted/30 border border-border rounded-md px-3 py-2">
+              <span className="flex-1 text-xs font-mono text-foreground break-all select-all">{report.folder}</span>
+              <button
+                onClick={handleCopyFolder}
+                className="shrink-0 flex items-center gap-1 text-xs font-semibold text-muted-foreground hover:text-foreground transition-colors cursor-pointer"
+              >
+                {copiedFolder ? <Check className="size-3.5" /> : <Copy className="size-3.5" />}
+                {copiedFolder ? "Copied" : "Copy path"}
+              </button>
+            </div>
+          )}
 
           <div className="bg-muted/30 border border-border rounded-md flex flex-col">
             <button 
@@ -241,6 +324,25 @@ export function DiagnosticsModal({ errorText, onClose }: Props) {
                   </>
                 )}
 
+                {/* Fixes suggested by the parsed diagnostic report */}
+                {extraRemediations.filter(r => r.actionKey !== "close_modal").map(r => (
+                  <button
+                    key={r.actionKey}
+                    onClick={() => { runRemediation(r.actionKey) }}
+                    disabled={actionLoading}
+                    className={`flex items-center gap-3 px-4 py-2.5 border rounded-md text-sm font-medium transition-colors cursor-pointer disabled:opacity-50 ${REMEDIATION_STYLES[r.style]}`}
+                  >
+                    {actionLoading && <Loader2 className="size-4 animate-spin" />}
+                    {r.label}
+                  </button>
+                ))}
+
+                {remediationResult && (
+                  <p className={`text-xs leading-relaxed ${remediationResult.ok ? "text-status-success" : "text-status-error"}`}>
+                    {remediationResult.text}
+                  </p>
+                )}
+
                 {/* Always show settings link fallback */}
                 <button 
                   onClick={() => { setPage("system-settings"); onClose(); }}
@@ -250,6 +352,16 @@ export function DiagnosticsModal({ errorText, onClose }: Props) {
                   <span className="text-lg">⚙️</span>
                   {isConfigured ? "Go to Settings" : "Configure Settings Paths"}
                 </button>
+
+                {extraRemediations.filter(r => r.actionKey === "close_modal").map(r => (
+                  <button
+                    key={r.label}
+                    onClick={onClose}
+                    className="px-4 py-2 text-sm font-medium text-muted-foreground hover:text-foreground transition-colors cursor-pointer"
+                  >
+                    {r.label}
+                  </button>
+                ))}
 
               </div>
             </div>

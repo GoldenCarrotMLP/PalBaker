@@ -96,6 +96,14 @@ async managePalSchema(action: string): Promise<any> {
     return { status: "success", message: "Mocked enable-remote-exec completed." };
   },
 
+  async closeGame(): Promise<any> {
+    if (USE_LIVE_DATA) {
+      try { return await invoke("env_close_game") }
+      catch (err) { handleBackendError(err) }
+    }
+    return { status: "success", message: "Mocked close-game completed." }
+  },
+
   async autodetect(): Promise<any> {
     if (USE_LIVE_DATA) {
       try { return await invoke("env_autodetect") } 
