@@ -14,9 +14,11 @@ export interface DiagnosticReport {
   detail?: string
   // Folder the user has to put files into to fix the error (shown with a copy button)
   folder?: string
+  // Vanilla textures the "Extract from game" button can pull into `folder` (Missing Textures report)
+  extractableTextures?: { texture: string; game_path: string }[]
   remediations: {
     label: string
-    actionKey: "launch_unreal" | "go_to_settings" | "enable_remote_exec" | "close_game" | "autodetect_paths" | "rebuild_db" | "open_vs_installer" | "close_modal"
+    actionKey: "launch_unreal" | "go_to_settings" | "enable_remote_exec" | "close_game" | "autodetect_paths" | "rebuild_db" | "open_vs_installer" | "extract_textures" | "close_modal"
     style: "primary" | "secondary" | "warning" | "danger"
   }[]
 }
@@ -476,17 +478,22 @@ function parseMissingTextures(err: string): DiagnosticReport | null {
 
   msg += "\n\nHow to fix it:\n"
   let step = 1
+  const canExtract = vanilla.length > 0 && Boolean(folder)
   if (vanilla.length > 0) {
-    msg += `\n${step++}. These come from the base game. In FModel, open each path below and export it as PNG (right-click → Save Texture):`
+    msg += canExtract
+      ? `\n${step++}. ${vanilla.map(t => t.texture).join(", ")} ${vanilla.length === 1 ? "comes" : "come"} from the base game. Click 'Extract from game' below and PalBaker pulls ${vanilla.length === 1 ? "it" : "them"} out of Palworld's .pak files as PNG straight into your mod folder:`
+      : `\n${step++}. These come from the base game. In FModel, open each path below and export it as PNG (right-click → Save Texture):`
     for (const t of vanilla) {
       msg += `\n     Pal/Content/${t.game_path.slice("/Game/".length)}`
     }
-    msg += "\n   FModel saves it next to the base Pal's files, not inside your mod folder, so you'll need to move it."
+    if (!canExtract) msg += "\n   FModel saves it next to the base Pal's files, not inside your mod folder, so you'll need to move it."
   }
   if (custom.length > 0) {
     msg += `\n${step++}. ${custom.map(t => t.texture).join(", ")} ${custom.length === 1 ? "isn't" : "aren't"} a base game texture. Your .blend material references ${custom.length === 1 ? "it" : "them"}, so you have to supply the PNG yourself (or remove the texture from that material in Blender).`
   }
-  msg += `\n${step++}. Put the PNG files in your mod folder${folder ? " (shown below)" : ", next to your .blend file"}. Keep the exact file names, e.g. ${textures[0].texture}.png.`
+  if (custom.length > 0 || !canExtract) {
+    msg += `\n${step++}. Put the PNG files in your mod folder${folder ? " (shown below)" : ", next to your .blend file"}. Keep the exact file names, e.g. ${(custom[0] ?? textures[0]).texture}.png.`
+  }
   msg += `\n${step}. Run the action again.`
 
   return {
@@ -494,7 +501,10 @@ function parseMissingTextures(err: string): DiagnosticReport | null {
     title: textures.length === 1 ? "Missing Texture" : `Missing Textures (${textures.length})`,
     friendlyMsg: msg,
     folder,
-    remediations: DISMISS
+    extractableTextures: canExtract ? vanilla.map(t => ({ texture: t.texture, game_path: t.game_path })) : undefined,
+    remediations: canExtract
+      ? [{ label: `📦 Extract from game (${vanilla.length})`, actionKey: "extract_textures", style: "primary" }, ...DISMISS]
+      : DISMISS
   }
 }
 

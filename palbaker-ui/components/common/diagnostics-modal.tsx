@@ -162,6 +162,10 @@ export function DiagnosticsModal({ errorText, onClose }: Props) {
         setRemediationResult(found.length > 0
           ? { ok: true, text: `Detected and saved: ${found.join(", ")}. Check the rest in Settings, then try again.` }
           : { ok: false, text: "Nothing could be detected automatically. Set the paths by hand in Settings." })
+      } else if (actionKey === "extract_textures") {
+        const textures: { texture: string; game_path: string }[] = report.extractableTextures ?? []
+        const res = await SystemSettingsAPI.extractTextures(textures.map(t => t.game_path), report.folder)
+        setRemediationResult({ ok: true, text: `${res?.message || "Textures extracted."} Push the mod again.` })
       } else if (actionKey === "rebuild_db") {
         await SystemSettingsAPI.buildDb()
         setRemediationResult({ ok: true, text: "Database rebuilt from the game files. Try the action again." })

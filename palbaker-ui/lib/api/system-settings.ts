@@ -104,6 +104,19 @@ async managePalSchema(action: string): Promise<any> {
     return { status: "success", message: "Mocked close-game completed." }
   },
 
+  // Pulls vanilla textures (/Game/... paths) out of the game paks as PNGs into a mod folder
+  async extractTextures(paths: string[], folder: string): Promise<any> {
+    if (USE_LIVE_DATA) {
+      try {
+        const res: any = await invoke("env_extract_textures", { paths, folder })
+        if (res && res.status === "error") throw new Error(res.message)
+        return res
+      }
+      catch (err) { handleBackendError(err) }
+    }
+    return { status: "success", message: `Mocked extract-textures: ${paths.length} texture(s).` }
+  },
+
   async autodetect(): Promise<any> {
     if (USE_LIVE_DATA) {
       try { return await invoke("env_autodetect") } 

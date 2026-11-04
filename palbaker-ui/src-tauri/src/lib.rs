@@ -117,6 +117,7 @@ pub fn run() {
             commands::env_verify,
             commands::env_enable_remote_exec,
             commands::env_close_game,
+            commands::env_extract_textures,
             commands::env_autodetect,
             commands::env_inject_assets,
             commands::env_extract_icons,

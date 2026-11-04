@@ -569,6 +569,14 @@ pub async fn env_close_game(app: AppHandle, state: State<'_, AppState>) -> Resul
 }
 
 #[tauri::command]
+pub async fn env_extract_textures(app: AppHandle, state: State<'_, AppState>, paths: Vec<String>, folder: String) -> Result<Value, String> {
+    let paths_json = serde_json::to_string(&paths).map_err(|e| e.to_string())?;
+    let raw = run_cli(&app, &state, &["env", "extract-textures", "--paths", &paths_json, "--folder", &folder])?;
+    let parsed: Value = parse_last_json_line(&raw).unwrap_or(serde_json::json!({ "status": "success", "message": raw }));
+    Ok(parsed)
+}
+
+#[tauri::command]
 pub async fn env_autodetect(app: AppHandle, state: State<'_, AppState>) -> Result<Value, String> {
     let raw = run_cli(&app, &state, &["env", "autodetect"])?;
     let parsed: Value = parse_last_json_line(&raw)?;
