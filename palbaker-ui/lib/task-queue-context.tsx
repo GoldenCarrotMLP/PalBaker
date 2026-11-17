@@ -2,6 +2,7 @@
 
 import React, { createContext, useContext, useState, useEffect, useRef, useCallback } from "react"
 import { BuildConsoleAPI } from "@/lib/data-service"
+import { notifyJobFinished } from "@/lib/job-notifier"
 
 export type ChannelType = "unreal" | "blender" | "general"
 
@@ -172,6 +173,7 @@ export function TaskQueueProvider({ children }: { children: React.ReactNode }) {
         )
       )
       task.onSuccess?.(res)
+      notifyJobFinished(task.actionKey, task.name, true)
     } catch (err: any) {
       const errStr = err?.message || String(err)
       setTasks((pTasks) =>
@@ -188,6 +190,7 @@ export function TaskQueueProvider({ children }: { children: React.ReactNode }) {
         )
       )
       task.onError?.(errStr)
+      notifyJobFinished(task.actionKey, task.name, false, errStr)
     } finally {
       runningIdsRef.current.delete(task.id)
     }

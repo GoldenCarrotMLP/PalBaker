@@ -30,12 +30,6 @@ importers:
         specifier: ^0.34.5
         version: 0.34.5
 
-  palbaker-cli:
-    dependencies:
-      istextorbinary:
-        specifier: ^9.5.0
-        version: 9.5.0
-
   palbaker-ui:
     dependencies:
       '@base-ui/react':
@@ -47,6 +41,9 @@ importers:
       '@tauri-apps/plugin-dialog':
         specifier: ^2.2.0
         version: 2.7.1
+      '@tauri-apps/plugin-notification':
+        specifier: ~2.4.0
+        version: 2.4.0
       '@tauri-apps/plugin-opener':
         specifier: ^2.5.4
         version: 2.5.4
@@ -1261,6 +1258,10 @@ packages:
     resolution: {integrity: sha512-7CinYODhky9lmO23xHnUFv0Xt43fbtWMyxZcLcRBlFkcgXKuEirBvHpmtJ89YMhyeGcq20Wuc47Fa4XjyniywA==}
     dev: false
 
+  /@tauri-apps/api@2.12.5:
+    resolution: {integrity: sha512-G9QIMt5fzED+aS4QhVK3w1HWLKpLIwH/MnpCr9z1ugGEHnS2ORmqrLkc0uALOjRK4qXJy+4Yiw8LDl/KicC1Hg==}
+    dev: false
+
   /@tauri-apps/cli-darwin-arm64@2.11.2:
     resolution: {integrity: sha512-+4UZzLt+eOAEQCwgd+TqKgyUJMrvx+BgdXLLaqJYmPqzP+nE6YZr/hY6CWLYGQb8jFn99jEkmC6uA3tNvamA1w==}
     engines: {node: '>= 10'}
@@ -1382,6 +1383,12 @@ packages:
     resolution: {integrity: sha512-OK1UBXYt+ojcmxMktzzuyonYIFta8CmAASpX+CA+DTGK24KlHjhYI6x2iOJ/TjZF4N7/ACK1oFmEOjIY9IhzOQ==}
     dependencies:
       '@tauri-apps/api': 2.11.0
+    dev: false
+
+  /@tauri-apps/plugin-notification@2.4.0:
+    resolution: {integrity: sha512-xlJXMcUoKOjNupzDue5wrEsa1wytf+l/2gCAPhafHyP683Y3N7J/8clUWLZ3vpnwkpT2C1zcLMMQFjjecIG2xg==}
+    dependencies:
+      '@tauri-apps/api': 2.12.5
     dev: false
 
   /@tauri-apps/plugin-opener@2.5.4:

@@ -14,6 +14,7 @@ import { EnvironmentPaths } from "./environment-paths"
 import { Preferences } from "./preferences"
 import { EssentialBinaries } from "./essential-binaries"
 import { PipelineHealth } from "./pipeline-health"
+import { NotificationSettings } from "./notification-settings"
 
 // Wizards
 import { PluginInstallModal } from "./setup-wizards/PluginInstallModal"
@@ -176,6 +177,8 @@ export function SystemSettingsPage() {
           }} 
         />
       </div>
+
+      <NotificationSettings onError={(msg) => setDiagnosticError(msg)} />
 
       <PipelineHealth 
         envStatus={envStatus} 
